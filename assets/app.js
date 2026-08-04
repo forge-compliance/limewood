@@ -103,6 +103,7 @@
   }
 
   function openAsset(id) {
+    console.log('Opening asset', id);
     current = data.find(asset => asset.id === id);
     if (!current) return;
 

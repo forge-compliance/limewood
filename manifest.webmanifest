@@ -1,0 +1,10 @@
+{
+  "name": "Lime Wood Engineering",
+  "short_name": "LW Engineering",
+  "description": "Engineering asset and compliance management system",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef2ef",
+  "theme_color": "#173d32",
+  "icons": [{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

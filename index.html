@@ -3,151 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#173d32">
-  <meta name="description" content="Lime Wood Engineering asset and compliance management system">
+  <meta name="theme-color" content="#17332d">
   <title>Lime Wood Engineering</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-mark">LW</div>
-        <div><strong>Lime Wood</strong><span>Engineering</span></div>
-      </div>
-      <nav id="nav">
-        <button class="nav-link active" data-view="dashboard">Dashboard</button>
-        <button class="nav-link" data-view="assets">Asset Register</button>
-        <button class="nav-link" data-view="plantrooms">Plant Rooms</button>
-        <button class="nav-link" data-view="documents">Documents</button>
-        <button class="nav-link" data-view="jobs">Reactive Jobs</button>
-        <button class="nav-link" data-view="settings">Settings & Backup</button>
-      </nav>
-      <div class="sidebar-footer">Engineering Asset & Compliance Management System</div>
-    </aside>
-
-    <main>
-      <header class="topbar">
-        <button class="icon-button" id="menuButton" aria-label="Open menu">☰</button>
-        <div>
-          <h1 id="pageTitle">Dashboard</h1>
-          <p id="todayLabel"></p>
-        </div>
-        <button class="primary" id="quickAdd">+ Add asset</button>
-      </header>
-
-      <section class="view active" id="dashboard-view">
-        <div class="hero">
-          <div>
-            <p class="eyebrow">LIME WOOD HOTEL & SPA</p>
-            <h2>Engineering control, without the ring-binder archaeology.</h2>
-            <p>Manage plant rooms, assets, documents and maintenance records from one mobile-friendly system.</p>
-          </div>
-          <button class="secondary" data-view-jump="assets">Open asset register</button>
-        </div>
-        <div class="stats" id="stats"></div>
-        <div class="grid two">
-          <article class="panel">
-            <div class="panel-heading"><h3>Plant room summary</h3><button class="text-button" data-view-jump="plantrooms">View all</button></div>
-            <div id="plantroomSummary"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-heading"><h3>Recent assets</h3><button class="text-button" data-view-jump="assets">View register</button></div>
-            <div id="recentAssets"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" id="assets-view">
-        <div class="toolbar">
-          <input id="assetSearch" type="search" placeholder="Search asset, plant room, model or serial number">
-          <select id="plantroomFilter"><option value="">All plant rooms</option></select>
-          <button class="primary" id="addAssetButton">+ Add asset</button>
-        </div>
-        <div class="table-card">
-          <table>
-            <thead><tr><th>Asset ID</th><th>Item</th><th>Plant room</th><th>Manufacturer</th><th>Model</th><th>Status</th><th></th></tr></thead>
-            <tbody id="assetTableBody"></tbody>
-          </table>
-        </div>
-        <div class="mobile-cards" id="assetCards"></div>
-      </section>
-
-      <section class="view" id="plantrooms-view">
-        <div class="section-heading"><div><h2>Plant Rooms</h2><p>Asset totals and equipment groupings by location.</p></div></div>
-        <div class="card-grid" id="plantroomCards"></div>
-      </section>
-
-      <section class="view" id="documents-view">
-        <div class="section-heading"><div><h2>Document Library</h2><p>Register manuals, SOPs, RAMS, drawings and certificates.</p></div><button class="primary" id="addDocumentButton">+ Add record</button></div>
-        <div class="document-grid" id="documentList"></div>
-      </section>
-
-      <section class="view" id="jobs-view">
-        <div class="section-heading"><div><h2>Reactive Jobs</h2><p>Simple local job tracker for defects and engineering actions.</p></div><button class="primary" id="addJobButton">+ Add job</button></div>
-        <div id="jobList"></div>
-      </section>
-
-      <section class="view" id="settings-view">
-        <div class="grid two">
-          <article class="panel">
-            <h3>Backup and restore</h3>
-            <p>Data is currently stored in this browser. Export regular backups, because browsers occasionally behave like tiny chaotic landlords.</p>
-            <div class="button-stack">
-              <button class="primary" id="exportJson">Export full backup</button>
-              <button class="secondary" id="exportCsv">Export assets as CSV</button>
-              <label class="secondary file-label">Import backup<input type="file" id="importJson" accept="application/json"></label>
-            </div>
-          </article>
-          <article class="panel">
-            <h3>System information</h3>
-            <dl class="details-list">
-              <div><dt>Application</dt><dd>Lime Wood Engineering</dd></div>
-              <div><dt>Domain</dt><dd>limewoodengineering.pro.co.uk</dd></div>
-              <div><dt>Hosting</dt><dd>GitHub Pages compatible</dd></div>
-              <div><dt>Storage</dt><dd>Browser local storage</dd></div>
-              <div><dt>Offline mode</dt><dd>Enabled after first visit</dd></div>
-            </dl>
-            <button class="danger" id="resetDemo">Reset all local data</button>
-          </article>
-        </div>
-      </section>
-    </main>
+<header>
+  <div>
+    <h1>Lime Wood Engineering</h1>
+    <p>Staff House Boiler Room</p>
   </div>
+  <button id="installBtn" hidden>Install</button>
+</header>
 
-  <dialog id="assetDialog">
-    <form method="dialog" id="assetForm">
-      <div class="dialog-heading"><h2 id="assetDialogTitle">Add asset</h2><button class="icon-button" value="cancel" formnovalidate>✕</button></div>
-      <input type="hidden" id="assetRecordId">
-      <div class="form-grid">
-        <label>Asset ID<input id="assetId" required placeholder="e.g. CHPR-P-001"></label>
-        <label>Asset name<input id="assetName" required placeholder="e.g. Heating circulation pump"></label>
-        <label>Plant room<input id="assetPlantroom" required list="plantroomOptions"></label>
-        <datalist id="plantroomOptions"></datalist>
-        <label>Category<input id="assetCategory" placeholder="Pump, vessel, calorifier..."></label>
-        <label>Manufacturer<input id="assetManufacturer"></label>
-        <label>Model<input id="assetModel"></label>
-        <label>Serial number<input id="assetSerial"></label>
-        <label>Status<select id="assetStatus"><option>Operational</option><option>Attention required</option><option>Out of service</option><option>Unknown</option></select></label>
-        <label>Last service<input id="assetLastService" type="date"></label>
-        <label>Next service<input id="assetNextService" type="date"></label>
-        <label class="span-2">Notes<textarea id="assetNotes" rows="4"></textarea></label>
-      </div>
-      <div class="dialog-actions"><button value="cancel" class="secondary" formnovalidate>Cancel</button><button value="default" class="primary" id="saveAsset">Save asset</button></div>
-    </form>
-  </dialog>
+<main>
+  <section class="toolbar">
+    <input id="search" type="search" placeholder="Search asset, model or serial number">
+    <select id="typeFilter">
+      <option value="">All equipment</option>
+    </select>
+  </section>
 
-  <dialog id="simpleDialog">
-    <form method="dialog" id="simpleForm">
-      <div class="dialog-heading"><h2 id="simpleDialogTitle"></h2><button class="icon-button" value="cancel" formnovalidate>✕</button></div>
-      <div id="simpleDialogFields" class="form-grid"></div>
-      <div class="dialog-actions"><button value="cancel" class="secondary" formnovalidate>Cancel</button><button value="default" class="primary" id="simpleSave">Save</button></div>
-    </form>
-  </dialog>
+  <section class="stats" id="stats"></section>
+  <section id="assetList" class="asset-list"></section>
+</main>
 
-  <div class="toast" id="toast"></div>
-  <script src="assets/app.js"></script>
+<dialog id="assetDialog">
+  <article>
+    <button class="close" id="closeDialog">×</button>
+    <div id="assetDetail"></div>
+  </article>
+</dialog>
+
+<script src="app.js"></script>
 </body>
 </html>

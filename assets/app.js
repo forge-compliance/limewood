@@ -1,53 +1,190 @@
-const STORAGE_KEY='limewood-engineering-v1';
-const seed={
- assets:[
-  {id:crypto.randomUUID(),assetId:'CHPR-P-001',name:'Heating circulation pump 1',plantroom:'Coach House Plant Room',category:'Pump',manufacturer:'Wilo',model:'Unknown unit',serial:'Unknown',status:'Operational',lastService:'',nextService:'',notes:'Details to be confirmed from nameplate.'},
-  {id:crypto.randomUUID(),assetId:'CHPR-P-002',name:'Heating circulation pump 2',plantroom:'Coach House Plant Room',category:'Pump',manufacturer:'Wilo',model:'Unknown unit',serial:'Unknown',status:'Operational',lastService:'',nextService:'',notes:'Details to be confirmed from nameplate.'},
-  {id:crypto.randomUUID(),assetId:'CHPR-EV-001',name:'Expansion vessel',plantroom:'Coach House Plant Room',category:'Expansion vessel',manufacturer:'Unknown',model:'Unknown unit',serial:'Unknown',status:'Unknown',lastService:'',nextService:'',notes:''},
-  {id:crypto.randomUUID(),assetId:'SHBR-CAL-001',name:'Calorifier 1',plantroom:'Staff House Boiler Room',category:'Calorifier',manufacturer:'Unknown',model:'Unknown unit',serial:'Unknown',status:'Operational',lastService:'',nextService:'',notes:''},
-  {id:crypto.randomUUID(),assetId:'SHBR-CAL-002',name:'Calorifier 2',plantroom:'Staff House Boiler Room',category:'Calorifier',manufacturer:'Unknown',model:'Unknown unit',serial:'Unknown',status:'Operational',lastService:'',nextService:'',notes:''},
-  {id:crypto.randomUUID(),assetId:'SPBR-TRI-001',name:'Tricel treatment unit',plantroom:'Spa Boiler Plant Room',category:'Water treatment',manufacturer:'Tricel',model:'Unknown unit',serial:'Unknown',status:'Operational',lastService:'',nextService:'',notes:''}
- ],
- documents:[
-  {id:crypto.randomUUID(),title:'Coach House Plant Room Asset Register',type:'Asset Register',location:'Coach House Plant Room',note:'Master asset schedule'},
-  {id:crypto.randomUUID(),title:'Staff House Boiler Room Valve Chart',type:'Drawing',location:'Staff House Boiler Room',note:'Digital valve chart record'},
-  {id:crypto.randomUUID(),title:'Hydro Pool SOP',type:'SOP',location:'Herb House Spa',note:'Operating procedure record'}
- ],
- jobs:[
-  {id:crypto.randomUUID(),title:'Confirm unidentified equipment nameplates',location:'Coach House Plant Room',priority:'Medium',status:'Open',date:new Date().toISOString().slice(0,10)}
- ]
-};
-let db=load();
-function load(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||structuredClone(seed)}catch{return structuredClone(seed)}}
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db));renderAll()}
-function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
-function plantrooms(){return [...new Set(db.assets.map(a=>a.plantroom).filter(Boolean))].sort()}
-function statusClass(s){return s.toLowerCase().replaceAll(' ','-')}
-function setView(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(`${view}-view`).classList.add('active');document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.view===view));document.getElementById('pageTitle').textContent={dashboard:'Dashboard',assets:'Asset Register',plantrooms:'Plant Rooms',documents:'Documents',jobs:'Reactive Jobs',settings:'Settings & Backup'}[view];document.getElementById('sidebar').classList.remove('open')}
-function renderAll(){renderDashboard();renderAssets();renderPlantrooms();renderDocuments();renderJobs();renderLists()}
-function renderDashboard(){
- const rooms=plantrooms(); const attention=db.assets.filter(a=>a.status!=='Operational').length;
- document.getElementById('stats').innerHTML=[['Assets',db.assets.length],['Plant rooms',rooms.length],['Open jobs',db.jobs.filter(j=>j.status!=='Closed').length],['Need review',attention]].map(([l,n])=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
- document.getElementById('plantroomSummary').innerHTML=rooms.slice(0,6).map(r=>`<div class="summary-row"><strong>${esc(r)}</strong><span>${db.assets.filter(a=>a.plantroom===r).length} assets</span></div>`).join('')||'<p>No plant rooms recorded.</p>';
- document.getElementById('recentAssets').innerHTML=db.assets.slice(-5).reverse().map(a=>`<div class="recent-row"><div><strong>${esc(a.name)}</strong><small>${esc(a.plantroom)}</small></div><span class="status ${statusClass(a.status)}">${esc(a.status)}</span></div>`).join('');
-}
-function filteredAssets(){const q=document.getElementById('assetSearch').value.toLowerCase();const pr=document.getElementById('plantroomFilter').value;return db.assets.filter(a=>(!pr||a.plantroom===pr)&&Object.values(a).join(' ').toLowerCase().includes(q))}
-function renderAssets(){const rows=filteredAssets();document.getElementById('assetTableBody').innerHTML=rows.map(a=>`<tr><td><strong>${esc(a.assetId)}</strong></td><td>${esc(a.name)}</td><td>${esc(a.plantroom)}</td><td>${esc(a.manufacturer||'')}</td><td>${esc(a.model||'')}</td><td><span class="status ${statusClass(a.status)}">${esc(a.status)}</span></td><td class="row-actions"><button class="mini-button" data-edit-asset="${a.id}">Edit</button><button class="mini-button" data-delete-asset="${a.id}">Delete</button></td></tr>`).join('');
- document.getElementById('assetCards').innerHTML=rows.map(a=>`<article class="asset-mobile-card"><header><div><small>${esc(a.assetId)}</small><h3>${esc(a.name)}</h3></div><span class="status ${statusClass(a.status)}">${esc(a.status)}</span></header><p>${esc(a.plantroom)} · ${esc(a.manufacturer||'Unknown')} ${esc(a.model||'')}</p><div class="row-actions"><button class="mini-button" data-edit-asset="${a.id}">Edit</button><button class="mini-button" data-delete-asset="${a.id}">Delete</button></div></article>`).join('');
-}
-function renderPlantrooms(){document.getElementById('plantroomCards').innerHTML=plantrooms().map(r=>{const items=db.assets.filter(a=>a.plantroom===r);const cats=[...new Set(items.map(a=>a.category).filter(Boolean))];return `<article class="plantroom-card"><p class="eyebrow">PLANT ROOM</p><h3>${esc(r)}</h3><b>${items.length}</b><p>registered assets</p><small>${esc(cats.join(' · ')||'No categories recorded')}</small></article>`}).join('')}
-function renderDocuments(){document.getElementById('documentList').innerHTML=db.documents.map(d=>`<article class="document-card"><span class="tag">${esc(d.type)}</span><h3>${esc(d.title)}</h3><p>${esc(d.location)}</p><small>${esc(d.note||'')}</small><div><button class="mini-button" data-delete-document="${d.id}">Delete</button></div></article>`).join('')||'<p>No documents recorded.</p>'}
-function renderJobs(){document.getElementById('jobList').innerHTML=db.jobs.map(j=>`<article class="job-card"><div><h3>${esc(j.title)}</h3><p>${esc(j.location)}</p><div class="job-meta">${esc(j.priority)} priority · ${esc(j.status)} · ${esc(j.date)}</div></div><button class="mini-button" data-toggle-job="${j.id}">${j.status==='Closed'?'Reopen':'Close job'}</button></article>`).join('')||'<p>No jobs recorded.</p>'}
-function renderLists(){const opts=plantrooms().map(r=>`<option value="${esc(r)}">`).join('');document.getElementById('plantroomOptions').innerHTML=opts;const current=document.getElementById('plantroomFilter').value;document.getElementById('plantroomFilter').innerHTML='<option value="">All plant rooms</option>'+plantrooms().map(r=>`<option ${r===current?'selected':''}>${esc(r)}</option>`).join('')}
-function openAsset(id=''){const a=db.assets.find(x=>x.id===id)||{id:'',assetId:'',name:'',plantroom:'',category:'',manufacturer:'',model:'',serial:'',status:'Operational',lastService:'',nextService:'',notes:''};document.getElementById('assetDialogTitle').textContent=id?'Edit asset':'Add asset';for(const [field,key] of [['assetRecordId','id'],['assetId','assetId'],['assetName','name'],['assetPlantroom','plantroom'],['assetCategory','category'],['assetManufacturer','manufacturer'],['assetModel','model'],['assetSerial','serial'],['assetStatus','status'],['assetLastService','lastService'],['assetNextService','nextService'],['assetNotes','notes']])document.getElementById(field).value=a[key]||'';document.getElementById('assetDialog').showModal()}
-function saveAsset(e){e.preventDefault();const data={id:document.getElementById('assetRecordId').value||crypto.randomUUID(),assetId:document.getElementById('assetId').value.trim(),name:document.getElementById('assetName').value.trim(),plantroom:document.getElementById('assetPlantroom').value.trim(),category:document.getElementById('assetCategory').value.trim(),manufacturer:document.getElementById('assetManufacturer').value.trim(),model:document.getElementById('assetModel').value.trim(),serial:document.getElementById('assetSerial').value.trim(),status:document.getElementById('assetStatus').value,lastService:document.getElementById('assetLastService').value,nextService:document.getElementById('assetNextService').value,notes:document.getElementById('assetNotes').value.trim()};if(!data.assetId||!data.name||!data.plantroom){showToast('Asset ID, name and plant room are required');return}const i=db.assets.findIndex(a=>a.id===data.id);if(i>=0)db.assets[i]=data;else db.assets.push(data);document.getElementById('assetDialog').close();save();showToast('Asset saved')}
-function openSimple(type){const cfg=type==='document'?{title:'Add document record',fields:[['Title','text'],['Type','text'],['Location','text'],['Note','text']]}:{title:'Add reactive job',fields:[['Title','text'],['Location','text'],['Priority','select'],['Status','select'],['Date','date']]};const box=document.getElementById('simpleDialogFields');box.dataset.type=type;document.getElementById('simpleDialogTitle').textContent=cfg.title;box.innerHTML=cfg.fields.map(([n,t])=>`<label>${n}${t==='select'?`<select id="simple${n}">${(n==='Priority'?['Low','Medium','High','Urgent']:['Open','In progress','Closed']).map(v=>`<option>${v}</option>`).join('')}</select>`:`<input id="simple${n}" type="${t}" ${n==='Date'?`value="${new Date().toISOString().slice(0,10)}"`:''} required>`}</label>`).join('');document.getElementById('simpleDialog').showModal()}
-function saveSimple(e){e.preventDefault();const type=document.getElementById('simpleDialogFields').dataset.type;if(type==='document')db.documents.push({id:crypto.randomUUID(),title:val('simpleTitle'),type:val('simpleType'),location:val('simpleLocation'),note:val('simpleNote')});else db.jobs.push({id:crypto.randomUUID(),title:val('simpleTitle'),location:val('simpleLocation'),priority:val('simplePriority'),status:val('simpleStatus'),date:val('simpleDate')});document.getElementById('simpleDialog').close();save();showToast(type==='document'?'Document record added':'Job added')}
-const val=id=>document.getElementById(id).value.trim();
-function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
-function csv(){const headers=['Asset ID','Name','Plant Room','Category','Manufacturer','Model','Serial Number','Status','Last Service','Next Service','Notes'];const rows=db.assets.map(a=>[a.assetId,a.name,a.plantroom,a.category,a.manufacturer,a.model,a.serial,a.status,a.lastService,a.nextService,a.notes]);const cell=v=>'"'+String(v??'').replaceAll('"','""')+'"';return [headers,...rows].map(r=>r.map(cell).join(',')).join('\n')}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.view)setView(b.dataset.view);if(b.dataset.viewJump)setView(b.dataset.viewJump);if(b.dataset.editAsset)openAsset(b.dataset.editAsset);if(b.dataset.deleteAsset&&confirm('Delete this asset?')){db.assets=db.assets.filter(a=>a.id!==b.dataset.deleteAsset);save()}if(b.dataset.deleteDocument&&confirm('Delete this document record?')){db.documents=db.documents.filter(d=>d.id!==b.dataset.deleteDocument);save()}if(b.dataset.toggleJob){const j=db.jobs.find(x=>x.id===b.dataset.toggleJob);j.status=j.status==='Closed'?'Open':'Closed';save()}})
-document.querySelectorAll('.nav-link').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));document.getElementById('menuButton').onclick=()=>document.getElementById('sidebar').classList.toggle('open');document.getElementById('quickAdd').onclick=()=>openAsset();document.getElementById('addAssetButton').onclick=()=>openAsset();document.getElementById('assetForm').addEventListener('submit',saveAsset);document.getElementById('assetSearch').addEventListener('input',renderAssets);document.getElementById('plantroomFilter').addEventListener('change',renderAssets);document.getElementById('addDocumentButton').onclick=()=>openSimple('document');document.getElementById('addJobButton').onclick=()=>openSimple('job');document.getElementById('simpleForm').addEventListener('submit',saveSimple);document.getElementById('exportJson').onclick=()=>download(`limewood-engineering-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(db,null,2),'application/json');document.getElementById('exportCsv').onclick=()=>download('limewood-assets.csv',csv(),'text/csv');document.getElementById('importJson').addEventListener('change',async e=>{try{const incoming=JSON.parse(await e.target.files[0].text());if(!incoming.assets||!incoming.documents||!incoming.jobs)throw Error();db=incoming;save();showToast('Backup imported')}catch{showToast('That backup file is not valid')}});document.getElementById('resetDemo').onclick=()=>{if(confirm('Delete local changes and restore starter data?')){db=structuredClone(seed);save();showToast('Starter data restored')}};document.getElementById('todayLabel').textContent=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js'));
-renderAll();
+(() => {
+  'use strict';
+
+  const base = Array.isArray(window.LIMEWOOD_ASSETS) ? window.LIMEWOOD_ASSETS : [];
+  const data = base.map(asset => {
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(`lw-${asset.id}`) || '{}');
+    } catch (_) {
+      saved = {};
+    }
+    return { ...asset, ...saved };
+  });
+
+  const els = {
+    grid: document.getElementById('grid'),
+    search: document.getElementById('search'),
+    room: document.getElementById('room'),
+    category: document.getElementById('category'),
+    totalCount: document.getElementById('totalCount'),
+    roomsCount: document.getElementById('roomsCount'),
+    surveyedCount: document.getElementById('surveyedCount'),
+    reviewCount: document.getElementById('reviewCount'),
+    photoCount: document.getElementById('photoCount'),
+    resultCount: document.getElementById('resultCount'),
+    modal: document.getElementById('modal'),
+    modalImage: document.getElementById('mImg'),
+    modalId: document.getElementById('mId'),
+    modalName: document.getElementById('mName'),
+    modalDetails: document.getElementById('mDetails'),
+    modalNotes: document.getElementById('mNotes'),
+    modalStatus: document.getElementById('mStatus'),
+    saveButton: document.getElementById('saveBtn'),
+    exportButton: document.getElementById('exportBtn'),
+    closeButton: document.querySelector('.close')
+  };
+
+  let current = null;
+
+  const imagePath = asset => {
+    const folder = asset.room.startsWith('Staff') ? 'staff-house' : 'coach-house';
+    return `assets/images/${folder}/${asset.photo}`;
+  };
+
+  const escapeHtml = value => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+  function updateStats() {
+    els.totalCount.textContent = data.length;
+    els.roomsCount.textContent = new Set(data.map(a => a.room)).size;
+    els.surveyedCount.textContent = data.filter(a => ['Surveyed', 'Verified'].includes(a.status)).length;
+    els.reviewCount.textContent = data.filter(a => ['Needs review', 'Limited access'].includes(a.status)).length;
+    els.photoCount.textContent = data.filter(a => a.photo).length;
+  }
+
+  function populateFilters() {
+    [...new Set(data.map(a => a.room))].sort().forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      els.room.appendChild(option);
+    });
+
+    [...new Set(data.map(a => a.category))].sort().forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      els.category.appendChild(option);
+    });
+  }
+
+  function render() {
+    const query = els.search.value.trim().toLowerCase();
+    const selectedRoom = els.room.value;
+    const selectedCategory = els.category.value;
+
+    const rows = data.filter(asset => {
+      const matchesRoom = !selectedRoom || asset.room === selectedRoom;
+      const matchesCategory = !selectedCategory || asset.category === selectedCategory;
+      const matchesQuery = !query || JSON.stringify(asset).toLowerCase().includes(query);
+      return matchesRoom && matchesCategory && matchesQuery;
+    });
+
+    els.resultCount.textContent = `${rows.length} assets`;
+    els.grid.innerHTML = rows.map(asset => `
+      <article class="card" data-id="${escapeHtml(asset.id)}" role="button" tabindex="0" aria-label="Open ${escapeHtml(asset.name)}">
+        <img loading="lazy" src="${escapeHtml(imagePath(asset))}" alt="${escapeHtml(asset.name)}">
+        <div class="cardBody">
+          <div class="topline">
+            <span class="badge">${escapeHtml(asset.id)}</span>
+            <span class="status">${escapeHtml(asset.status)}</span>
+          </div>
+          <h4>${escapeHtml(asset.name)}</h4>
+          <div class="meta">${escapeHtml(asset.room)}<br>${escapeHtml(asset.manufacturer)} · ${escapeHtml(asset.model)}</div>
+          <button type="button" class="openAssetBtn" data-id="${escapeHtml(asset.id)}">Open asset details</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  function openAsset(id) {
+    current = data.find(asset => asset.id === id);
+    if (!current) return;
+
+    els.modalImage.src = imagePath(current);
+    els.modalImage.alt = current.name;
+    els.modalId.textContent = current.id;
+    els.modalName.textContent = current.name;
+    els.modalDetails.innerHTML = [
+      ['Plant room', current.room],
+      ['Category', current.category],
+      ['Manufacturer', current.manufacturer],
+      ['Model', current.model],
+      ['Serial', current.serial],
+      ['PPM', current.ppm]
+    ].map(([label, value]) => `<div><small>${escapeHtml(label)}</small>${escapeHtml(value || 'To be confirmed')}</div>`).join('');
+    els.modalNotes.value = current.notes || '';
+    els.modalStatus.value = current.status || 'Needs review';
+    els.modal.classList.add('open');
+    els.modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    els.closeButton.focus();
+  }
+
+  function closeAsset() {
+    els.modal.classList.remove('open');
+    els.modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  els.grid.addEventListener('click', event => {
+    const target = event.target.closest('[data-id]');
+    if (target && els.grid.contains(target)) openAsset(target.dataset.id);
+  });
+
+  els.grid.addEventListener('keydown', event => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('.card')) {
+      event.preventDefault();
+      openAsset(event.target.dataset.id);
+    }
+  });
+
+  els.saveButton.addEventListener('click', () => {
+    if (!current) return;
+    current.notes = els.modalNotes.value;
+    current.status = els.modalStatus.value;
+    localStorage.setItem(`lw-${current.id}`, JSON.stringify({ notes: current.notes, status: current.status }));
+    closeAsset();
+    updateStats();
+    render();
+  });
+
+  els.closeButton.addEventListener('click', closeAsset);
+  els.modal.addEventListener('click', event => {
+    if (event.target === els.modal) closeAsset();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && els.modal.classList.contains('open')) closeAsset();
+  });
+
+  [els.search, els.room, els.category].forEach(element => element.addEventListener('input', render));
+
+  document.querySelectorAll('.nav').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.nav').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      els.room.value = button.dataset.room || '';
+      render();
+    });
+  });
+
+  els.exportButton.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'limewood-asset-updates.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  });
+
+  populateFilters();
+  updateStats();
+  render();
+})();

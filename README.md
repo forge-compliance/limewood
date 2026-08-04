@@ -1,29 +1,22 @@
-# Lime Wood Engineering
+# Lime Wood Engineering App – Version 2.0
 
-Static, mobile-friendly engineering asset and compliance app for GitHub Pages.
+Static hosting package for GitHub Pages.
 
-## Upload to GitHub
+## Upload
+1. Extract this ZIP.
+2. Upload the contents, not the enclosing folder, to the root of the GitHub repository.
+3. Replace the existing files when prompted.
+4. Confirm GitHub Pages deploys from the main branch and repository root.
 
-1. Create a new GitHub repository.
-2. Upload every file and folder from this package to the repository root.
-3. Open **Settings → Pages**.
-4. Under **Build and deployment**, select **Deploy from a branch**.
-5. Choose the `main` branch and `/ (root)`, then save.
-6. The included `CNAME` file sets the custom domain to `limewoodengineering.pro.co.uk`.
-7. At the DNS provider for `pro.co.uk`, point the `limewoodengineering` host to your GitHub Pages hostname using a CNAME record.
+The CNAME file is set to `limewood-engineering.pro`.
 
-## Data storage
+## Included
+- Staff House Plant Room: 24 photographed records
+- Coach House Plant Room: 10 photographed records
+- Search, plant-room filters and categories
+- Asset detail pages in a modal view
+- Local status and maintenance-note editing
+- JSON export of local updates
 
-This version stores data in the browser using localStorage. Use **Settings & Backup** to export JSON backups. Data will not automatically sync between devices or users.
-
-## Included features
-
-- Dashboard and plant-room summaries
-- Editable asset register
-- Search and plant-room filters
-- Document register
-- Reactive job tracker
-- JSON backup/import
-- CSV asset export
-- PWA manifest and offline cache
-- Responsive mobile layout
+## Important
+Local edits are stored in the browser on the device used. They are not synchronised between devices. A hosted database can be added in a later version.

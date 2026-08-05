@@ -1,3 +1,0 @@
-LIMEWOOD ENGINEERING APP VERSION 2.2
-Upload every file in this package to the repository root.
-After deployment the page must show: LIVE BUILD CHECK: VERSION 2.2

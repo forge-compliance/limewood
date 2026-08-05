@@ -1,28 +1,17 @@
-# Lime Wood Engineering v3.5
+# Lime Wood Engineering v5.0 — Live BMS Centre
 
-Document Centre and SOP upload reliability update.
+This release adds a read-only Niagara BMS integration layer.
 
-## Improvements
-- SOP uploads no longer stop the app loading when optional controlled-document tables are unavailable.
-- Existing SOP numbers can receive new revisions instead of causing duplicate-number failures.
-- Duplicate revision numbers are clearly rejected before the record is completed.
-- Failed database saves clean up the uploaded storage file.
-- Clearer messages for storage, file-size and Supabase policy errors.
-- SOP fallback saves into the standard document library when the controlled SOP tables have not been installed.
-- Drawing document type is now displayed correctly.
-- Mobile document-upload modal is full-screen and scrollable.
-- Selected file name and size are shown before upload.
-- Maximum app-side file size is 50 MB.
+## Included
+- Live BMS Centre in the main menu
+- Secure shortcuts to the Niagara estate and building graphics
+- Staff House, Main House, Coach House, Spa, Green Barn, The Crescent, Pavilion and oil-system links
+- Asset-level “View Live BMS” button based on plant-room mapping
+- Estate-network/VPN notice and connection test
+- Niagara host configuration in `assets/config.js`
 
-## Upload to GitHub
-Extract this ZIP and replace the matching files in the repository. Keep the folder structure intact.
+## Safety boundary
+This release does not write to Niagara, change setpoints, start/stop plant, or bypass Niagara authentication. It only opens existing HTTPS graphics.
 
-After GitHub Pages deploys, open:
-https://limewood-engineering.pro/?v=34
-
-
-## v3.5 mobile SOP upload fix
-- Document upload modal now scrolls independently on phones.
-- Textareas can no longer be resized by dragging.
-- Added safe bottom spacing so the upload button remains reachable.
-- Uses 16px form text to prevent mobile browser zoom.
+## Deployment
+Upload the extracted matching files and folders over the existing GitHub repository. Do not delete unrelated existing folders such as `data` or `documents`.

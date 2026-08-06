@@ -1,0 +1,19 @@
+Limewood Engineering Control Centre v6.0
+Powered by Forge Compliance
+
+Replace in GitHub:
+- index.html
+- assets/app.js
+- assets/style.css
+
+Highlights:
+- Plant-room centred navigation
+- Asset Register directory by plant room
+- Valve Register directory and dedicated room registers
+- PPM Centre by plant room
+- Estate-wide search across assets, valves and documents
+- Dashboard engineering metrics
+- Refined Quick Action module cards
+- Limewood remains primary branding
+- Powered by / built and managed by Forge Compliance
+- About page and v6.0 versioning

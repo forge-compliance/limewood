@@ -1,0 +1,23 @@
+Limewood Engineering v7.1 - Maintenance email setup
+
+The application and public form work without email configuration.
+To automatically email engineers, add these Cloudflare Pages environment variables:
+
+SUPABASE_URL
+  Your Supabase project URL.
+
+SUPABASE_SERVICE_ROLE_KEY
+  Supabase service_role key. SERVER SIDE ONLY.
+  Do not put this key in config.js or any browser JavaScript.
+
+RESEND_API_KEY
+  API key from Resend.
+
+MAINTENANCE_FROM_EMAIL
+  Verified sender, e.g. Limewood Engineering <maintenance@forgecompliance.co.uk>
+
+Then add each maintenance engineer to public.maintenance_engineers.
+
+Notification behaviour:
+- New unassigned public issue -> sent to every active maintenance engineer.
+- Assigned/updated issue -> notification endpoint sends to the assigned engineer.

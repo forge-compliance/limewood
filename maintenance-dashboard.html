@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Maintenance Centre | Limewood Engineering</title>
+<meta name="theme-color" content="#17372c">
+<link rel="icon" href="/icons/icon-192.png">
+<style>
+:root{--green:#17372c;--green2:#245544;--gold:#b99a4a;--blue:#1f5fbf;--paper:#f3f6f4;--line:#dbe3de;--text:#25312b;--muted:#6e7771;--danger:#a63b3b;--ok:#2b603b}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--text);font-family:Arial,Helvetica,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.topbar{background:var(--green);color:#fff;padding:15px 18px;position:sticky;top:0;z-index:10;box-shadow:0 3px 12px #0002}.topbarInner{max-width:1280px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px}.mark{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#f7f3e7;color:var(--green);font:800 18px Georgia}.brand h1{margin:0;font:700 20px Georgia}.brand small{display:block;color:#dfe8e2;margin-top:2px}.forge{color:#78a9ff;font-weight:800}.topActions{display:flex;align-items:center;gap:8px}.roleBadge{background:#ffffff1a;border:1px solid #ffffff33;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.backBtn{background:#fff;color:var(--green);border:0;border-radius:11px;padding:10px 14px;font-weight:800}
+main{max-width:1280px;margin:22px auto;padding:0 16px 50px}.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border-radius:21px;padding:24px;display:flex;justify-content:space-between;gap:18px;align-items:center;box-shadow:0 10px 28px #17372c20}.eyebrow{font-size:11px;letter-spacing:.12em;color:#d5bc71;font-weight:900}.hero h2{font:700 31px Georgia;margin:6px 0}.hero p{margin:0;color:#dfe8e2;max-width:760px}.heroActions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:12px;padding:12px 15px;text-decoration:none;font-weight:900;cursor:pointer}.primary{background:var(--gold);color:#111}.secondary{background:#fff;color:var(--green)}.dangerBtn{background:#f8e2e2;color:#842929}.btn[disabled]{opacity:.45;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:18px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:17px;padding:18px;box-shadow:0 5px 16px #17372c0b}.stat span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:var(--muted)}.stat b{display:block;font:700 32px Georgia;color:var(--green);margin-top:6px}
+.toolbar{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:10px;background:#fff;border:1px solid var(--line);padding:13px;border-radius:16px}.toolbar input,.toolbar select{min-height:44px;border:1px solid #cfd8d2;border-radius:11px;padding:10px;background:#fff}.statusBar{margin:14px 0;padding:12px 14px;border-radius:13px;background:#eef4ff;color:#405b78;border:1px solid #ccdbee}.statusBar.error{background:#f8dddd;color:#842929;border-color:#e8bbbb}.statusBar.ok{background:#e4f1e8;color:#2b603b;border-color:#c8dfcf}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:16px}.card{width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 18px #17372c0b;cursor:pointer;position:relative}.card:hover{transform:translateY(-1px);box-shadow:0 9px 22px #17372c16}.cardTop{display:flex;justify-content:space-between;gap:10px;align-items:center}.ref{font-weight:900;color:var(--green)}.badge{padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900;background:#eef1ef;color:#4e5a53}.follow{background:#fae1ca;color:#8b4d12}.clear{background:#dceee2;color:#2b603b}.card h3{margin:15px 0 5px;color:var(--green);font-size:18px}.card p{margin:0;color:#59655e;min-height:44px;line-height:1.4}.meta{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.meta span{background:#eef1ef;border-radius:999px;padding:5px 8px;font-size:11px}.card small{display:block;border-top:1px solid #eef1ef;padding-top:11px;color:#7b837e}.empty{grid-column:1/-1;background:#fff;border:1px dashed #cbd6cf;border-radius:17px;padding:35px;text-align:center;color:#6f7972}
+.modal{position:fixed;inset:0;background:#102018a8;display:none;align-items:center;justify-content:center;padding:18px;z-index:30}.modal.open{display:flex}.modalCard{width:min(1000px,97vw);max-height:94vh;overflow:auto;background:#fff;border-radius:20px;padding:22px}.modalHead{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.close{border:0;background:#eef1ef;border-radius:50%;width:40px;height:40px;font-size:23px}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.panel{background:#f8faf8;border:1px solid #e0e6e2;border-radius:15px;padding:16px}.wide{grid-column:1/-1}.panel h3{margin-top:0;color:var(--green)}label{display:grid;gap:6px;margin-bottom:12px;font-size:12px;font-weight:800;color:#4e5a53}input,select,textarea{border:1px solid #cfd8d2;border-radius:11px;padding:11px;background:#fff;min-width:0}textarea{resize:vertical}input:disabled,select:disabled,textarea:disabled{background:#f0f2f0;color:#6b746e}.checkRow{display:flex;align-items:center;gap:9px;margin:5px 0 12px;font-size:13px;font-weight:800}.checkRow input{width:18px;height:18px;min-width:18px}.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.spacer{flex:1}.message{font-size:12px;font-weight:800}.message.error{color:#9a2c2c}.message.ok{color:#2b603b}
+.files{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.fileCard{background:#fff;border:1px solid #dfe6e1;border-radius:13px;padding:10px;display:grid;gap:8px}.fileThumb{height:120px;border-radius:9px;background:#eef1ef;display:grid;place-items:center;overflow:hidden;color:#59655e;font-size:30px}.fileThumb img{width:100%;height:100%;object-fit:cover}.fileName{font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fileMeta{font-size:10px;color:#7b837e}.fileActions{display:flex;gap:6px}.fileActions a,.fileActions button{flex:1;border:0;border-radius:8px;padding:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:900}.fileActions a{background:#eef4ff;color:#315b8c}.fileActions button{background:#f8e2e2;color:#842929}.uploadBox{border:1px dashed #b8c7be;border-radius:13px;padding:13px;background:#fff}.uploadBox small{display:block;color:#748078;margin-top:7px}.viewerNote{background:#fff7dc;border:1px solid #ead99b;border-radius:12px;padding:10px 12px;color:#6e5a17;font-size:12px;font-weight:800;margin-bottom:12px}
+@media(max-width:960px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr 1fr}.hero{align-items:flex-start;flex-direction:column}.files{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.stats,.grid,.toolbar,.detailGrid,.formGrid,.files{grid-template-columns:1fr}.wide{grid-column:auto}.hero h2{font-size:27px}.heroActions{width:100%}.heroActions>*{flex:1}.topActions .roleBadge{display:none}.modalCard{padding:16px}.actions .spacer{display:none}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbarInner">
+<div class="brand"><div class="mark">LW</div><div><h1>Limewood Engineering</h1><small>Maintenance Centre · Powered by <span class="forge">Forge Compliance</span></small></div></div>
+<div class="topActions"><span class="roleBadge" id="roleBadge">Checking access…</span><button class="backBtn" onclick="location.href='/'">← Home</button></div>
+</div></header>
+
+<main>
+<section class="hero"><div><span class="eyebrow">ENGINEERING MAINTENANCE</span><h2>Maintenance Centre</h2><p>Asset-linked maintenance history, engineer findings, works carried out, follow-ups and supporting evidence in one controlled record.</p></div><div class="heroActions"><button class="btn secondary" id="exportBtn">Export CSV</button><button class="btn secondary" id="refreshBtn">↻ Refresh</button><button class="btn primary" id="newBtn">＋ New record</button></div></section>
+<section class="stats"><article class="stat"><span>Total records</span><b id="totalCount">0</b></article><article class="stat"><span>This month</span><b id="monthCount">0</b></article><article class="stat"><span>Follow-up due</span><b id="followCount">0</b></article><article class="stat"><span>Assets covered</span><b id="assetCount">0</b></article><article class="stat"><span>Attachments</span><b id="fileCount">0</b></article></section>
+<section class="toolbar"><input id="search" placeholder="Search asset, work type, description, engineer, findings or actions"><select id="assetFilter"><option value="">All assets</option></select><select id="typeFilter"><option value="">All work types</option></select><select id="followFilter"><option value="">All follow-up states</option><option value="required">Follow-up required</option><option value="clear">No follow-up</option></select></section>
+<div id="statusBar" class="statusBar">Connecting to maintenance database…</div>
+<section id="cards" class="grid"></section>
+</main>
+
+<div id="recordModal" class="modal" aria-hidden="true"><div class="modalCard">
+<div class="modalHead"><div><span class="eyebrow">MAINTENANCE RECORD</span><h2 id="modalTitle">New maintenance record</h2><p id="modalSub">Create a controlled engineering maintenance entry.</p></div><button class="close" id="closeModal">×</button></div>
+<div id="viewerNote" class="viewerNote" hidden>Viewer access is read-only. Record changes and file uploads are disabled.</div>
+<div class="detailGrid">
+<section class="panel"><h3>Work details</h3><label>Asset<select id="assetId"></select></label><div class="formGrid"><label>Work date<input id="workDate" type="date"></label><label>Work type<select id="workType"><option>Breakdown</option><option>Repair</option><option>PPM</option><option>Inspection</option><option>Service</option><option>Remedial</option><option>Contractor</option><option>Other</option></select></label></div><label>Description<textarea id="description" rows="4" placeholder="What work was required?"></textarea></label><label>Engineer / contractor<input id="engineerName" placeholder="Name"></label></section>
+<section class="panel"><h3>Outcome</h3><label>Findings<textarea id="findings" rows="5" placeholder="Condition, fault found, readings or observations"></textarea></label><label>Actions taken<textarea id="actionsTaken" rows="5" placeholder="Repair, adjustment, replacement or action completed"></textarea></label><label class="checkRow"><input id="followRequired" type="checkbox"> Follow-up required</label><label id="followDateLabel">Follow-up date<input id="followDate" type="date"></label></section>
+<section class="panel wide"><h3>Photos & documents</h3><div id="uploadBox" class="uploadBox"><label>Add attachments<input id="attachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"></label><small>Photos, reports, invoices and supporting documents. Files are stored privately in Supabase.</small></div><div id="files" class="files"></div></section>
+<section class="panel wide actions"><button class="btn primary" id="saveBtn">Save maintenance record</button><button class="btn secondary" id="duplicateBtn" hidden>Duplicate</button><span class="message" id="formMessage"></span><span class="spacer"></span><button class="btn dangerBtn" id="deleteBtn" hidden>Delete record</button></section>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js"></script>
+<script>
+(async()=>{
+'use strict';
+const cfg=window.LIMEWOOD_CONFIG||{};
+const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const bucket=cfg.storageBucket||'asset-files';
+const $=id=>document.getElementById(id);
+const els={role:$('roleBadge'),newBtn:$('newBtn'),refresh:$('refreshBtn'),exportBtn:$('exportBtn'),status:$('statusBar'),cards:$('cards'),search:$('search'),assetFilter:$('assetFilter'),typeFilter:$('typeFilter'),followFilter:$('followFilter'),total:$('totalCount'),month:$('monthCount'),follow:$('followCount'),assetCount:$('assetCount'),fileCount:$('fileCount'),modal:$('recordModal'),close:$('closeModal'),title:$('modalTitle'),sub:$('modalSub'),viewerNote:$('viewerNote'),assetId:$('assetId'),workDate:$('workDate'),workType:$('workType'),description:$('description'),engineer:$('engineerName'),findings:$('findings'),actions:$('actionsTaken'),followRequired:$('followRequired'),followDate:$('followDate'),followDateLabel:$('followDateLabel'),attachments:$('attachments'),uploadBox:$('uploadBox'),files:$('files'),save:$('saveBtn'),duplicate:$('duplicateBtn'),deleteBtn:$('deleteBtn'),message:$('formMessage')};
+let session=null, profile=null, role='viewer', assets=[], plantRooms=[], records=[], fileRows=[], current=null;
+const canManage=()=>role==='admin'||role==='engineer';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const isoDate=d=>{if(!d)return'';const x=new Date(d);return Number.isNaN(x.getTime())?'':x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
+const today=()=>new Date().toISOString().slice(0,10);
+const assetById=id=>assets.find(a=>a.id===id);
+const roomById=id=>plantRooms.find(r=>r.id===id);
+const assetLabel=a=>a?`${a.asset_code||'Asset'} · ${a.asset_name||'Unnamed asset'}`:'Unknown asset';
+const setStatus=(text,type='')=>{els.status.textContent=text;els.status.className='statusBar'+(type?` ${type}`:'');};
+const setMessage=(text,type='')=>{els.message.textContent=text;els.message.className='message'+(type?` ${type}`:'');};
+
+async function init(){
+  if(!cfg.supabaseUrl||!cfg.supabasePublishableKey){setStatus('Supabase configuration is missing.','error');return;}
+  const s=await client.auth.getSession(); session=s.data.session;
+  if(!session){setStatus('Your session has expired. Returning to sign in…','error');setTimeout(()=>location.href='/',900);return;}
+  const p=await client.from('profiles').select('full_name,role').eq('id',session.user.id).maybeSingle();
+  if(p.error){setStatus(`Unable to load your profile: ${p.error.message}`,'error');return;}
+  profile=p.data||{full_name:session.user.email,role:'viewer'}; role=profile.role||'viewer';
+  els.role.textContent=role; applyRole(); bind(); await loadAll();
+}
+
+function applyRole(){
+  const manage=canManage(); els.newBtn.hidden=!manage; els.viewerNote.hidden=manage;
+  [els.assetId,els.workDate,els.workType,els.description,els.engineer,els.findings,els.actions,els.followRequired,els.followDate].forEach(x=>x.disabled=!manage);
+  els.attachments.disabled=!manage; els.save.hidden=!manage; els.uploadBox.hidden=!manage; els.deleteBtn.hidden=true; els.duplicate.hidden=true;
+}
+
+function bind(){
+  els.refresh.addEventListener('click',loadAll); els.newBtn.addEventListener('click',()=>openRecord()); els.close.addEventListener('click',closeModal); els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeModal();});
+  [els.search,els.assetFilter,els.typeFilter,els.followFilter].forEach(x=>x.addEventListener(x.tagName==='INPUT'?'input':'change',render));
+  els.followRequired.addEventListener('change',syncFollowDate); els.save.addEventListener('click',saveRecord); els.deleteBtn.addEventListener('click',deleteRecord); els.duplicate.addEventListener('click',duplicateRecord); els.exportBtn.addEventListener('click',exportCsv);
+}
+
+async function loadAll(){
+  setStatus('Syncing maintenance records…');
+  const [a,p,r,f]=await Promise.all([
+    client.from('assets').select('id,asset_code,asset_name,plant_room_id').order('asset_code'),
+    client.from('plant_rooms').select('id,name').order('name'),
+    client.from('maintenance_records').select('*').order('work_date',{ascending:false}).order('created_at',{ascending:false}),
+    client.from('maintenance_files').select('*').order('created_at',{ascending:false})
+  ]);
+  const error=a.error||p.error||r.error||f.error;
+  if(error){setStatus(`Maintenance sync failed: ${error.message}`,'error');return;}
+  assets=a.data||[]; plantRooms=p.data||[]; records=r.data||[]; fileRows=f.data||[];
+  populateFilters(); updateStats(); render(); setStatus(`Cloud synced · ${records.length} maintenance records`,'ok');
+}
+
+function populateFilters(){
+  const currentAsset=els.assetFilter.value, currentType=els.typeFilter.value;
+  els.assetFilter.innerHTML='<option value="">All assets</option>'+assets.map(a=>`<option value="${a.id}">${esc(assetLabel(a))}</option>`).join('');
+  els.assetId.innerHTML='<option value="">Select asset…</option>'+assets.map(a=>`<option value="${a.id}">${esc(assetLabel(a))}</option>`).join('');
+  const defaults=['Breakdown','Repair','PPM','Inspection','Service','Remedial','Contractor','Other'];
+  const types=[...new Set([...defaults,...records.map(r=>r.work_type).filter(Boolean)])].sort();
+  els.typeFilter.innerHTML='<option value="">All work types</option>'+types.map(t=>`<option>${esc(t)}</option>`).join('');
+  els.workType.innerHTML=types.map(t=>`<option>${esc(t)}</option>`).join('');
+  if([...els.assetFilter.options].some(o=>o.value===currentAsset))els.assetFilter.value=currentAsset;
+  if([...els.typeFilter.options].some(o=>o.value===currentType))els.typeFilter.value=currentType;
+}
+
+function updateStats(){
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+  els.total.textContent=records.length;
+  els.month.textContent=records.filter(r=>{const d=new Date(`${r.work_date||'1900-01-01'}T12:00:00`);return d.getFullYear()===y&&d.getMonth()===m;}).length;
+  els.follow.textContent=records.filter(r=>r.follow_up_required).length;
+  els.assetCount.textContent=new Set(records.map(r=>r.asset_id).filter(Boolean)).size;
+  els.fileCount.textContent=fileRows.length;
+}
+
+function filtered(){
+  const q=els.search.value.trim().toLowerCase(), aid=els.assetFilter.value, type=els.typeFilter.value, follow=els.followFilter.value;
+  return records.filter(r=>{
+    const a=assetById(r.asset_id), room=roomById(a?.plant_room_id);
+    const hay=[a?.asset_code,a?.asset_name,room?.name,r.work_type,r.description,r.engineer_name,r.findings,r.actions_taken].join(' ').toLowerCase();
+    return (!q||hay.includes(q))&&(!aid||r.asset_id===aid)&&(!type||r.work_type===type)&&(!follow||(follow==='required'?r.follow_up_required:!r.follow_up_required));
+  });
+}
+
+function render(){
+  const rows=filtered();
+  if(!rows.length){els.cards.innerHTML='<div class="empty">No maintenance records match the current filters.</div>';return;}
+  els.cards.innerHTML=rows.map(r=>{
+    const a=assetById(r.asset_id), room=roomById(a?.plant_room_id), fc=fileRows.filter(f=>f.maintenance_record_id===r.id).length;
+    const follow=r.follow_up_required?`<span class="badge follow">Follow-up ${r.follow_up_date?esc(isoDate(r.follow_up_date)):'required'}</span>`:'<span class="badge clear">No follow-up</span>';
+    return `<button class="card" data-id="${r.id}"><div class="cardTop"><span class="ref">${esc(a?.asset_code||'Maintenance')}</span>${follow}</div><h3>${esc(a?.asset_name||'Unknown asset')}</h3><p>${esc(r.description||r.findings||'No description recorded.')}</p><div class="meta"><span>${esc(r.work_type||'Maintenance')}</span><span>${esc(isoDate(r.work_date))}</span><span>${esc(r.engineer_name||'Engineer not recorded')}</span>${fc?`<span>📎 ${fc}</span>`:''}</div><small>${esc(room?.name||'Plant room not linked')} · ${esc(r.actions_taken||'Open record for details')}</small></button>`;
+  }).join('');
+  els.cards.querySelectorAll('.card').forEach(b=>b.addEventListener('click',()=>openRecord(b.dataset.id)));
+}
+
+function syncFollowDate(){els.followDateLabel.style.opacity=els.followRequired.checked?'1':'.45';els.followDate.disabled=!canManage()||!els.followRequired.checked;if(!els.followRequired.checked)els.followDate.value='';}
+
+async function openRecord(id=null){
+  current=id?records.find(r=>r.id===id):null; setMessage(''); els.attachments.value='';
+  els.title.textContent=current?'Maintenance record':'New maintenance record'; els.sub.textContent=current?`${assetLabel(assetById(current.asset_id))} · ${isoDate(current.work_date)}`:'Create a controlled engineering maintenance entry.';
+  els.assetId.value=current?.asset_id||''; els.workDate.value=current?.work_date||today(); els.workType.value=current?.work_type||'Repair'; els.description.value=current?.description||''; els.engineer.value=current?.engineer_name||profile?.full_name||session?.user?.email||''; els.findings.value=current?.findings||''; els.actions.value=current?.actions_taken||''; els.followRequired.checked=!!current?.follow_up_required; els.followDate.value=current?.follow_up_date||'';
+  els.deleteBtn.hidden=!current||!canManage(); els.duplicate.hidden=!current||!canManage(); syncFollowDate();
+  els.modal.classList.add('open'); els.modal.setAttribute('aria-hidden','false'); await renderFiles();
+}
+function closeModal(){els.modal.classList.remove('open');els.modal.setAttribute('aria-hidden','true');current=null;}
+
+function payload(){return {asset_id:els.assetId.value||null,work_date:els.workDate.value||today(),work_type:els.workType.value||'Other',description:els.description.value.trim(),engineer_name:els.engineer.value.trim(),findings:els.findings.value.trim(),actions_taken:els.actions.value.trim(),follow_up_required:els.followRequired.checked,follow_up_date:els.followRequired.checked?(els.followDate.value||null):null};}
+
+async function saveRecord(){
+  if(!canManage())return; const data=payload(); if(!data.asset_id){setMessage('Select an asset before saving.','error');return;} if(!data.description&&!data.findings&&!data.actions_taken){setMessage('Add a description, findings or actions taken.','error');return;}
+  els.save.disabled=true; setMessage('Saving…');
+  let saved;
+  if(current){const res=await client.from('maintenance_records').update(data).eq('id',current.id).select().single();if(res.error){els.save.disabled=false;setMessage(res.error.message,'error');return;}saved=res.data;}
+  else{const res=await client.from('maintenance_records').insert({...data,created_by:session.user.id}).select().single();if(res.error){els.save.disabled=false;setMessage(res.error.message,'error');return;}saved=res.data;}
+  current=saved;
+  const files=[...els.attachments.files];
+  if(files.length){setMessage(`Uploading ${files.length} attachment${files.length===1?'':'s'}…`);const ok=await uploadFiles(saved.id,files);if(!ok){els.save.disabled=false;return;}}
+  els.attachments.value=''; await loadAll(); current=records.find(r=>r.id===saved.id)||saved; await renderFiles(); els.title.textContent='Maintenance record'; els.sub.textContent=`${assetLabel(assetById(current.asset_id))} · ${isoDate(current.work_date)}`; els.deleteBtn.hidden=!canManage(); els.duplicate.hidden=!canManage(); els.save.disabled=false; setMessage('Maintenance record saved.','ok');
+}
+
+function safeName(name){return String(name||'file').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').slice(-120);}
+async function uploadFiles(recordId,files){
+  for(let i=0;i<files.length;i++){
+    const file=files[i], token=(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`), path=`maintenance/${recordId}/${token}-${safeName(file.name)}`;
+    setMessage(`Uploading ${i+1} of ${files.length}: ${file.name}`);
+    const up=await client.storage.from(bucket).upload(path,file,{contentType:file.type||undefined,upsert:false});
+    if(up.error){setMessage(`Upload failed: ${up.error.message}`,'error');return false;}
+    const row=await client.from('maintenance_files').insert({maintenance_record_id:recordId,file_name:file.name,storage_path:path,file_type:file.type||null,file_size:file.size||null,uploaded_by:session.user.id}).select().single();
+    if(row.error){await client.storage.from(bucket).remove([path]);setMessage(`File record failed: ${row.error.message}`,'error');return false;}
+  }
+  return true;
+}
+
+async function signedUrl(path){const r=await client.storage.from(bucket).createSignedUrl(path,3600);return r.error?'':r.data.signedUrl;}
+async function renderFiles(){
+  if(!current){els.files.innerHTML='<div class="empty">Save the maintenance record first, then attachments will appear here.</div>';return;}
+  const rows=fileRows.filter(f=>f.maintenance_record_id===current.id);
+  if(!rows.length){els.files.innerHTML='<div class="empty">No photos or documents attached to this maintenance record.</div>';return;}
+  els.files.innerHTML='<div class="empty">Loading attachments…</div>';
+  const enriched=await Promise.all(rows.map(async f=>({...f,url:await signedUrl(f.storage_path)})));
+  els.files.innerHTML=enriched.map(f=>{const image=(f.file_type||'').startsWith('image/');return `<div class="fileCard"><div class="fileThumb">${image&&f.url?`<img src="${esc(f.url)}" alt="">`:'📄'}</div><div class="fileName" title="${esc(f.file_name)}">${esc(f.file_name)}</div><div class="fileMeta">${esc(f.file_type||'File')} · ${formatBytes(f.file_size)}</div><div class="fileActions">${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener">Open</a>`:'<a aria-disabled="true">Unavailable</a>'}${canManage()?`<button data-file="${f.id}" data-path="${esc(f.storage_path)}">Delete</button>`:''}</div></div>`;}).join('');
+  els.files.querySelectorAll('button[data-file]').forEach(b=>b.addEventListener('click',()=>deleteFile(b.dataset.file,b.dataset.path)));
+}
+function formatBytes(n){const x=Number(n||0);if(!x)return'Unknown size';if(x<1024)return`${x} B`;if(x<1048576)return`${(x/1024).toFixed(1)} KB`;return`${(x/1048576).toFixed(1)} MB`;}
+async function deleteFile(id,path){if(!canManage()||!confirm('Delete this attachment?'))return;const s=await client.storage.from(bucket).remove([path]);if(s.error){setMessage(s.error.message,'error');return;}const d=await client.from('maintenance_files').delete().eq('id',id);if(d.error){setMessage(d.error.message,'error');return;}fileRows=fileRows.filter(f=>f.id!==id);updateStats();await renderFiles();setMessage('Attachment deleted.','ok');}
+
+async function deleteRecord(){
+  if(!current||!canManage()||!confirm('Delete this maintenance record and all of its attachments? This cannot be undone.'))return;
+  const paths=fileRows.filter(f=>f.maintenance_record_id===current.id).map(f=>f.storage_path).filter(Boolean);
+  if(paths.length){const s=await client.storage.from(bucket).remove(paths);if(s.error){setMessage(`Could not remove attachments: ${s.error.message}`,'error');return;}}
+  const d=await client.from('maintenance_records').delete().eq('id',current.id);if(d.error){setMessage(d.error.message,'error');return;}
+  closeModal();await loadAll();
+}
+
+function duplicateRecord(){if(!current||!canManage())return;const old=current;current=null;els.title.textContent='Duplicate maintenance record';els.sub.textContent='Review the copied details and save as a new record.';els.workDate.value=today();els.followRequired.checked=false;els.followDate.value='';els.files.innerHTML='<div class="empty">Attachments are not copied automatically.</div>';els.deleteBtn.hidden=true;els.duplicate.hidden=true;syncFollowDate();setMessage(`Copied from ${assetLabel(assetById(old.asset_id))}. Save to create the new record.`,'ok');}
+
+function exportCsv(){
+  const rows=filtered(); const headers=['Work date','Asset code','Asset name','Plant room','Work type','Description','Engineer','Findings','Actions taken','Follow-up required','Follow-up date','Attachments'];
+  const body=rows.map(r=>{const a=assetById(r.asset_id),room=roomById(a?.plant_room_id),fc=fileRows.filter(f=>f.maintenance_record_id===r.id).length;return [r.work_date,a?.asset_code,a?.asset_name,room?.name,r.work_type,r.description,r.engineer_name,r.findings,r.actions_taken,r.follow_up_required?'Yes':'No',r.follow_up_date||'',fc];});
+  const csv=[headers,...body].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`limewood-maintenance-${today()}.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+await init();
+})();
+</script>
+</body>
+</html>

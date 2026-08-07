@@ -1,0 +1,37 @@
+Limewood Engineering v7.2 — Contractor & Quotation Management
+
+Adds:
+- Contractors & Quotes home quick action.
+- Contractors & Quotes left-menu entry.
+- Dedicated contractor-dashboard.html.
+- Contractor directory / approved supplier records.
+- Insurance and accreditation expiry fields.
+- Request quotations from a maintenance issue.
+- Multiple contractor selection.
+- Secure email quotation links.
+- Public contractor-quote.html portal.
+- Repair vs Replacement proposal.
+- Quote amount, lead time, warranty, scope, exclusions and earliest attendance.
+- Side-by-side quote comparison.
+- Quote approval.
+- Contractor instruction email after approval.
+- Committed-spend total for the future finance module.
+
+Database:
+Run SUPABASE_CONTRACTOR_WORKFLOW_SETUP.sql once.
+
+Cloudflare:
+Add MAINTENANCE_NOTIFY_EMAIL if not already configured.
+Uses existing Resend / Supabase server variables.
+
+Upload / replace:
+index.html
+maintenance-dashboard.html
+contractor-dashboard.html
+contractor-quote.html
+service-worker.js
+functions/api/request-contractor-quotes.js
+functions/api/contractor-quote.js
+functions/api/approve-contractor-quote.js
+SUPABASE_CONTRACTOR_WORKFLOW_SETUP.sql
+CONTRACTOR_EMAIL_SETUP.txt

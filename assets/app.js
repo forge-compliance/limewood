@@ -1299,7 +1299,12 @@ function filtered() {
 function cardImage(a) { return a.photos[0]?.url || localPhoto(a); }
 
 function render() {
-  visibleRows = filtered();
+ visibleRows = filtered().sort((a, b) =>
+  (a.name || '').localeCompare(b.name || '', undefined, {
+    numeric: true,
+    sensitivity: 'base'
+  })
+);
   els.resultCount.textContent = `${visibleRows.length} asset${visibleRows.length===1?'':'s'}`;
   els.grid.innerHTML = visibleRows.map(a => `<article class="card assetCompactCard" tabindex="0" data-id="${esc(a.id)}">
     <img class="assetCardImage" src="${esc(cardImage(a))}" alt="${esc(a.name)}" onerror="this.src='assets/images/asset-placeholder.svg'">

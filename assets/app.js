@@ -20,6 +20,12 @@ const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabasePublish
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 
+// Remove legacy Limewood application data from browser storage. Supabase auth session storage is left untouched.
+try {
+  ['limewood-v52-operations','limewood-custom-plant-rooms-v1','limewood-v64-log-entries','limewood-v7-valve-migration-error','limewood-v7-valves-migrated','limewood-last-valve-import-room'].forEach(k=>localStorage.removeItem(k));
+  for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith('lw-'))localStorage.removeItem(k)}
+} catch (_) {}
+
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
 const fields = [
@@ -124,35 +130,17 @@ function printAllQrLabels(){
 }
 
 
-const OPS_STORAGE_KEY='limewood-v52-operations';
-const CUSTOM_PLANT_ROOMS_KEY='limewood-custom-plant-rooms-v1';
+// Cloud-only operational data. No valves, PPM records or plant-room data are stored in browser storage.
 let ppmRecords=[];
 let valveRecords=[];
 let valveImportRows=[];
 let editingValveId='';
 let operationsCloudReady=false;
+let ppmCloudReady=false;
+let valveCloudReady=false;
 function todayIso(){return new Date().toISOString().slice(0,10)}
 function addMonthsIso(dateStr,months){const d=dateStr?new Date(dateStr+'T12:00:00'):new Date();d.setMonth(d.getMonth()+months);return d.toISOString().slice(0,10)}
 function frequencyMonths(freq=''){const f=String(freq).toLowerCase();if(f.includes('month')){const n=parseInt(f)||1;return n}if(f.includes('quarter'))return 3;if(f.includes('6'))return 6;if(f.includes('annual')||f.includes('year'))return 12;if(f.includes('2 year'))return 24;return 12}
-function readOpsLocal(){try{return JSON.parse(localStorage.getItem(OPS_STORAGE_KEY)||'{}')}catch{return {}}}
-function saveOpsLocal(){localStorage.setItem(OPS_STORAGE_KEY,JSON.stringify({ppmRecords,valveRecords}))}
-function localOperationArray(local, key){
- const candidates=[
-  local?.[key],
-  local?.data?.[key],
-  local?.operations?.[key],
-  local?.state?.[key],
-  local?.payload?.[key]
- ];
- for(const value of candidates){
-  if(Array.isArray(value))return value;
-  if(value&&typeof value==='object'){
-   const nested=Object.values(value).find(Array.isArray);
-   if(Array.isArray(nested))return nested;
-  }
- }
- return [];
-}
 
 function valveRoomTagKey(v){
  const room=canonicalPlantRoomName(v?.plant_room||'').toLowerCase();
@@ -187,109 +175,19 @@ function valveCloudPayload(row){
  };
 }
 
-async function migrateLocalValvesToCloud(localValves,cloudRows){
- if(!operationsCloudReady||!localValves.length)return {migrated:0,error:null};
- const cloudTags=new Set((cloudRows||[]).map(v=>String(v?.tag||'').trim().toLowerCase()).filter(Boolean));
- const payload=localValves
-  .map(valveCloudPayload)
-  .filter(Boolean)
-  .filter(v=>!cloudTags.has(v.tag.toLowerCase()));
-
- if(!payload.length)return {migrated:0,error:null};
-
- const {data,error}=await client
-  .from('valve_register')
-  .upsert(payload,{onConflict:'plant_room,tag'})
-  .select();
-
- if(error){
-  console.error('Valve cloud migration failed:',error);
-  localStorage.setItem('limewood-v7-valve-migration-error',JSON.stringify({
-   at:new Date().toISOString(),
-   message:error.message||String(error)
-  }));
-  return {migrated:0,error};
- }
-
- localStorage.removeItem('limewood-v7-valve-migration-error');
- localStorage.setItem('limewood-v7-valves-migrated','true');
- return {migrated:Array.isArray(data)?data.length:payload.length,data:data||[]};
-}
-
 async function loadOperations(){
- const local=readOpsLocal();
- const localPpm=localOperationArray(local,'ppmRecords');
- const localValves=localOperationArray(local,'valveRecords');
-
  const [p,v]=await Promise.all([
   client.from('ppm_schedules').select('*'),
   client.from('valve_register').select('*')
  ]);
 
- const ppmCloudReady=!p.error;
- const valveCloudReady=!v.error;
- operationsCloudReady=ppmCloudReady||valveCloudReady;
+ ppmCloudReady=!p.error;
+ valveCloudReady=!v.error;
+ operationsCloudReady=ppmCloudReady&&valveCloudReady;
 
- // Each register now loads independently. A missing/broken PPM table must not hide valves.
- ppmRecords=ppmCloudReady?mergeOperationRows(p.data||[],localPpm):localPpm;
- valveRecords=valveCloudReady?mergeOperationRows(v.data||[],localValves):localValves;
+ ppmRecords=ppmCloudReady?(p.data||[]):[];
+ valveRecords=valveCloudReady?(v.data||[]):[];
 
- // If this browser has historical valves, migrate them whenever the VALVE table is available,
- // regardless of the PPM table state.
- if(valveCloudReady&&localValves.length){
-   const previousReady=operationsCloudReady;
-   operationsCloudReady=true;
-   const migration=await migrateLocalValvesToCloud(localValves,v.data||[]);
-   operationsCloudReady=previousReady;
-   if(!migration.error&&migration.migrated){
-     const refreshed=await client.from('valve_register').select('*');
-     if(!refreshed.error)valveRecords=mergeOperationRows(refreshed.data||[],localValves);
-   }
- }
-
- // Built-in CSV safety net: if cloud/local are empty, recover the supplied Forest Cottage register.
- if(!valveRecords.length){
-   try{
-     const res=await fetch('/data/Forest_Cottage_Valve_Register.csv',{cache:'no-store'});
-     if(res.ok){
-       const text=await res.text();
-       const lines=text.split(/\r?\n/).filter(Boolean);
-       if(lines.length>1){
-         const parseLine=line=>{
-           const out=[];let cur='',quoted=false;
-           for(let i=0;i<line.length;i++){
-             const c=line[i];
-             if(c==='"'){
-               if(quoted&&line[i+1]==='"'){cur+='"';i++}else quoted=!quoted;
-             }else if(c===','&&!quoted){out.push(cur);cur=''}else cur+=c;
-           }
-           out.push(cur);return out;
-         };
-         const headers=parseLine(lines[0]).map(h=>h.trim().toLowerCase().replace(/\s+/g,'_'));
-         const recovered=lines.slice(1).map(line=>{
-           const vals=parseLine(line),row={};
-           headers.forEach((h,i)=>row[h]=vals[i]||'');
-           return valveCloudPayload({
-             tag:row.tag||row.valve_tag||row.valve_no||row.valve_number,
-             plant_room:row.plant_room||'Forest Cottage & Lodges Plant Room',
-             asset_code:row.asset_code||row.asset,
-             service_duty:row.service_duty||row.service||row.description||row.duty,
-             valve_type:row.valve_type||row.type,
-             size:row.size||row.valve_size,
-             normal_position:row.normal_position||row.position,
-             location:row.location||row.physical_location,
-             isolation_purpose:row.isolation_purpose||row.purpose||row.isolates,
-             last_verified:row.last_verified||row.verified_date,
-             notes:row.notes||row.comments
-           });
-         }).filter(Boolean);
-         if(recovered.length)valveRecords=mergeOperationRows(recovered,valveRecords);
-       }
-     }
-   }catch(e){console.warn('Valve CSV recovery failed',e)}
- }
-
- saveOpsLocal();
  seedPpmFromAssets();
  populateOpsFilters();
  renderPpm();
@@ -297,13 +195,12 @@ async function loadOperations(){
  refreshV6Metrics();
  setTimeout(openValveFromUrl,0);
 
- if(p.error)console.warn('PPM cloud unavailable:',p.error.message||p.error);
- if(v.error)console.warn('Valve cloud unavailable:',v.error.message||v.error);
+ if(p.error)console.error('PPM cloud load failed:',p.error.message||p.error);
+ if(v.error)console.error('Valve cloud load failed:',v.error.message||v.error);
+ if(v.error)setSync('Valve register unavailable - database connection failed',true);
 }
 
-function customPlantRooms(){
- try{return JSON.parse(localStorage.getItem(CUSTOM_PLANT_ROOMS_KEY)||'[]').filter(Boolean)}catch{return[]}
-}
+function customPlantRooms(){return []}
 function normalisePlantRoomName(name){
  let value=String(name||'').trim().replace(/\s+/g,' ');
  if(value&&!/plant room$/i.test(value))value+=' Plant Room';
@@ -346,16 +243,7 @@ function allKnownPlantRooms(){
  ].filter(Boolean).map(canonicalPlantRoomName))]
  .sort((a,b)=>a.localeCompare(b));
 }
-function saveCustomPlantRoom(name){
- name=normalisePlantRoomName(name);
- const existing=customPlantRooms();
- const match=existing.find(x=>x.toLowerCase()===name.toLowerCase());
- const rooms=[...existing];
- if(!match&&name)rooms.push(name);
- rooms.sort((a,b)=>a.localeCompare(b));
- localStorage.setItem(CUSTOM_PLANT_ROOMS_KEY,JSON.stringify(rooms));
- return match||name;
-}
+function saveCustomPlantRoom(name){return normalisePlantRoomName(name)}
 function refreshPlantRoomEverywhere(){
  populateOpsFilters();
  fillValveImportRooms();
@@ -373,22 +261,18 @@ async function addPlantRoomFromUi(targetSelectId){
   return alert(`${existing} already exists and has been selected.`);
  }
  try{
-  if(operationsCloudReady)await ensurePlantRoom(name);
-  name=saveCustomPlantRoom(name);
+  await ensurePlantRoom(name);
   refreshPlantRoomEverywhere();
   const target=$(targetSelectId);if(target){target.value=name;target.dispatchEvent(new Event('change'))}
-  alert(`${name} added to all plant-room lists.`);
+  alert(`${name} added to the shared database.`);
  }catch(error){
   console.error(error);
-  name=saveCustomPlantRoom(name);refreshPlantRoomEverywhere();
-  const target=$(targetSelectId);if(target)target.value=name;
-  alert(`${name} was added on this device and is now available throughout the app. Cloud sync was unavailable: ${error.message}`);
+  alert(`Plant room was not saved. Database connection failed: ${error.message}`);
  }
 }
 
 function seedPpmFromAssets(){
  assets.forEach(a=>{if(!a.ppm)return;let r=ppmRecords.find(x=>x.asset_code===a.id);if(!r)ppmRecords.push({id:`local-${a.id}`,asset_code:a.id,frequency:a.ppm,last_completed:'',next_due:'',assigned_to:'',completion_status:'Scheduled',task:`Routine ${a.ppm} maintenance`,notes:''});});
- if(!operationsCloudReady)saveOpsLocal();
 }
 function assetForCode(code){return assets.find(a=>a.id===code)}
 function ppmStatus(r){if(r.completion_status==='Complete'&&r.last_completed){const month=new Date(r.last_completed+'T12:00:00');const now=new Date();if(month.getMonth()===now.getMonth()&&month.getFullYear()===now.getFullYear())return 'Complete'}if(!r.next_due)return 'Date required';const days=Math.ceil((new Date(r.next_due+'T12:00:00')-new Date())/86400000);if(days<0)return 'Overdue';if(days<=30)return 'Due soon';return 'Scheduled'}
@@ -513,14 +397,14 @@ function openPpm(code){
 }
 async function savePpmRecord(){
  const code=$('ppmAsset').value,r=ppmRecords.find(x=>x.asset_code===code);if(!r)return;
- Object.assign(r,{frequency:$('ppmFrequency').value,last_completed:$('ppmLast').value,next_due:$('ppmNext').value,assigned_to:$('ppmAssigned').value.trim(),completion_status:$('ppmCompletion').value,task:$('ppmTask').value.trim(),notes:$('ppmNotes').value.trim(),updated_at:new Date().toISOString()});
- if(r.completion_status==='Complete'&&r.last_completed&&!r.next_due)r.next_due=addMonthsIso(r.last_completed,frequencyMonths(r.frequency));
- if(operationsCloudReady){
-  const payload={asset_code:r.asset_code,frequency:r.frequency,last_completed:r.last_completed||null,next_due:r.next_due||null,assigned_to:r.assigned_to||null,completion_status:r.completion_status,task:r.task||null,notes:r.notes||null,updated_by:session.user.id};
-  const {data,error}=await client.from('ppm_schedules').upsert(payload,{onConflict:'asset_code'}).select().single();
-  if(error)return alert(error.message);Object.assign(r,data)
- }else saveOpsLocal();
- closeOpsModal('ppmModal');renderPpm();renderPpmDirectory()
+ if(!ppmCloudReady)return alert('PPM database is unavailable. Nothing has been saved locally.');
+ const next={frequency:$('ppmFrequency').value,last_completed:$('ppmLast').value,next_due:$('ppmNext').value,assigned_to:$('ppmAssigned').value.trim(),completion_status:$('ppmCompletion').value,task:$('ppmTask').value.trim(),notes:$('ppmNotes').value.trim(),updated_at:new Date().toISOString()};
+ if(next.completion_status==='Complete'&&next.last_completed&&!next.next_due)next.next_due=addMonthsIso(next.last_completed,frequencyMonths(next.frequency));
+ const payload={asset_code:r.asset_code,frequency:next.frequency,last_completed:next.last_completed||null,next_due:next.next_due||null,assigned_to:next.assigned_to||null,completion_status:next.completion_status,task:next.task||null,notes:next.notes||null,updated_by:session.user.id};
+ const {data,error}=await client.from('ppm_schedules').upsert(payload,{onConflict:'asset_code'}).select().single();
+ if(error)return alert(error.message);
+ Object.assign(r,data);
+ closeOpsModal('ppmModal');renderPpm();renderPpmDirectory();
 }
 function populatePpmAddForm(){
  const rooms=ppmRooms();
@@ -536,21 +420,17 @@ function populatePpmAddForm(){
 }
 async function createPpmSchedule(){
  const code=$('ppmAddAsset').value;if(!code)return alert('Choose an asset first.');
- const record={id:`local-${code}`,asset_code:code,frequency:$('ppmAddFrequency').value.trim()||assetForCode(code)?.ppm||'',last_completed:'',next_due:$('ppmAddNext').value,assigned_to:$('ppmAddAssigned').value.trim(),completion_status:'Scheduled',task:$('ppmAddTask').value.trim(),notes:$('ppmAddNotes').value.trim()};
- ppmRecords.push(record);
- if(operationsCloudReady){
-  const payload={asset_code:record.asset_code,frequency:record.frequency||null,last_completed:null,next_due:record.next_due||null,assigned_to:record.assigned_to||null,completion_status:'Scheduled',task:record.task||null,notes:record.notes||null,updated_by:session.user.id};
-  const {data,error}=await client.from('ppm_schedules').upsert(payload,{onConflict:'asset_code'}).select().single();
-  if(error){ppmRecords=ppmRecords.filter(r=>r!==record);return alert(error.message)}
-  Object.assign(record,data);
- }else saveOpsLocal();
+ if(!ppmCloudReady)return alert('PPM database is unavailable. Nothing has been saved locally.');
+ const record={asset_code:code,frequency:$('ppmAddFrequency').value.trim()||assetForCode(code)?.ppm||'',last_completed:null,next_due:$('ppmAddNext').value||null,assigned_to:$('ppmAddAssigned').value.trim()||null,completion_status:'Scheduled',task:$('ppmAddTask').value.trim()||null,notes:$('ppmAddNotes').value.trim()||null,updated_by:session.user.id};
+ const {data,error}=await client.from('ppm_schedules').upsert(record,{onConflict:'asset_code'}).select().single();
+ if(error)return alert(error.message);
+ ppmRecords.push(data);
  closeOpsModal('ppmAddModal');
  if(currentPpmRoom)renderPpm();else renderPpmDirectory();
  ppmSummary();
 }
 
 // ===== v6.4 Logs & Checks =====
-const LOG_STORAGE_KEY='limewood-v64-log-entries';
 let logEntries=[];
 let logsCloudReady=false;
 let currentLogType='';
@@ -611,8 +491,6 @@ const LOG_TEMPLATES={
   ]}
 };
 
-function readLocalLogs(){try{return JSON.parse(localStorage.getItem(LOG_STORAGE_KEY)||'[]')}catch{return[]}}
-function saveLocalLogs(){try{localStorage.setItem(LOG_STORAGE_KEY,JSON.stringify(logEntries))}catch(e){}}
 function logUserLabel(){const meta=session?.user?.user_metadata||{};return meta.full_name||meta.name||session?.user?.email||'Signed-in user'}
 function logTypeLabel(type){return LOG_TEMPLATES[type]?.title||String(type||'Log')}
 function renderLogTypes(){
@@ -636,40 +514,24 @@ function beginLog(type){
 function collectLogPayload(){const payload={};document.querySelectorAll('#dynamicLogFields [data-log-key]').forEach(el=>{payload[el.dataset.logKey]=el.value});return payload}
 function queuedLogCount(){return logEntries.filter(x=>x.sync_status==='pending').length}
 async function loadLogs(){
- const local=readLocalLogs();
  try{
-   const {data,error}=await client.from('log_entries').select('*').order('logged_at',{ascending:false}).limit(500);
-   logsCloudReady=!error;
-   if(!error){
-     const map=new Map();[...local,...(data||[])].forEach(r=>map.set(r.client_id||r.id,{...map.get(r.client_id||r.id),...r,sync_status:'synced'}));
-     logEntries=[...map.values()].sort((a,b)=>String(b.logged_at||'').localeCompare(String(a.logged_at||'')));
-     await syncPendingLogs();
-   }else logEntries=local;
- }catch(e){logsCloudReady=false;logEntries=local}
- saveLocalLogs();renderLogHistory();
+  const {data,error}=await client.from('log_entries').select('*').order('logged_at',{ascending:false}).limit(500);
+  logsCloudReady=!error;
+  if(error){logEntries=[];console.error('Logs cloud load failed:',error);}
+  else logEntries=(data||[]).map(r=>({...r,sync_status:'synced'}));
+ }catch(e){logsCloudReady=false;logEntries=[];console.error('Logs cloud load failed:',e)}
+ renderLogHistory();
 }
-async function syncPendingLogs(){
- if(!logsCloudReady)return;
- const pending=logEntries.filter(r=>r.sync_status==='pending');
- for(const r of pending){
-   const payload={client_id:r.client_id,log_type:r.log_type,location:r.location||null,plant_room:r.plant_room||null,logged_at:r.logged_at,logged_by:session?.user?.id||null,logged_by_email:r.logged_by_email||session?.user?.email||null,payload:r.payload||{},status:r.status||'Logged'};
-   const {data,error}=await client.from('log_entries').upsert(payload,{onConflict:'client_id'}).select().single();
-   if(!error){Object.assign(r,data,{sync_status:'synced'})}
- }
- saveLocalLogs();
-}
+async function syncPendingLogs(){return}
 async function saveDynamicLog(e){
  e.preventDefault();const t=LOG_TEMPLATES[currentLogType];if(!t)return;
+ if(!logsCloudReady)return alert('Logs database is unavailable. Nothing has been saved locally.');
  const payload=collectLogPayload(),now=new Date().toISOString(),clientId=`log-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
- const record={client_id:clientId,log_type:currentLogType,location:payload.location||payload.meter_name||payload.title||'',plant_room:canonicalPlantRoomName(payload.plant_room||'')||null,logged_at:now,logged_by:session?.user?.id||null,logged_by_email:session?.user?.email||'',payload,status:'Logged',sync_status:'pending'};
- logEntries.unshift(record);saveLocalLogs();
- let savedCloud=false;
- if(logsCloudReady){
-   const db={client_id:record.client_id,log_type:record.log_type,location:record.location||null,plant_room:record.plant_room,logged_at:record.logged_at,logged_by:record.logged_by,logged_by_email:record.logged_by_email||null,payload:record.payload,status:record.status};
-   const {data,error}=await client.from('log_entries').insert(db).select().single();
-   if(!error){Object.assign(record,data,{sync_status:'synced'});savedCloud=true;saveLocalLogs()}
- }
- const msg=$('logSaveMessage');msg.hidden=false;msg.className=`logSaveMessage ${savedCloud?'success':'pending'}`;msg.textContent=savedCloud?'Log saved to the database.':'Saved on this phone and queued for database sync.';
+ const db={client_id:clientId,log_type:currentLogType,location:payload.location||payload.meter_name||payload.title||null,plant_room:canonicalPlantRoomName(payload.plant_room||'')||null,logged_at:now,logged_by:session?.user?.id||null,logged_by_email:session?.user?.email||null,payload,status:'Logged'};
+ const {data,error}=await client.from('log_entries').insert(db).select().single();
+ if(error)return alert(error.message||'The log could not be saved.');
+ logEntries.unshift({...data,sync_status:'synced'});
+ const msg=$('logSaveMessage');msg.hidden=false;msg.className='logSaveMessage success';msg.textContent='Log saved to the database.';
  $('dynamicLogForm').reset();setTimeout(()=>showLogsHome(),1000);renderLogHistory();
 }
 function logPayloadSummary(r){
@@ -684,7 +546,6 @@ function renderLogHistory(){
  host.innerHTML=rows.length?rows.map(r=>`<article class="logHistoryCard"><div class="logHistoryIcon">${LOG_TEMPLATES[r.log_type]?.icon||'📝'}</div><div class="logHistoryBody"><div class="logHistoryTop"><b>${esc(logTypeLabel(r.log_type))}</b><span class="logSync ${r.sync_status==='pending'?'pending':'synced'}">${r.sync_status==='pending'?'Waiting to sync':'Synced'}</span></div><p>${esc(r.location||r.plant_room||'Engineering log')}</p><small>${esc(new Date(r.logged_at).toLocaleString())} · ${esc(r.payload?.operator_name||r.logged_by_email||'User')}</small><em>${esc(logPayloadSummary(r))}</em></div></article>`).join(''):'<div class="emptyState">No logs have been recorded yet.</div>';
 }
 function showLogHistory(){showView('logs');$('logTypePanel').hidden=true;$('logFormPanel').hidden=true;$('logHistoryPanel').hidden=false;renderLogHistory();closeDrawer()}
-window.addEventListener('online',()=>syncPendingLogs().then(renderLogHistory));
 // ===== end Logs & Checks =====
 
 function parseCsv(text){
@@ -737,11 +598,10 @@ function mapValveCsvRows(matrix,room){
 function fillValveImportRooms(){
  const rooms=allKnownPlantRooms();
  const select=$('valveImportRoom');if(!select)return;
- const previous=select.value || localStorage.getItem('limewood-last-valve-import-room') || els.room?.value || '';
+ const previous=select.value || els.room?.value || '';
  select.innerHTML='<option value="">Select plant room</option>'+rooms.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
  if(previous && rooms.includes(previous)) select.value=previous;
  else if(rooms.includes('Main House Plant Room')) select.value='Main House Plant Room';
- select.onchange=()=>localStorage.setItem('limewood-last-valve-import-room',select.value);
 }
 function resetValveImport(){
  valveImportRows=[];$('valveImportFile').value='';$('valveImportSummary').textContent='No file selected.';$('valveImportPreview').innerHTML='<tr><td colspan="5" class="emptyState">Select a CSV or XLSX file to preview it.</td></tr>';$('valveImportMessage').textContent='';$('confirmValveImport').disabled=true;
@@ -778,14 +638,9 @@ async function confirmValveImport(){
  const updateRows=mode==='update'?rows.filter(v=>existingByKey.has(valveRoomTagKey(v))):[];
  button.disabled=true;button.textContent='Importing…';$('valveImportMessage').textContent='';
  try{
-  if(operationsCloudReady){
-   const payloadRows=[...newRows,...updateRows].map(({id,...v})=>({...v,updated_by:session.user.id}));
-   if(payloadRows.length){const {data,error}=await client.from('valve_register').upsert(payloadRows,{onConflict:'plant_room,tag'}).select();if(error)throw error;for(const saved of data||[]){const old=valveRecords.find(v=>valveRoomTagKey(v)===valveRoomTagKey(saved));if(old)Object.assign(old,saved);else valveRecords.push(saved)}}
-  }else{
-   for(const v of newRows)valveRecords.push(v);
-   for(const v of updateRows)Object.assign(existingByKey.get(valveRoomTagKey(v)),v,{id:existingByKey.get(valveRoomTagKey(v)).id});
-   saveOpsLocal();
-  }
+  if(!valveCloudReady)throw new Error('Valve database is unavailable. Nothing has been saved locally.');
+  const payloadRows=[...newRows,...updateRows].map(({id,...v})=>({...v,updated_by:session.user.id}));
+  if(payloadRows.length){const {data,error}=await client.from('valve_register').upsert(payloadRows,{onConflict:'plant_room,tag'}).select();if(error)throw error;for(const saved of data||[]){const old=valveRecords.find(v=>valveRoomTagKey(v)===valveRoomTagKey(saved));if(old)Object.assign(old,saved);else valveRecords.push(saved)}}
   const skipped=rows.length-newRows.length-updateRows.length;
   $('valveImportMessage').classList.add('success');$('valveImportMessage').textContent=`Imported ${newRows.length}, updated ${updateRows.length}, skipped ${skipped}.`;
   renderValves();refreshPlantRoomNav();setTimeout(()=>closeOpsModal('valveImportModal'),900);
@@ -812,8 +667,25 @@ function stepValveDetail(direction){const list=filteredValveRows(),idx=list.find
 function showValveQr(){const v=valveRecords.find(x=>String(x.id)===String(currentValveDetailId));if(!v)return;const box=$('valveQrCode');box.innerHTML='';$('valveDetailQr').hidden=false;if(typeof QRCode==='undefined')box.textContent='QR library could not load.';else new QRCode(box,{text:valveRecordUrl(v),width:220,height:220,correctLevel:QRCode.CorrectLevel.M})}
 function openValveFromUrl(){const params=new URLSearchParams(location.search),key=params.get('valve');if(!key)return;const room=params.get('room')||'',v=valveRecords.find(x=>String(x.tag)===key||String(x.id)===key);if(v){showView('valves');openValveRoomRegister(room||v.plant_room);openValveDetail(v.id)}}
 function openValve(id=''){editingValveId=id;const v=valveRecords.find(x=>String(x.id)===String(id))||{};$('valveModalTitle').textContent=id?'Edit valve':'Add valve';$('vTag').value=v.tag||'';$('vRoom').value=v.plant_room||$('valveRoom').value||$('vRoom').options[0]?.value||'';$('vAsset').value=v.asset_code||'';$('vService').value=v.service_duty||'';$('vType').value=v.valve_type||'';$('vSize').value=v.size||'';$('vPosition').value=v.normal_position||'Open';$('vVerified').value=v.last_verified||'';$('vLocation').value=v.location||'';$('vIsolation').value=v.isolation_purpose||'';$('vNotes').value=v.notes||'';$('deleteValve').hidden=!id;openOpsModal('valveModal')}
-async function saveValveRecord(){const existing=valveRecords.find(x=>String(x.id)===String(editingValveId));const rec={id:existing?.id||`local-${Date.now()}`,tag:$('vTag').value.trim(),plant_room:$('vRoom').value,asset_code:$('vAsset').value||null,service_duty:$('vService').value.trim(),valve_type:$('vType').value.trim(),size:$('vSize').value.trim(),normal_position:$('vPosition').value,last_verified:$('vVerified').value||null,location:$('vLocation').value.trim(),isolation_purpose:$('vIsolation').value.trim(),notes:$('vNotes').value.trim(),updated_at:new Date().toISOString()};if(!rec.tag)return alert('Enter a valve tag.');if(operationsCloudReady){const payload={...rec};if(String(payload.id).startsWith('local-'))delete payload.id;payload.updated_by=session.user.id;const q=existing?client.from('valve_register').update(payload).eq('id',existing.id):client.from('valve_register').insert(payload);const {data,error}=await q.select().single();if(error)return alert(error.message);if(existing)Object.assign(existing,data);else valveRecords.push(data)}else{if(existing)Object.assign(existing,rec);else valveRecords.push(rec);saveOpsLocal()}closeOpsModal('valveModal');renderValves()}
-async function deleteValveRecord(){if(!editingValveId||!confirm('Delete this valve record?'))return;if(operationsCloudReady){const {error}=await client.from('valve_register').delete().eq('id',editingValveId);if(error)return alert(error.message)}valveRecords=valveRecords.filter(x=>String(x.id)!==String(editingValveId));saveOpsLocal();closeOpsModal('valveModal');renderValves()}
+async function saveValveRecord(){
+ const existing=valveRecords.find(x=>String(x.id)===String(editingValveId));
+ const rec={tag:$('vTag').value.trim(),plant_room:$('vRoom').value,asset_code:$('vAsset').value||null,service_duty:$('vService').value.trim(),valve_type:$('vType').value.trim(),size:$('vSize').value.trim(),normal_position:$('vPosition').value,last_verified:$('vVerified').value||null,location:$('vLocation').value.trim(),isolation_purpose:$('vIsolation').value.trim(),notes:$('vNotes').value.trim(),updated_at:new Date().toISOString(),updated_by:session.user.id};
+ if(!rec.tag)return alert('Enter a valve tag.');
+ if(!valveCloudReady)return alert('Valve database is unavailable. Nothing has been saved locally.');
+ const q=existing?client.from('valve_register').update(rec).eq('id',existing.id):client.from('valve_register').insert(rec);
+ const {data,error}=await q.select().single();
+ if(error)return alert(error.message);
+ if(existing)Object.assign(existing,data);else valveRecords.push(data);
+ closeOpsModal('valveModal');renderValves();
+}
+async function deleteValveRecord(){
+ if(!editingValveId||!confirm('Delete this valve record?'))return;
+ if(!valveCloudReady)return alert('Valve database is unavailable. Nothing has been changed locally.');
+ const {error}=await client.from('valve_register').delete().eq('id',editingValveId);
+ if(error)return alert(error.message);
+ valveRecords=valveRecords.filter(x=>String(x.id)!==String(editingValveId));
+ closeOpsModal('valveModal');renderValves();
+}
 function openOpsModal(id){const m=$(id);m.classList.add('open');m.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeOpsModal(id){const m=$(id);m.classList.remove('open');m.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
 function csvDownload(name,headers,rows){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv=[headers.map(q).join(','),...rows.map(r=>r.map(q).join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
@@ -1199,9 +1071,7 @@ async function ensurePlantRoom(roomName) {
   return room;
 }
 
-function localSaved(code) {
-  try { return JSON.parse(localStorage.getItem(`lw-${code}`) || '{}'); } catch { return {}; }
-}
+function localSaved(code) { return {}; }
 
 async function seedExistingAssets() {
   if (staticBase.length === 0) return;
@@ -1299,9 +1169,24 @@ function filtered() {
 function cardImage(a) { return a.photos[0]?.url || localPhoto(a); }
 
 function render() {
-  visibleRows = filtered();
+  visibleRows = filtered().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{numeric:true,sensitivity:'base'}));
   els.resultCount.textContent = `${visibleRows.length} asset${visibleRows.length===1?'':'s'}`;
-  els.grid.innerHTML = visibleRows.map(a => `<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}" onerror="this.src='assets/images/asset-placeholder.svg'"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.status)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}<br>${esc(a.manufacturer || 'Manufacturer to confirm')} · ${esc(a.model || 'Model to confirm')}</div><button class="openAssetBtn" data-id="${esc(a.id)}">Open asset details</button></div></article>`).join('') || '<div class="emptyState">No assets match those filters.</div>';
+  els.grid.innerHTML = visibleRows.map(a => `<article class="card assetCompactCard" tabindex="0" data-id="${esc(a.id)}">
+    <img class="assetCardImage" src="${esc(cardImage(a))}" alt="${esc(a.name)}" onerror="this.src='assets/images/asset-placeholder.svg'">
+    <div class="cardBody">
+      <div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.status)}</span></div>
+      <h4>${esc(a.name)}</h4>
+      <div class="meta assetCardRoom">${esc(a.room)}</div>
+    </div>
+    <div class="assetHoverPreview" aria-hidden="true">
+      <div class="assetPreviewRow"><span>Manufacturer</span><b>${esc(a.manufacturer || 'To confirm')}</b></div>
+      <div class="assetPreviewRow"><span>Model</span><b>${esc(a.model || 'To confirm')}</b></div>
+      <div class="assetPreviewRow"><span>Condition</span><b>${esc(a.condition || 'To confirm')}</b></div>
+      <div class="assetPreviewRow"><span>Criticality</span><b>${esc(a.criticality || 'To confirm')}</b></div>
+      <div class="assetPreviewRow"><span>PPM</span><b>${esc(a.ppm || 'To confirm')}</b></div>
+      <button class="openAssetBtn compactOpenAssetBtn" data-id="${esc(a.id)}">Open asset →</button>
+    </div>
+  </article>`).join('') || '<div class="emptyState">No assets match those filters.</div>';
 }
 
 function detailRows(a) {
@@ -1418,30 +1303,9 @@ async function saveCurrent() {
 }
 
 async function signIn() {
-  const email=els.authEmail.value.trim();
-  const password=els.authPassword.value;
-
-  if(!email || !password){
-    els.authMessage.textContent='Enter your email address and password.';
-    return;
-  }
-
   els.authMessage.textContent='Signing in…';
-  els.signIn.disabled=true;
-
-  try{
-    const {data,error}=await client.auth.signInWithPassword({email,password});
-    if(error) throw error;
-    if(!data?.session) throw new Error('No Supabase session was returned.');
-
-    els.authMessage.textContent='Signed in. Loading engineering data…';
-    await startApp(data.session);
-  }catch(error){
-    console.error('Sign-in failed:',error);
-    els.authMessage.textContent=String(error?.message||error||'Unable to sign in.');
-  }finally{
-    els.signIn.disabled=false;
-  }
+  const {error}=await client.auth.signInWithPassword({email:els.authEmail.value.trim(),password:els.authPassword.value});
+  els.authMessage.textContent=error?error.message:'';
 }
 
 async function signUp() {
@@ -1452,53 +1316,32 @@ async function signUp() {
 }
 
 async function startApp(newSession) {
-  if(!newSession) return;
-
   session=newSession;
-  els.authScreen.hidden=true;
-  els.appShell.hidden=false;
+  els.authScreen.hidden=true; els.appShell.hidden=false;
   updateDashboardGreeting();
-
-  try{
-    setSync('Loading assets…');
+  try {
+    // Load existing buildings and plant rooms before attempting the one-time asset import.
+    // This prevents duplicate building and room inserts on a fresh deployment.
     await loadCloud();
-
-    setSync('Checking asset register…');
     await seedExistingAssets();
-
-    setSync('Refreshing assets…');
     await loadCloud();
-
-    setSync('Loading valves & PPM…');
+    refreshV6Metrics();
+    await loadDocumentCentre();
     await loadOperations();
-
-    try{ populateFilters(); }catch(e){ console.warn('populateFilters',e); }
-    try{ populateOpsFilters(); }catch(e){ console.warn('populateOpsFilters',e); }
-    try{ refreshPlantRoomNav(); }catch(e){ console.warn('refreshPlantRoomNav',e); }
-    try{ updateStats(); }catch(e){ console.warn('updateStats',e); }
-    try{ refreshV6Metrics(); }catch(e){ console.warn('refreshV6Metrics',e); }
-    try{ render(); }catch(e){ console.warn('render',e); }
-    try{ renderValves(); }catch(e){ console.warn('renderValves',e); }
-    try{ renderDashboard(); }catch(e){ console.warn('renderDashboard',e); }
-
+    await loadLogs();
     showView('dashboard');
-    setSync(`Cloud synced · ${assets.length} assets`);
-
-    Promise.allSettled([loadDocumentCentre(), loadLogs()]).then(()=>{
-      try{ refreshV6Metrics(); renderDashboard(); }catch(e){}
-    });
-
-    const directAsset=new URLSearchParams(location.search).get('asset');
-    if(directAsset&&assets.some(a=>a.id===directAsset)){
-      showRegister('');
-      setTimeout(()=>openAsset(directAsset),100);
+    const directAsset=new URLSearchParams(location.search).get('asset'); if(directAsset&&assets.some(a=>a.id===directAsset)){showRegister('');setTimeout(()=>openAsset(directAsset),100);}
+  }
+  catch(error){
+    console.error(error);
+    const message=String(error?.message||'Cloud connection failed');
+    if(/jwt issued at future|issued in the future|not before claim|nbf/i.test(message)){
+      setSync('Device clock needs correcting',true);
+      alert('Your phone date or time is incorrect. Turn on Automatic date and time in Android Settings, then close and reopen the app. Supabase cannot accept a login token while the device clock is behind.');
+      return;
     }
-  }catch(error){
-    console.error('Core startup failed:',error);
-    const message=String(error?.message||error||'Core startup failed');
-    setSync(`Startup failed: ${message}`,true);
-    try{ showView('dashboard'); }catch(e){}
-    alert(`Limewood startup failed: ${message}`);
+    setSync(message,true);
+    alert(`Supabase connection error: ${message}`);
   }
 }
 
@@ -1519,20 +1362,7 @@ function updateDashboardGreeting(){
 
 function stopApp() { session=null; assets=[]; els.appShell.hidden=true; els.authScreen.hidden=false; els.authPassword.value=''; els.authMessage.textContent=''; }
 
-els.signIn.onclick=signIn; els.signUp.onclick=signUp; els.signOut.onclick=()=>client.auth.signOut(); els.refresh.onclick=async()=>{
-  try{
-    setSync('Refreshing assets…');
-    await loadCloud();
-    setSync('Refreshing valves & PPM…');
-    await loadOperations();
-    try{ refreshPlantRoomNav(); populateFilters(); populateOpsFilters(); updateStats(); refreshV6Metrics(); render(); renderValves(); renderDashboard(); }catch(e){ console.warn('UI refresh',e); }
-    setSync(`Cloud synced · ${assets.length} assets`);
-  }catch(e){
-    const message=String(e?.message||e);
-    setSync(`Refresh failed: ${message}`,true);
-    alert(`Refresh failed: ${message}`);
-  }
-};
+els.signIn.onclick=signIn; els.signUp.onclick=signUp; els.signOut.onclick=()=>client.auth.signOut(); els.refresh.onclick=()=>Promise.all([loadCloud(),loadDocumentCentre(),loadOperations(),loadLogs()]).catch(e=>{setSync(e.message,true);alert(e.message)});
 els.grid.addEventListener('click',e=>{const t=e.target.closest('[data-id]');if(t)openAsset(t.dataset.id)});
 els.grid.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.card')){e.preventDefault();openAsset(e.target.dataset.id)}});
 els.edit.onclick=()=>setEditing(!editing); els.save.onclick=saveCurrent; els.addAsset.onclick=newAsset; els.close.onclick=closeAsset; els.back.onclick=closeAsset; els.modal.onclick=e=>{if(e.target===els.modal)closeAsset()};
@@ -1541,6 +1371,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAsset()});
 function adjacent(n){const i=visibleRows.findIndex(a=>a.id===current?.id),a=visibleRows[i+n];if(a)openAsset(a.id)} els.previous.onclick=()=>adjacent(-1); els.next.onclick=()=>adjacent(1);
 
 
+function showMaintenanceIssues(){window.location.href='/maintenance-dashboard';}
 const runGlobalSearch=()=>{const q=els.globalSearch?.value.trim()||'';if(q)showGlobalSearchResults(q);};
 $('globalSearchBtn')?.addEventListener('click',runGlobalSearch);
 els.globalSearch?.addEventListener('keydown',e=>{if(e.key==='Enter')runGlobalSearch()});
@@ -1697,13 +1528,12 @@ $('exportPpm')?.addEventListener('click',exportPpmCsv);$('exportValves')?.addEve
 $('ppmLast')?.addEventListener('change',()=>{if($('ppmLast').value&&!$('ppmNext').value)$('ppmNext').value=addMonthsIso($('ppmLast').value,frequencyMonths($('ppmFrequency').value))});
 
 client.auth.onAuthStateChange((event,newSession)=>{
-  if(!newSession&&session) setTimeout(()=>stopApp(),0);
+  // Do not make Supabase calls from inside the auth callback.
+  // Deferring avoids holding the auth lock while startApp loads database data.
+  if(newSession&&!session) setTimeout(()=>startApp(newSession),0);
+  else if(!newSession&&session) setTimeout(()=>stopApp(),0);
 });
-client.auth.getSession().then(({data,error})=>{
-  if(error){ console.error('Session restore failed:',error); stopApp(); return; }
-  if(data?.session && !session) startApp(data.session);
-  else if(!data?.session && !session) stopApp();
-});
+client.auth.getSession().then(({data})=>{ if(data.session && !session) startApp(data.session); else if(!data.session) stopApp(); });
 })();
 
 
@@ -1747,13 +1577,25 @@ $('installAppButton')?.addEventListener('click',async()=>{
   updateInstallUi();
 });
 
-updateInstallUi();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      await navigator.serviceWorker.register('/service-worker.js');
+    }catch(e){
+      console.warn('Service worker registration failed',e);
+    }
+    updateInstallUi();
+  });
+}else{
+  updateInstallUi();
+}
+
 
 /* v7.0 unified web/PWA update handling */
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const reg=await navigator.serviceWorker.register('/service-worker.js?v=9991001',{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register('/service-worker.js?v=700',{updateViaCache:'none'});
       await reg.update();
       if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
       reg.addEventListener('updatefound',()=>{

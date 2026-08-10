@@ -1322,7 +1322,6 @@ async function startApp(newSession) {
   try {
     // Load existing buildings and plant rooms before attempting the one-time asset import.
     // This prevents duplicate building and room inserts on a fresh deployment.
-    await loadCloud();
     await seedExistingAssets();
     await loadCloud();
     refreshV6Metrics();

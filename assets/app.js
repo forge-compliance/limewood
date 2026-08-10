@@ -756,7 +756,7 @@ async function loadCloud() {
   plantRooms = pRes.data || [];
   const photos = phRes.data || [];
   const docs = dRes.data || [];
-  const photoUrls = await Promise.all(photos.map(async p => ({...p, url: await signedUrl(p.storage_path)})));
+ const photoUrls = photos.map(p => ({...p, url: ''}));
   const docUrls = await Promise.all(docs.map(async d => ({...d, url: d.external_url || (d.storage_path ? await signedUrl(d.storage_path) : '')})));
   assets = (aRes.data || []).map(row => toView({
     ...row,
@@ -1232,12 +1232,21 @@ function setEditing(on) {
   }
 }
 
-function openAsset(code) {
+async function openAsset(code) {
   current = assets.find(a => a.id === code);
   if (!current) return;
+
+  current.photos = await Promise.all(
+    (current.photos || []).map(async p => ({
+      ...p,
+      url: p.url || await signedUrl(p.storage_path)
+    }))
+  );
+
   setEditing(false); renderDetails();
   els.modal.classList.add('open'); els.modal.setAttribute('aria-hidden','false'); document.body.classList.add('modal-open');
   const i=visibleRows.findIndex(a=>a.id===current.id); els.previous.disabled=i<=0; els.next.disabled=i<0||i>=visibleRows.length-1;
+}
 }
 
 function newAsset() {

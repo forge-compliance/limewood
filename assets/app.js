@@ -1551,7 +1551,7 @@ client.auth.onAuthStateChange((event,newSession)=>{
 });
 client.auth.getSession().then(({data})=>{ if(data.session && !session) startApp(data.session); else if(!data.session) stopApp(); });
 })();
-
+const $ = id => document.getElementById(id);
 
 let deferredInstallPrompt=null;
 

@@ -757,7 +757,7 @@ async function loadCloud() {
   const photos = phRes.data || [];
   const docs = dRes.data || [];
  const photoUrls = photos.map(p => ({...p, url: ''}));
-  const docUrls = await Promise.all(docs.map(async d => ({...d, url: d.external_url || (d.storage_path ? await signedUrl(d.storage_path) : '')})));
+  const docUrls = docs.map(d => ({...d, url: d.external_url || ''}));
   assets = (aRes.data || []).map(row => toView({
     ...row,
     photos: photoUrls.filter(p => p.asset_id === row.id),

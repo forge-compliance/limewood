@@ -1381,7 +1381,7 @@ function stopApp() { session=null; assets=[]; els.appShell.hidden=true; els.auth
 els.signIn.onclick=signIn; els.signUp.onclick=signUp; els.signOut.onclick=()=>client.auth.signOut(); els.refresh.onclick=()=>Promise.all([loadCloud(),loadDocumentCentre(),loadOperations(),loadLogs()]).catch(e=>{setSync(e.message,true);alert(e.message)});
 els.grid.addEventListener('click',e=>{const t=e.target.closest('[data-id]');if(t)openAsset(t.dataset.id)});
 els.grid.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.card')){e.preventDefault();openAsset(e.target.dataset.id)}});
-els.edit.onclick=()=>setEditing(!editing); els.save.onclick=saveCurrent; els.addAsset.onclick=newAsset; els.close.onclick=closeAsset; els.back.onclick=closeAsset; els.modal.onclick=e=>{if(e.target===els.modal)closeAsset()};
+els.edit.onclick=()=>setEditing(!editing); els.save.onclick=saveCurrent; els.addAsset.onclick=newAsset; if(els.close) els.close.onclick=closeAsset; els.back.onclick=closeAsset; els.modal.onclick=e=>{if(e.target===els.modal)closeAsset()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAsset()});
 [els.search,els.room,els.category,els.completeness].forEach(x=>x.addEventListener('input',render));
 function adjacent(n){const i=visibleRows.findIndex(a=>a.id===current?.id),a=visibleRows[i+n];if(a)openAsset(a.id)} els.previous.onclick=()=>adjacent(-1); els.next.onclick=()=>adjacent(1);

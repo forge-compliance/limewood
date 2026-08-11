@@ -1010,11 +1010,16 @@ async function loadBoardCircuits(asset) {
   // Today's imported circuit data uses the board's displayed name as board_asset_code.
   const boardCode = asset.asset_name || asset.asset_code;
 
-  const { data, error } = await client
-    .from('electrical_circuits')
-    .select('*')
-    .eq('board_asset_code', boardCode)
-    .order('circuit_number');
+ const boardKeys = [
+  asset.asset_code,
+  asset.asset_name
+].filter(Boolean);
+
+const { data, error } = await client
+  .from('electrical_circuits')
+  .select('*')
+  .in('board_asset_code', boardKeys)
+  .order('circuit_number');
 
   if (error) {
     console.error('Circuit schedule load failed:', error);

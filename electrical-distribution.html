@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limewood Electrical Distribution</title>
+
+  <link rel="stylesheet" href="assets/style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js"></script>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>⚡ Electrical Distribution</h1>
+    <p>Limewood Engineering Control Centre</p>
+  </div>
+
+  <div>
+    <button onclick="location.href='/'">Back to Dashboard</button>
+    <button id="signOutBtn">Sign out</button>
+  </div>
+</header>
+
+<main class="pageWrap">
+
+  <section class="heroPanel">
+    <span>ELECTRICAL ESTATE CONTROL</span>
+    <h2>Distribution boards, supplies and electrical assets</h2>
+    <p>Search, inspect and maintain the electrical distribution network across the estate.</p>
+  </section>
+
+  <section class="quickSection">
+    <div class="sectionHead">
+      <h3>Electrical overview</h3>
+      <span>Live Supabase records</span>
+    </div>
+
+    <div class="metricGrid">
+      <button>
+        <span>Electrical assets</span>
+        <b id="electricalCount">0</b>
+        <small>Registered assets</small>
+      </button>
+
+      <button>
+        <span>Plant rooms</span>
+        <b id="electricalRoomCount">0</b>
+        <small>Electrical locations</small>
+      </button>
+
+      <button>
+        <span>Distribution boards</span>
+        <b id="electricalDbCount">0</b>
+        <small>Known boards</small>
+      </button>
+
+      <button>
+        <span>Critical assets</span>
+        <b id="electricalCriticalCount">0</b>
+        <small>High or critical priority</small>
+      </button>
+    </div>
+  </section>
+
+  <section class="quickSection">
+
+    <div class="sectionHead">
+      <h3>Electrical Asset Register</h3>
+      <span>Supabase-backed</span>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <input id="electricalSearch"
+        placeholder="Search asset ID, name, manufacturer, model or plant room"
+        style="flex:1;min-width:280px;">
+
+      <select id="electricalRoomFilter">
+        <option value="">All plant rooms</option>
+      </select>
+
+      <button id="refreshElectrical">Refresh</button>
+    </div>
+
+    <div id="electricalGrid"></div>
+
+  </section>
+
+</main>
+
+<script>
+const cfg = window.LIMEWOOD_CONFIG || {};
+
+const client = window.supabase.createClient(
+  cfg.supabaseUrl,
+  cfg.supabasePublishableKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+const $ = id => document.getElementById(id);
+
+let electricalAssets = [];
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
+
+async function loadElectricalAssets() {
+
+  const { data, error } = await client
+    .from('electrical_assets')
+    .select('*')
+    .order('asset_code');
+
+  if (error) {
+    console.error(error);
+    $('electricalGrid').innerHTML =
+      '<p>Electrical database unavailable.</p>';
+    return;
+  }
+
+  electricalAssets = data || [];
+
+  populateElectricalFilters();
+  renderElectricalAssets();
+  updateElectricalMetrics();
+}
+
+function populateElectricalFilters() {
+
+  const rooms = [...new Set(
+    electricalAssets
+      .map(x => x.plant_room)
+      .filter(Boolean)
+  )].sort();
+
+  $('electricalRoomFilter').innerHTML =
+    '<option value="">All plant rooms</option>' +
+    rooms.map(room =>
+      `<option value="${esc(room)}">${esc(room)}</option>`
+    ).join('');
+}
+
+function updateElectricalMetrics() {
+
+  $('electricalCount').textContent =
+    electricalAssets.length;
+
+  $('electricalRoomCount').textContent =
+    new Set(
+      electricalAssets
+        .map(x => x.plant_room)
+        .filter(Boolean)
+    ).size;
+
+  $('electricalDbCount').textContent =
+    new Set(
+      electricalAssets
+        .map(x => x.distribution_board)
+        .filter(Boolean)
+    ).size;
+
+  $('electricalCriticalCount').textContent =
+    electricalAssets.filter(x =>
+      ['high','critical']
+        .includes(String(x.criticality || '').toLowerCase())
+    ).length;
+}
+
+function renderElectricalAssets() {
+
+  const search =
+    $('electricalSearch').value
+      .trim()
+      .toLowerCase();
+
+  const room =
+    $('electricalRoomFilter').value;
+
+  const rows = electricalAssets.filter(a => {
+
+    if (room && a.plant_room !== room)
+      return false;
+
+    if (!search)
+      return true;
+
+    const haystack = [
+      a.asset_code,
+      a.asset_name,
+      a.plant_room,
+      a.category,
+      a.system_duty,
+      a.manufacturer,
+      a.model,
+      a.serial_number,
+      a.distribution_board
+    ]
+    .join(' ')
+    .toLowerCase();
+
+    return haystack.includes(search);
+  });
+
+  $('electricalGrid').innerHTML =
+    rows.length
+      ? rows.map(a => `
+        <div class="assetCard">
+
+          <div>
+            <strong>${esc(a.asset_code)}</strong>
+            <h3>${esc(a.asset_name)}</h3>
+
+            <p>${esc(a.plant_room || 'Location not recorded')}</p>
+
+            <small>
+              ${esc(a.manufacturer || '')}
+              ${esc(a.model || '')}
+            </small>
+          </div>
+
+          <div>
+            <span>${esc(a.category || '')}</span>
+            <span>${esc(a.status || '')}</span>
+          </div>
+
+        </div>
+      `).join('')
+      : '<p>No electrical assets found.</p>';
+}
+
+$('electricalSearch')
+  .addEventListener('input', renderElectricalAssets);
+
+$('electricalRoomFilter')
+  .addEventListener('change', renderElectricalAssets);
+
+$('refreshElectrical')
+  .addEventListener('click', loadElectricalAssets);
+
+$('signOutBtn')
+  .addEventListener('click', async () => {
+    await client.auth.signOut();
+    location.href = '/';
+  });
+
+client.auth.getSession().then(({data}) => {
+
+  if (!data.session) {
+    location.href = '/';
+    return;
+  }
+
+  loadElectricalAssets();
+});
+</script>
+
+</body>
+</html>

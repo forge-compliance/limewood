@@ -1,55 +1,108 @@
+const CACHE = 'limewood-cache-v2';
 
-const CACHE='limewood-emergency-recovery-v1';
-const SHELL=['/','/index.html','/assets/style.css','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png'];
+const SHELL = [
+  '/',
+  '/index.html',
+  '/assets/style.css',
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
+];
 
-self.addEventListener('message',event=>{
-  if(event.data&&event.data.type==='SKIP_WAITING')self.skipWaiting();
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(SHELL))
+  );
 });
 
-self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));
-  self.skipWaiting();
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE)
+          .map(key => caches.delete(key))
+      )
+    )
+  );
 });
 
-self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
-  self.clients.claim();
-});
+self.addEventListener('fetch', event => {
+  const req = event.request;
 
-self.addEventListener('fetch',event=>{
-  const req=event.request;
-  if(req.method!=='GET')return;
-  const url=new URL(req.url);
+  if (req.method !== 'GET') return;
 
-  if(url.hostname.includes('supabase.co')){
+  const url = new URL(req.url);
+
+  // Never cache Supabase requests
+  if (url.hostname.endsWith('supabase.co')) {
     event.respondWith(fetch(req));
     return;
   }
 
-  const isCore=req.mode==='navigate'||(
-    url.origin===self.location.origin &&
-    (url.pathname.endsWith('.html')||url.pathname.endsWith('.js')||url.pathname.endsWith('.css')||url.pathname==='/')
-  );
-
-  if(isCore){
-    event.respondWith(
-      fetch(req,{cache:'no-store'}).then(res=>{
-        if(res&&res.ok){
-          const copy=res.clone();
-          caches.open(CACHE).then(c=>c.put(req.mode==='navigate'?'/index.html':req,copy));
-        }
-        return res;
-      }).catch(()=>req.mode==='navigate'?caches.match('/index.html'):caches.match(req))
+  // HTML / JS / CSS should prefer the network
+  const isCore =
+    req.mode === 'navigate' ||
+    (
+      url.origin === self.location.origin &&
+      (
+        url.pathname === '/' ||
+        url.pathname.endsWith('.html') ||
+        url.pathname.endsWith('.js') ||
+        url.pathname.endsWith('.css')
+      )
     );
+
+  if (isCore) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then(res => {
+          if (!res || !res.ok) return res;
+
+          const cacheCopy = res.clone();
+
+          event.waitUntil(
+            caches.open(CACHE).then(cache => {
+              const key = req.mode === 'navigate'
+                ? '/index.html'
+                : req;
+
+              return cache.put(key, cacheCopy);
+            })
+          );
+
+          return res;
+        })
+        .catch(() => {
+          return req.mode === 'navigate'
+            ? caches.match('/index.html')
+            : caches.match(req);
+        })
+    );
+
     return;
   }
 
-  if(url.origin===self.location.origin){
+  // Other same-origin resources: cache first
+  if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then(cached=>cached||fetch(req).then(res=>{
-        if(res&&res.ok)caches.open(CACHE).then(c=>c.put(req,res.clone()));
-        return res;
-      }))
+      caches.match(req).then(cached => {
+        if (cached) return cached;
+
+        return fetch(req).then(res => {
+          if (!res || !res.ok) return res;
+
+          const cacheCopy = res.clone();
+
+          event.waitUntil(
+            caches.open(CACHE).then(cache =>
+              cache.put(req, cacheCopy)
+            )
+          );
+
+          return res;
+        });
+      })
     );
   }
 });

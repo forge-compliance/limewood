@@ -792,7 +792,7 @@ async function loadDocumentCentre() {
       number:looksNumbered ? parts.shift() : '', title:parts.join(' · ') || rawTitle,
       category:'General', revision:d.revision || '', status:'approved', buildingId:'', plantRoomId:'',
       assetIds:d.asset_id ? [d.asset_id] : [], createdAt:d.created_at,
-      url:d.external_url || (d.storage_path ? await signedUrl(d.storage_path) : ''), raw:d
+     url:d.external_url || '', raw:d
     };
   }));
 
@@ -803,7 +803,7 @@ async function loadDocumentCentre() {
       key:`sop-${row.id}`, source:'sops', id:row.id, type:'sop', number:row.sop_number, title:row.title,
       category:row.category || 'General', revision:row.revision || '1', status:row.status || 'draft', buildingId:row.building_id || '',
       plantRoomId:row.plant_room_id || '', assetIds:links.filter(x=>x.sop_id===row.id).map(x=>x.asset_id), createdAt:row.created_at,
-      url:path ? await signedUrl(path) : '', raw:row
+     url:'', storagePath:path, raw:row
     };
   })) : [];
 

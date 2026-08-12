@@ -1500,13 +1500,14 @@ function showPlantRoomHub(room){currentHubRoom=canonicalPlantRoomName(room)||'Un
 function openRequestedPlantRoomFromUrl(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('plantRoom');
+
   if(!requested)return false;
+
   const room=canonicalPlantRoomName(requested);
+
   if(!room)return false;
+
   showPlantRoomHub(room);
-  const clean=new URL(location.href);
-  clean.searchParams.delete('plantRoom');
-  history.replaceState({},'',clean.pathname+clean.search+clean.hash);
   return true;
 }
 function printRoomQrLabels(room){if(typeof QRCode==='undefined')return alert('QR library could not load. Reload while connected to the internet.');const list=assets.filter(a=>samePlantRoom(a.room,room));if(!list.length)return alert('There are no assets in this plant room yet.');const w=open('','_blank');w.document.write('<title>'+esc(room)+' QR Labels</title><style>@page{size:A4;margin:8mm}body{font-family:Arial}.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}.label{border:1px solid #333;padding:8px;text-align:center;break-inside:avoid}.qr{width:110px;height:110px;margin:auto}.qr canvas,.qr img{width:110px!important;height:110px!important}h3{font-size:14px;margin:5px 0 2px}p{font-size:9px;margin:2px}</style><h2>'+esc(room)+'</h2><div class="sheet" id="sheet"></div>');const sheet=w.document.getElementById('sheet');list.forEach(a=>{const d=w.document.createElement('div');d.className='label';d.innerHTML=`<div class="qr"></div><h3>${esc(a.id)}</h3><p><b>${esc(a.name)}</b></p><p>${esc(a.room)}</p>`;sheet.appendChild(d);new QRCode(d.querySelector('.qr'),{text:assetUrl(a.id),width:110,height:110,correctLevel:QRCode.CorrectLevel.M});});w.document.write('<script>setTimeout(()=>print(),900)<\/script>');w.document.close();}

@@ -1366,7 +1366,15 @@ async function startApp(newSession) {
     await loadOperations();
     await loadLogs();
     showView('dashboard');
-    openRequestedPlantRoomFromUrl();
+    const returnPlantRoom =
+  sessionStorage.getItem('limewoodReturnPlantRoom');
+
+if (returnPlantRoom) {
+  sessionStorage.removeItem('limewoodReturnPlantRoom');
+  showPlantRoomHub(returnPlantRoom);
+} else {
+  openRequestedPlantRoomFromUrl();
+}
     const directAsset=new URLSearchParams(location.search).get('asset'); if(directAsset&&assets.some(a=>a.id===directAsset)){showRegister('');setTimeout(()=>openAsset(directAsset),100);}
   }
   catch(error){

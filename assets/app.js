@@ -1366,6 +1366,7 @@ async function startApp(newSession) {
     await loadOperations();
     await loadLogs();
     showView('dashboard');
+    openRequestedPlantRoomFromUrl();
     const directAsset=new URLSearchParams(location.search).get('asset'); if(directAsset&&assets.some(a=>a.id===directAsset)){showRegister('');setTimeout(()=>openAsset(directAsset),100);}
   }
   catch(error){
@@ -1394,7 +1395,6 @@ function updateDashboardGreeting(){
   const first=String(name).trim().split(/\s+/)[0];
   const greeting=$('dashboardGreeting');
   if(greeting) greeting.textContent=`${period}${first?', '+first:''}. Here is what needs attention.`;
-  setTimeout(()=>openRequestedPlantRoomFromUrl(),200);
 
 }
 

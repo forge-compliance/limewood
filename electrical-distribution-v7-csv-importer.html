@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limewood Electrical Distribution</title>
+
+  <link rel="stylesheet" href="assets/style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js"></script>
+
+  <style>
+    :root{
+      --lw-green:#173d33;
+      --lw-green-2:#214f43;
+      --lw-green-3:#2b6354;
+      --lw-gold:#c6a96a;
+      --lw-cream:#f4f0e8;
+      --lw-panel:#ffffff;
+      --lw-border:#d9d6cf;
+      --lw-text:#1f2b27;
+      --lw-muted:#6f7b76;
+      --lw-danger:#9e3e3e;
+      --lw-warning:#b57a22;
+      --lw-success:#3d705c;
+      --lw-shadow:0 8px 24px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      background:var(--lw-cream);
+      color:var(--lw-text);
+      font-family:Arial,Helvetica,sans-serif;
+    }
+
+    .electricalTopbar{
+      background:var(--lw-green);
+      color:white;
+      padding:18px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      position:sticky;
+      top:0;
+      z-index:20;
+      box-shadow:0 3px 14px rgba(0,0,0,.18);
+    }
+
+    .electricalBrand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .electricalIcon{
+      width:46px;
+      height:46px;
+      border-radius:12px;
+      background:var(--lw-gold);
+      display:grid;
+      place-items:center;
+      font-size:24px;
+      color:#173d33;
+      font-weight:700;
+    }
+
+    .electricalBrand h1{
+      margin:0;
+      font-size:22px;
+    }
+
+    .electricalBrand p{
+      margin:3px 0 0;
+      opacity:.75;
+      font-size:13px;
+    }
+
+    .topActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .topActions button{
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);
+      color:white;
+      padding:10px 14px;
+      border-radius:9px;
+      cursor:pointer;
+    }
+
+    .topActions button:hover{
+      background:rgba(255,255,255,.16);
+    }
+
+    .electricalPage{
+      max-width:1450px;
+      margin:0 auto;
+      padding:24px;
+    }
+
+    .hero{
+      background:
+        linear-gradient(135deg,rgba(23,61,51,.97),rgba(43,99,84,.94));
+      color:white;
+      border-radius:18px;
+      padding:28px;
+      box-shadow:var(--lw-shadow);
+      margin-bottom:22px;
+    }
+
+    .heroEyebrow{
+      color:#e4cc97;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .hero h2{
+      margin:0 0 8px;
+      font-size:30px;
+    }
+
+    .hero p{
+      margin:0;
+      max-width:800px;
+      opacity:.82;
+      line-height:1.5;
+    }
+
+    .metricGrid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:22px;
+    }
+
+    .metricCard{
+      background:var(--lw-panel);
+      border:1px solid var(--lw-border);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 5px 18px rgba(0,0,0,.05);
+    }
+
+    .metricLabel{
+      color:var(--lw-muted);
+      font-size:13px;
+      margin-bottom:8px;
+    }
+
+    .metricValue{
+      color:var(--lw-green);
+      font-size:30px;
+      font-weight:700;
+      line-height:1;
+    }
+
+    .metricNote{
+      margin-top:8px;
+      color:var(--lw-muted);
+      font-size:12px;
+    }
+
+    .panel{
+      background:var(--lw-panel);
+      border:1px solid var(--lw-border);
+      border-radius:16px;
+      box-shadow:var(--lw-shadow);
+      overflow:hidden;
+    }
+
+    .panelHeader{
+      padding:18px 20px;
+      border-bottom:1px solid var(--lw-border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .panelHeader h3{
+      margin:0;
+      font-size:20px;
+      color:var(--lw-green);
+    }
+
+    .resultCount{
+      color:var(--lw-muted);
+      font-size:13px;
+    }
+
+    .filters{
+      padding:16px 20px;
+      border-bottom:1px solid var(--lw-border);
+      display:grid;
+      grid-template-columns:minmax(260px,2fr) repeat(3,minmax(160px,1fr)) auto;
+      gap:10px;
+      background:#faf9f6;
+    }
+
+    .filters input,
+    .filters select{
+      width:100%;
+      padding:11px 12px;
+      border:1px solid #cfcac0;
+      border-radius:9px;
+      background:white;
+      color:var(--lw-text);
+    }
+
+    .filters button{
+      padding:11px 16px;
+      border:0;
+      border-radius:9px;
+      background:var(--lw-green);
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .filters button:hover{
+      background:var(--lw-green-2);
+    }
+
+    .tableWrap{
+      overflow-x:auto;
+    }
+
+    .assetTable{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1050px;
+    }
+
+    .assetTable th{
+      text-align:left;
+      padding:12px 14px;
+      background:#f3f1eb;
+      color:#56615d;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      border-bottom:1px solid var(--lw-border);
+      white-space:nowrap;
+    }
+
+    .assetTable td{
+      padding:13px 14px;
+      border-bottom:1px solid #ebe8e1;
+      vertical-align:middle;
+      font-size:14px;
+    }
+
+    .assetTable tbody tr{
+      cursor:pointer;
+      transition:background .15s ease;
+    }
+
+    .assetTable tbody tr:hover{
+      background:#f7f5ef;
+    }
+
+    .assetCode{
+      font-weight:700;
+      color:var(--lw-green);
+      white-space:nowrap;
+    }
+
+    .assetName{
+      font-weight:700;
+      color:#263630;
+    }
+
+    .assetSub{
+      color:var(--lw-muted);
+      font-size:12px;
+      margin-top:3px;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+      background:#e8ecea;
+      color:#46514d;
+    }
+
+    .badge.status{
+      background:#e7f0ec;
+      color:#3e6a58;
+    }
+
+    .badge.high,
+    .badge.critical{
+      background:#f5dfdf;
+      color:#973e3e;
+    }
+
+    .badge.medium{
+      background:#f4ead6;
+      color:#91651d;
+    }
+
+    .badge.low{
+      background:#e2eee8;
+      color:#466b58;
+    }
+
+    .viewLink{
+      color:var(--lw-green);
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .emptyState{
+      padding:40px 20px;
+      text-align:center;
+      color:var(--lw-muted);
+    }
+
+    .modalBackdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(13,28,23,.72);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:100;
+    }
+
+    .modalBackdrop.open{
+      display:flex;
+    }
+
+    .assetModal{
+      width:min(1000px,96vw);
+      max-height:92vh;
+      overflow:auto;
+      background:white;
+      border-radius:18px;
+      box-shadow:0 24px 70px rgba(0,0,0,.35);
+    }
+
+    .modalHeader{
+      background:var(--lw-green);
+      color:white;
+      padding:20px 22px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:20px;
+    }
+
+    .modalHeader h2{
+      margin:5px 0 0;
+      font-size:24px;
+    }
+
+    .modalHeader small{
+      color:#dec68f;
+      font-weight:700;
+    }
+
+    .closeModal{
+      border:0;
+      background:rgba(255,255,255,.12);
+      color:white;
+      width:38px;
+      height:38px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:20px;
+    }
+
+    .modalBody{
+      padding:22px;
+    }
+
+    .detailGrid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:20px;
+    }
+
+    .detailItem{
+      border:1px solid var(--lw-border);
+      border-radius:11px;
+      padding:12px;
+      background:#faf9f6;
+      min-height:76px;
+    }
+
+    .detailLabel{
+      font-size:11px;
+      color:var(--lw-muted);
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      margin-bottom:6px;
+    }
+
+    .detailValue{
+      font-size:14px;
+      font-weight:700;
+      color:#2a3934;
+      word-break:break-word;
+    }
+
+    .detailSection{
+      margin-top:18px;
+    }
+
+    .detailSection h3{
+      color:var(--lw-green);
+      margin:0 0 10px;
+      font-size:17px;
+    }
+
+    .notesBox{
+      border:1px solid var(--lw-border);
+      border-radius:10px;
+      padding:14px;
+      background:#faf9f6;
+      line-height:1.55;
+      white-space:pre-wrap;
+    }
+
+    .photoRefs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .photoRef{
+      padding:8px 10px;
+      border-radius:8px;
+      background:#edf0ee;
+      color:#4f5a56;
+      font-size:12px;
+    }
+
+    @media(max-width:1000px){
+      .metricGrid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .filters{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .detailGrid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media(max-width:650px){
+      .electricalTopbar{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .electricalPage{
+        padding:14px;
+      }
+
+      .hero{
+        padding:20px;
+      }
+
+      .hero h2{
+        font-size:24px;
+      }
+
+      .metricGrid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .filters{
+        grid-template-columns:1fr;
+      }
+
+      .detailGrid{
+        grid-template-columns:1fr;
+      }
+
+      .assetTable{
+        min-width:900px;
+      }
+    }
+  
+    .importSummaryGrid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin:14px 0;
+    }
+    .importSummaryGrid article{
+      border:1px solid var(--lw-border);
+      border-radius:10px;
+      padding:12px;
+      background:#faf9f6;
+    }
+    .importSummaryGrid span{display:block;font-size:12px;color:var(--lw-muted)}
+    .importSummaryGrid b{display:block;font-size:24px;color:var(--lw-green);margin-top:4px}
+    .importFileList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin:12px 0;
+    }
+    .importFileRow{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      border:1px solid var(--lw-border);
+      border-radius:9px;
+      padding:10px 12px;
+      background:white;
+      font-size:13px;
+    }
+    .importFileRow strong{color:var(--lw-green)}
+    .importPreview{
+      max-height:300px;
+      overflow:auto;
+      border:1px solid var(--lw-border);
+      border-radius:10px;
+      margin-top:10px;
+    }
+    .importPreview table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    .importPreview th,.importPreview td{
+      padding:8px 10px;
+      border-bottom:1px solid var(--lw-border);
+      text-align:left;
+      white-space:nowrap;
+    }
+    .importPreview th{
+      position:sticky;
+      top:0;
+      background:#f3f1eb;
+      color:var(--lw-green);
+      z-index:1;
+    }
+    .importMessage{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:9px;
+      background:#f3f1eb;
+      color:var(--lw-text);
+      white-space:pre-line;
+    }
+    .importMessage.error{
+      background:#f8e7e7;
+      color:#7b2525;
+    }
+    .importMessage.success{
+      background:#e8f2ec;
+      color:#184b3a;
+    }
+    @media(max-width:700px){
+      .importSummaryGrid{grid-template-columns:1fr}
+    }
+
+</style>
+</head>
+
+<body>
+
+<header class="electricalTopbar">
+  <div class="electricalBrand">
+    <div class="electricalIcon">⚡</div>
+    <div>
+      <h1>Electrical Distribution</h1>
+      <p>Limewood Engineering Control Centre</p>
+    </div>
+  </div>
+
+  <div class="topActions">
+    <button type="button" id="electricalBackBtn">← Dashboard</button>
+    <button type="button" id="addElectricalAssetBtn">+ Add Asset</button>
+    <button type="button" id="addDistributionBoardBtn">+ Add Distribution Board</button>
+    <button type="button" id="importElectricalCsvBtn">⇧ Import CSV</button>
+    <button type="button" id="refreshElectricalTop">Refresh</button>
+    <button type="button" id="signOutBtn">Sign out</button>
+  </div>
+</header>
+
+<main class="electricalPage">
+
+  <section class="hero">
+    <div class="heroEyebrow">Electrical Estate Control</div>
+    <h2>Distribution boards, supplies and electrical assets</h2>
+    <p>
+      Search and review electrical equipment across the Limewood estate,
+      including local isolators, control panels, distribution boards,
+      emergency stops and associated equipment.
+    </p>
+  </section>
+
+  <section class="metricGrid">
+
+    <div class="metricCard">
+      <div class="metricLabel">Electrical assets</div>
+      <div class="metricValue" id="electricalCount">0</div>
+      <div class="metricNote">Registered equipment</div>
+    </div>
+
+    <div class="metricCard">
+      <div class="metricLabel">Plant rooms</div>
+      <div class="metricValue" id="electricalRoomCount">0</div>
+      <div class="metricNote">Electrical locations</div>
+    </div>
+
+    <div class="metricCard">
+      <div class="metricLabel">Distribution boards</div>
+      <div class="metricValue" id="electricalDbCount">0</div>
+      <div class="metricNote">Identified DB assets</div>
+    </div>
+
+    <div class="metricCard">
+      <div class="metricLabel">High / critical</div>
+      <div class="metricValue" id="electricalCriticalCount">0</div>
+      <div class="metricNote">Priority equipment</div>
+    </div>
+
+  </section>
+
+  <section class="panel">
+
+    <div class="panelHeader">
+      <h3>Electrical Asset Register</h3>
+      <div class="resultCount" id="electricalResultCount">0 assets</div>
+    </div>
+
+    <div class="filters">
+
+      <input
+        id="electricalSearch"
+        type="search"
+        placeholder="Search asset ID, name, manufacturer, model or plant room">
+
+      <select id="electricalRoomFilter">
+        <option value="">All plant rooms</option>
+      </select>
+
+      <select id="electricalCategoryFilter">
+        <option value="">All categories</option>
+      </select>
+
+      <select id="electricalCriticalityFilter">
+        <option value="">All priorities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <button type="button" id="refreshElectrical">Refresh</button>
+
+    </div>
+
+    <div class="tableWrap">
+
+      <table class="assetTable">
+
+        <thead>
+          <tr>
+            <th>Asset</th>
+            <th>Plant room</th>
+            <th>Category</th>
+            <th>Manufacturer / Model</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody id="electricalGrid"></tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+<div class="modalBackdrop" id="assetModalBackdrop">
+
+  <div class="assetModal">
+
+    <div class="modalHeader">
+
+      <div>
+        <small id="modalAssetCode">Electrical Asset</small>
+        <h2 id="modalAssetName">Asset</h2>
+      </div>
+
+      <button
+        class="closeModal"
+        type="button"
+        id="closeAssetModal"
+        aria-label="Close">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modalBody">
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button type="button" id="editCurrentAssetBtn">Edit Asset</button>
+      </div>
+
+      <div class="detailGrid" id="assetDetailGrid"></div>
+
+      <div class="detailSection">
+        <h3>Notes</h3>
+        <div class="notesBox" id="assetNotes">No notes recorded.</div>
+      </div>
+
+      <div class="detailSection" id="boardCircuitSection" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+          <h3 style="margin:0;">⚡ Circuit Schedule</h3>
+          <span class="badge" id="boardCircuitCount">0 circuits</span>
+        </div>
+        <div class="tableWrap">
+          <table class="assetTable">
+            <thead><tr><th>Circuit</th><th>Description</th><th>Phase</th><th>Device</th><th>Rating</th><th>Status</th></tr></thead>
+            <tbody id="boardCircuitBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="detailSection">
+        <h3>Photos & Files</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <strong>📷 Images</strong><br>
+            <input type="file" id="assetImageUpload" accept="image/*" multiple>
+            <div id="assetImageList"></div>
+          </div>
+          <div>
+            <strong>📎 Files</strong><br>
+            <input type="file" id="assetFileUpload" multiple>
+            <div id="assetFileList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detailSection">
+        <h3>Legacy photo references</h3>
+        <div class="photoRefs" id="assetPhotoRefs"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<div class="modalBackdrop" id="assetEditorBackdrop">
+  <div class="assetModal">
+    <div class="modalHeader">
+      <div>
+        <small id="editorModeLabel">Electrical Asset</small>
+        <h2 id="editorTitle">Add Electrical Asset</h2>
+      </div>
+      <button class="closeModal" type="button" id="closeAssetEditor">×</button>
+    </div>
+
+    <div class="modalBody">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+        <label>Asset code *
+          <input id="editAssetCode" placeholder="e.g. MH-DB-01">
+        </label>
+
+        <label>Asset name *
+          <input id="editAssetName" placeholder="e.g. Main House Distribution Board">
+        </label>
+
+        <label>Plant room
+          <select id="editPlantRoom">
+            <option value="">Choose plant room</option>
+            <option>Main House Plant Room</option>
+            <option>Staff House Plant Room</option>
+            <option>Coach House Plant Room</option>
+            <option>Forest Cottage & Lodges Plant Room</option>
+            <option>Spa Plant Room</option>
+            <option>Pavilion Plant Room</option>
+            <option>Barn Plant Room</option>
+            <option>Crescent Plant Room</option>
+          </select>
+        </label>
+
+        <label>Category
+          <select id="editCategory">
+            <option>Distribution Board</option>
+            <option>Electrical Isolator</option>
+            <option>Electrical Control Panel</option>
+            <option>Motor Control Panel</option>
+            <option>Main Switchboard</option>
+            <option>Main Switchboard Feeder</option>
+            <option>Electrical Emergency Stop</option>
+            <option>Emergency Lighting Test Switch</option>
+            <option>Emergency Lighting Test Panel</option>
+            <option>Lighting Control Panel</option>
+            <option>Socket Outlet</option>
+            <option>Electrical Meter</option>
+            <option>Fused Connection Unit</option>
+            <option>Local Switch</option>
+            <option>Starter / Contactor</option>
+            <option>Variable Speed Drive</option>
+            <option>ATS / Changeover Switch</option>
+            <option>UPS</option>
+            <option>Transformer</option>
+            <option>Electrical Circuit</option>
+            <option>Other</option>
+          </select>
+        </label>
+
+        <label style="grid-column:1/-1">System / Duty
+          <input id="editSystemDuty" list="dutyOptions" placeholder="Choose or type duty">
+          <datalist id="dutyOptions">
+            <option value="Main electrical distribution">
+            <option value="Boiler supply">
+            <option value="Heating pump supply">
+            <option value="HWS secondary pump supply">
+            <option value="CWS booster set supply">
+            <option value="Pressurisation unit supply">
+            <option value="Lighting">
+            <option value="Emergency lighting">
+            <option value="Fire alarm supply">
+            <option value="BMS / Controls">
+            <option value="HVAC">
+            <option value="Kitchen equipment">
+            <option value="Laundry equipment">
+            <option value="Pool / Spa plant">
+            <option value="Socket power">
+            <option value="Submain">
+            <option value="Distribution board feeder">
+          </datalist>
+        </label>
+
+        <label>Manufacturer
+          <input id="editManufacturer" list="manufacturerOptions" placeholder="Choose or type manufacturer">
+          <datalist id="manufacturerOptions">
+            <option>Schneider Electric</option>
+            <option>Merlin Gerin</option>
+            <option>Hager</option>
+            <option>ABB</option>
+            <option>Eaton</option>
+            <option>MEM</option>
+            <option>Crabtree</option>
+            <option>Wylex</option>
+            <option>Siemens</option>
+            <option>Legrand</option>
+            <option>MK</option>
+            <option>ESR</option>
+          </datalist>
+        </label>
+
+        <label>Model
+          <input id="editModel" list="modelOptions" placeholder="Choose or type model">
+          <datalist id="modelOptions">
+            <option>Acti9 Isobar P</option>
+            <option>Isobar 4c</option>
+            <option>Loadcentre KQ II</option>
+          </datalist>
+        </label>
+
+        <label>Serial number
+          <input id="editSerialNumber">
+        </label>
+
+        <label>Status
+          <select id="editStatus">
+            <option>Surveyed</option>
+            <option>Active</option>
+            <option>Needs review</option>
+            <option>Limited access</option>
+            <option>Under Review</option>
+            <option>Out of Service</option>
+            <option>Decommissioned</option>
+          </select>
+        </label>
+
+        <label>Condition
+          <select id="editCondition">
+            <option>Unknown</option>
+            <option>Excellent</option>
+            <option>Good</option>
+            <option>Fair</option>
+            <option>Poor</option>
+            <option>Requires attention</option>
+          </select>
+        </label>
+
+        <label>Criticality
+          <select id="editCriticality">
+            <option>Low</option>
+            <option selected>Medium</option>
+            <option>High</option>
+            <option>Critical</option>
+          </select>
+        </label>
+
+        <label>Voltage
+          <select id="editVoltage">
+            <option value="">Not recorded</option>
+            <option>230 V</option>
+            <option>400 V</option>
+            <option>110 V</option>
+            <option>24 V</option>
+            <option>12 V</option>
+          </select>
+        </label>
+
+        <label>Phase
+          <select id="editPhase">
+            <option value="">Not recorded</option>
+            <option>Single phase</option>
+            <option>Three phase</option>
+            <option>L1</option>
+            <option>L2</option>
+            <option>L3</option>
+            <option>TP&N</option>
+          </select>
+        </label>
+
+        <label>Protective device
+          <select id="editProtectiveDevice">
+            <option value="">Not recorded</option>
+            <option>MCB</option>
+            <option>RCBO</option>
+            <option>RCD</option>
+            <option>MCCB</option>
+            <option>Fuse</option>
+            <option>Switch Fuse</option>
+            <option>Isolator</option>
+            <option>Main Switch</option>
+          </select>
+        </label>
+
+        <label>Device rating
+          <select id="editDeviceRating">
+            <option value="">Not recorded</option>
+            <option>6 A</option>
+            <option>10 A</option>
+            <option>16 A</option>
+            <option>20 A</option>
+            <option>25 A</option>
+            <option>32 A</option>
+            <option>40 A</option>
+            <option>50 A</option>
+            <option>63 A</option>
+            <option>80 A</option>
+            <option>100 A</option>
+            <option>125 A</option>
+            <option>160 A</option>
+            <option>200 A</option>
+            <option>250 A</option>
+            <option>400 A</option>
+          </select>
+        </label>
+
+        <label style="grid-column:1/-1">Electrical isolation
+          <select id="editElectricalIsolationPreset">
+            <option value="">Choose common isolation method</option>
+            <option>Local rotary isolator</option>
+            <option>Local switched fused connection unit</option>
+            <option>Local switched supply</option>
+            <option>Main switch within distribution board</option>
+            <option>Upstream isolation at distribution board</option>
+            <option>Upstream isolation at main switchboard</option>
+            <option>Isolate at local control panel</option>
+            <option>Isolate at MCC / starter panel</option>
+          </select>
+          <textarea id="editElectricalIsolation" style="width:100%;min-height:70px;margin-top:8px" placeholder="Add or amend isolation details"></textarea>
+        </label>
+
+        <label>PPM frequency
+          <select id="editPpmFrequency">
+            <option value="">Not set</option>
+            <option>Monthly</option>
+            <option>Quarterly</option>
+            <option>6 Monthly</option>
+            <option>Annual</option>
+            <option>2 Yearly</option>
+            <option>5 Yearly</option>
+            <option>Condition Based</option>
+          </select>
+        </label>
+
+        <label style="grid-column:1/-1">Notes
+          <textarea id="editNotes" style="width:100%;min-height:90px"></textarea>
+        </label>
+
+      </div>
+
+      <div class="detailSection" id="circuitEditorSection" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <h3>⚡ Circuit Schedule</h3>
+          <button type="button" id="addCircuitRowBtn">+ Add circuit</button>
+        </div>
+        <div id="circuitEditorRows"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid #ddd;">
+      <button type="button" id="cancelAssetEditor">Cancel</button>
+      <button type="button" id="saveAssetEditor">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modalBackdrop" id="electricalImportBackdrop">
+  <div class="assetModal">
+    <div class="modalHeader">
+      <div>
+        <small>BULK ELECTRICAL IMPORT</small>
+        <h2>Import Limewood CSV</h2>
+      </div>
+      <button class="closeModal" type="button" id="closeElectricalImport">×</button>
+    </div>
+
+    <div class="modalBody">
+      <p>
+        Select one or both Limewood electrical CSV files. The importer detects
+        asset records and circuit records automatically, imports assets first,
+        then links circuits to their distribution board.
+      </p>
+
+      <label style="display:block;margin-top:14px;">
+        <strong>Select CSV files</strong><br>
+        <input id="electricalImportFiles" type="file" accept=".csv,text/csv" multiple style="margin-top:8px;">
+      </label>
+
+      <div class="importSummaryGrid">
+        <article><span>Files recognised</span><b id="importFileCount">0</b></article>
+        <article><span>Assets ready</span><b id="importAssetCount">0</b></article>
+        <article><span>Circuits ready</span><b id="importCircuitCount">0</b></article>
+      </div>
+
+      <div id="electricalImportFileList" class="importFileList">
+        <div class="assetSub">No CSV selected yet.</div>
+      </div>
+
+      <div class="sectionHead" style="margin-top:16px;">
+        <h3>Preview</h3>
+        <span>First 12 recognised rows</span>
+      </div>
+      <div id="electricalImportPreview" class="importPreview">
+        <div class="emptyState" style="padding:18px;">Choose the asset and/or circuit CSV to preview it.</div>
+      </div>
+
+      <div id="electricalImportMessage" class="importMessage">
+        Existing assets are updated by asset code. Existing circuits with the same board code and circuit number are skipped to prevent duplicates.
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid #ddd;">
+      <button type="button" id="cancelElectricalImport">Cancel</button>
+      <button type="button" id="runElectricalImport" class="primaryBtn" disabled>Import to Limewood</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const cfg=window.LIMEWOOD_CONFIG||{};
+const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+let electricalAssets=[],currentAsset=null,currentSession=null,editorAsset=null,editorCircuits=[];
+
+const requestedPlantRoom =
+  new URLSearchParams(window.location.search).get('room') || '';
+
+function normaliseRoomName(value){
+  return String(value||'')
+    .trim()
+    .replace(/\s+/g,' ');
+}
+
+function roomKey(value){
+  let v=normaliseRoomName(value)
+    .toLowerCase()
+    .replace(/&/g,' and ')
+    .replace(/[^a-z0-9]+/g,' ')
+    .replace(/\bplant room\b/g,' ')
+    .replace(/\bplantroom\b/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  if(
+    v.includes('forest cottage') ||
+    v.includes('forest cottages') ||
+    v.includes('forest lodge') ||
+    v.includes('forest lodges')
+  ) return 'forest cottage lodges';
+
+  if(v.includes('main house')) return 'main house';
+  if(v.includes('staff house')) return 'staff house';
+  if(v.includes('coach house')) return 'coach house';
+  if(v.includes('spa')) return 'spa';
+  if(v.includes('pavilion')) return 'pavilion';
+  if(v.includes('barn')) return 'barn';
+  if(v.includes('crescent') || v.includes('cresent')) return 'crescent';
+
+  return v;
+}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function safeFileName(n){return String(n||'file').replace(/[^a-zA-Z0-9._-]+/g,'-')}
+function isDistributionBoard(a){return String(a?.category||'').toLowerCase().includes('distribution board')}
+
+async function loadElectricalAssets(){
+  $('electricalGrid').innerHTML='<tr><td colspan="7" class="emptyState">Loading electrical assets…</td></tr>';
+  const {data,error}=await client.from('electrical_assets').select('*').order('asset_code');
+  if(error){console.error(error);$('electricalGrid').innerHTML='<tr><td colspan="7" class="emptyState">Electrical database unavailable.</td></tr>';return}
+  electricalAssets=data||[];
+  populateElectricalFilters();
+
+  if(requestedPlantRoom){
+    const wanted=roomKey(requestedPlantRoom);
+    let match=[...$('electricalRoomFilter').options].find(
+      o=>roomKey(o.value)===wanted
+    );
+
+    if(!match){
+      const assetMatch=electricalAssets.find(a=>roomKey(a.plant_room)===wanted);
+      if(assetMatch){
+        match=[...$('electricalRoomFilter').options].find(
+          o=>o.value===assetMatch.plant_room
+        );
+      }
+    }
+
+    if(match){
+      $('electricalRoomFilter').value=match.value;
+    }
+  }
+
+  updateElectricalMetrics();
+  renderElectricalAssets()
+}
+
+function populateElectricalFilters(){
+  const room=$('electricalRoomFilter').value,cat=$('electricalCategoryFilter').value;
+  const rooms=[...new Set(electricalAssets.map(x=>x.plant_room).filter(Boolean))].sort();
+  const cats=[...new Set(electricalAssets.map(x=>x.category).filter(Boolean))].sort();
+  $('electricalRoomFilter').innerHTML='<option value="">All plant rooms</option>'+rooms.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  $('electricalCategoryFilter').innerHTML='<option value="">All categories</option>'+cats.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if(rooms.includes(room))$('electricalRoomFilter').value=room;if(cats.includes(cat))$('electricalCategoryFilter').value=cat
+}
+
+function updateElectricalMetrics(){
+  $('electricalCount').textContent=electricalAssets.length;
+  $('electricalRoomCount').textContent=new Set(electricalAssets.map(x=>x.plant_room).filter(Boolean)).size;
+  $('electricalDbCount').textContent=electricalAssets.filter(isDistributionBoard).length;
+  $('electricalCriticalCount').textContent=electricalAssets.filter(x=>['high','critical'].includes(String(x.criticality||'').toLowerCase())).length
+}
+
+function renderElectricalAssets(){
+  const s=$('electricalSearch').value.trim().toLowerCase();
+  const selectedRoom=$('electricalRoomFilter').value;
+  const room=selectedRoom || requestedPlantRoom;
+  const cat=$('electricalCategoryFilter').value;
+  const crit=$('electricalCriticalityFilter').value;
+
+  const rows=electricalAssets.filter(a=>{
+    if(room && roomKey(a.plant_room)!==roomKey(room))return false;if(cat&&a.category!==cat)return false;
+    if(crit&&String(a.criticality||'').toLowerCase()!==crit.toLowerCase())return false;
+    if(!s)return true;
+    return [a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.serial_number,a.status,a.criticality,a.electrical_isolation,a.notes].join(' ').toLowerCase().includes(s)
+  });
+  $('electricalResultCount').textContent=
+    `${rows.length} asset${rows.length===1?'':'s'}` +
+    (room ? ` · ${room}` : '');
+  if(!rows.length){$('electricalGrid').innerHTML='<tr><td colspan="7" class="emptyState">No electrical assets found.</td></tr>';return}
+  $('electricalGrid').innerHTML=rows.map(a=>`<tr data-asset-id="${esc(a.id)}"><td><div class="assetCode">${esc(a.asset_code)}</div><div class="assetName">${esc(a.asset_name)}</div><div class="assetSub">${esc(a.system_duty||'')}</div></td><td>${esc(a.plant_room||'Not recorded')}</td><td><span class="badge">${esc(a.category||'Uncategorised')}</span></td><td>${esc([a.manufacturer,a.model].filter(Boolean).join(' · ')||'Not recorded')}</td><td><span class="badge status">${esc(a.status||'Unknown')}</span></td><td><span class="badge ${esc(String(a.criticality||'').toLowerCase())}">${esc(a.criticality||'Not set')}</span></td><td><span class="viewLink">View →</span></td></tr>`).join('');
+  document.querySelectorAll('#electricalGrid tr[data-asset-id]').forEach(r=>r.addEventListener('click',()=>{const a=electricalAssets.find(x=>x.id===r.dataset.assetId);if(a)openElectricalAsset(a)}))
+}
+
+function detailItem(l,v){return `<div class="detailItem"><div class="detailLabel">${esc(l)}</div><div class="detailValue">${esc(v||'Not recorded')}</div></div>`}
+
+async function loadBoardCircuits(asset){
+  const sec=$('boardCircuitSection'),body=$('boardCircuitBody'),count=$('boardCircuitCount');
+  if(!isDistributionBoard(asset)){sec.style.display='none';return}
+  sec.style.display='block';count.textContent='Loading…';body.innerHTML='<tr><td colspan="6" class="emptyState">Loading circuit schedule…</td></tr>';
+  const keys=[asset.asset_code,asset.asset_name].filter(Boolean);
+  const {data,error}=await client.from('electrical_circuits').select('*').in('board_asset_code',keys).order('circuit_number');
+  if(error){console.error(error);count.textContent='Unavailable';body.innerHTML='<tr><td colspan="6" class="emptyState">Circuit schedule unavailable.</td></tr>';return}
+  const cs=data||[];count.textContent=`${cs.length} circuit${cs.length===1?'':'s'}`;
+  body.innerHTML=cs.length?cs.map(c=>`<tr><td><strong class="assetCode">${esc(c.circuit_number||'—')}</strong></td><td><strong>${esc(c.circuit_description||'Not recorded')}</strong></td><td>${esc(c.phase||'—')}</td><td>${esc(c.protective_device||'—')}</td><td>${esc(c.device_rating||'—')}</td><td>${esc(c.status||'—')}</td></tr>`).join(''):'<tr><td colspan="6" class="emptyState">Circuit schedule not yet surveyed for this board.</td></tr>'
+}
+
+async function listAssetUploads(asset){
+  const bucket=cfg.storageBucket||'asset-files',code=asset.asset_code;
+  await Promise.all([listFolder(bucket,`electrical-assets/${code}/photos`,$('assetImageList'),'📷'),listFolder(bucket,`electrical-assets/${code}/documents`,$('assetFileList'),'📎')])
+}
+async function listFolder(bucket,folder,target,icon){
+  const {data,error}=await client.storage.from(bucket).list(folder,{limit:100,sortBy:{column:'name',order:'asc'}});
+  if(error){target.innerHTML='<div class="assetSub">No uploads available.</div>';return}
+  const fs=(data||[]).filter(x=>x.name);
+  if(!fs.length){target.innerHTML='<div class="assetSub">No uploads yet.</div>';return}
+  const items=await Promise.all(fs.map(async f=>{const path=`${folder}/${f.name}`;const {data:s}=await client.storage.from(bucket).createSignedUrl(path,900);return `<div style="margin:6px 0">${icon} ${esc(f.name)} ${s?.signedUrl?`<a href="${esc(s.signedUrl)}" target="_blank">Open</a>`:''}</div>`}));
+  target.innerHTML=items.join('')
+}
+async function uploadCurrent(input,kind){
+  if(!currentAsset)return;const files=[...(input.files||[])];if(!files.length)return;
+  const bucket=cfg.storageBucket||'asset-files',folder=kind==='photo'?'photos':'documents';
+  try{for(const file of files){const stamp=Date.now();const path=`electrical-assets/${currentAsset.asset_code}/${folder}/${stamp}-${safeFileName(file.name)}`;const {error}=await client.storage.from(bucket).upload(path,file,{upsert:false,contentType:file.type||undefined});if(error)throw error}input.value='';await listAssetUploads(currentAsset)}
+  catch(e){console.error(e);alert(`Upload failed: ${e.message||e}`)}
+}
+
+function openElectricalAsset(asset){
+  currentAsset=asset;$('modalAssetCode').textContent=asset.asset_code||'Electrical Asset';$('modalAssetName').textContent=asset.asset_name||'Asset';
+  $('assetDetailGrid').innerHTML=[detailItem('Plant room',asset.plant_room),detailItem('Category',asset.category),detailItem('System / Duty',asset.system_duty),detailItem('Manufacturer',asset.manufacturer),detailItem('Model',asset.model),detailItem('Serial number',asset.serial_number),detailItem('Status',asset.status),detailItem('Condition',asset.condition),detailItem('Criticality',asset.criticality),detailItem('Electrical isolation',asset.electrical_isolation),detailItem('PPM frequency',asset.ppm_frequency)].join('');
+  $('assetNotes').textContent=asset.notes||'No notes recorded.';
+  const refs=String(asset.photo_filename||'').split(';').map(x=>x.trim()).filter(Boolean);$('assetPhotoRefs').innerHTML=refs.length?refs.map(()=>'<span class="photoRef">📷 Legacy photo linked</span>').join(''):'<span class="photoRef">No legacy photo linked</span>';
+  $('assetModalBackdrop').classList.add('open');loadBoardCircuits(asset);listAssetUploads(asset)
+}
+function closeElectricalAsset(){$('assetModalBackdrop').classList.remove('open');currentAsset=null}
+
+function clearEditor(){
+  editorAsset=null;editorCircuits=[];['editAssetCode','editAssetName','editPlantRoom','editSystemDuty','editManufacturer','editModel','editSerialNumber','editElectricalIsolation','editPpmFrequency','editNotes','editVoltage','editPhase','editProtectiveDevice','editDeviceRating'].forEach(id=>$(id).value='');
+  $('editCategory').value='Electrical Isolator';$('editStatus').value='Surveyed';$('editCondition').value='Unknown';$('editCriticality').value='Medium';updateCircuitEditorVisibility();renderCircuitEditor()
+}
+async function openAssetEditor(asset=null,forceBoard=false){
+  clearEditor();
+  if(asset){editorAsset=asset;$('editorModeLabel').textContent='Edit Electrical Asset';$('editorTitle').textContent=asset.asset_name||asset.asset_code;
+    $('editAssetCode').value=asset.asset_code||'';$('editAssetName').value=asset.asset_name||'';$('editPlantRoom').value=asset.plant_room||'';$('editCategory').value=asset.category||'Other';$('editSystemDuty').value=asset.system_duty||'';$('editManufacturer').value=asset.manufacturer||'';$('editModel').value=asset.model||'';$('editSerialNumber').value=asset.serial_number||'';$('editStatus').value=asset.status||'Surveyed';$('editCondition').value=asset.condition||'Unknown';$('editCriticality').value=asset.criticality||'Medium';$('editElectricalIsolation').value=asset.electrical_isolation||'';$('editPpmFrequency').value=asset.ppm_frequency||'';$('editNotes').value=asset.notes||'';$('editVoltage').value=asset.voltage||'';$('editPhase').value=asset.phase||'';$('editProtectiveDevice').value=asset.protective_device||'';$('editDeviceRating').value=asset.device_rating||'';
+    if(isDistributionBoard(asset)){const {data}=await client.from('electrical_circuits').select('*').in('board_asset_code',[asset.asset_code,asset.asset_name].filter(Boolean)).order('circuit_number');editorCircuits=data||[]}
+  }else{if(forceBoard)$('editCategory').value='Distribution Board';$('editorModeLabel').textContent=forceBoard?'New Distribution Board':'New Electrical Asset';$('editorTitle').textContent=forceBoard?'Add Distribution Board':'Add Electrical Asset'}
+  updateCircuitEditorVisibility();renderCircuitEditor();$('assetEditorBackdrop').classList.add('open')
+}
+function closeAssetEditor(){$('assetEditorBackdrop').classList.remove('open')}
+function updateCircuitEditorVisibility(){$('circuitEditorSection').style.display=$('editCategory').value==='Distribution Board'?'block':'none'}
+function addCircuitRow(d={}){editorCircuits.push({circuit_number:d.circuit_number||'',circuit_description:d.circuit_description||'',phase:d.phase||'',protective_device:d.protective_device||'',device_rating:d.device_rating||'',status:d.status||'Active'});renderCircuitEditor()}
+function renderCircuitEditor(){
+  const w=$('circuitEditorRows');if(!editorCircuits.length){w.innerHTML='<div class="assetSub">No circuits added yet.</div>';return}
+  w.innerHTML=editorCircuits.map((c,i)=>`<div data-i="${i}" style="display:grid;grid-template-columns:100px 2fr 80px 1fr 100px 110px auto;gap:8px;margin-bottom:8px"><input data-f="circuit_number" value="${esc(c.circuit_number)}" placeholder="Circuit"><input data-f="circuit_description" value="${esc(c.circuit_description)}" placeholder="Description"><select data-f="phase"><option value="">Phase</option><option ${c.phase==='L1'?'selected':''}>L1</option><option ${c.phase==='L2'?'selected':''}>L2</option><option ${c.phase==='L3'?'selected':''}>L3</option><option ${c.phase==='TP'?'selected':''}>TP</option></select><select data-f="protective_device"><option value="">Device</option><option ${c.protective_device==='MCB'?'selected':''}>MCB</option><option ${c.protective_device==='RCBO'?'selected':''}>RCBO</option><option ${c.protective_device==='RCD'?'selected':''}>RCD</option><option ${c.protective_device==='MCCB'?'selected':''}>MCCB</option><option ${c.protective_device==='Fuse'?'selected':''}>Fuse</option><option ${c.protective_device==='Switch Fuse'?'selected':''}>Switch Fuse</option></select><select data-f="device_rating"><option value="">Rating</option>${['6 A','10 A','16 A','20 A','25 A','32 A','40 A','50 A','63 A','80 A','100 A','125 A','160 A','200 A','250 A','400 A'].map(x=>`<option ${c.device_rating===x?'selected':''}>${x}</option>`).join('')}</select><select data-f="status"><option ${c.status==='Active'?'selected':''}>Active</option><option ${c.status==='Surveyed'?'selected':''}>Surveyed</option><option ${c.status==='Spare'?'selected':''}>Spare</option><option ${c.status==='Out of Service'?'selected':''}>Out of Service</option></select><button type="button" data-r="${i}">Remove</button></div>`).join('');
+  w.querySelectorAll('[data-f]').forEach(el=>['input','change'].forEach(ev=>el.addEventListener(ev,()=>{const i=Number(el.closest('[data-i]').dataset.i);editorCircuits[i][el.dataset.f]=el.value})));
+  w.querySelectorAll('[data-r]').forEach(b=>b.addEventListener('click',()=>{editorCircuits.splice(Number(b.dataset.r),1);renderCircuitEditor()}))
+}
+async function saveAssetEditor(){
+  const code=$('editAssetCode').value.trim(),name=$('editAssetName').value.trim();if(!code||!name){alert('Asset code and asset name are required.');return}
+  const rec={asset_code:code,asset_name:name,plant_room:$('editPlantRoom').value.trim()||null,category:$('editCategory').value,system_duty:$('editSystemDuty').value.trim()||null,manufacturer:$('editManufacturer').value.trim()||null,model:$('editModel').value.trim()||null,serial_number:$('editSerialNumber').value.trim()||null,status:$('editStatus').value,condition:$('editCondition').value,criticality:$('editCriticality').value,electrical_isolation:$('editElectricalIsolation').value.trim()||null,ppm_frequency:$('editPpmFrequency').value.trim()||null,voltage:$('editVoltage').value||null,phase:$('editPhase').value||null,protective_device:$('editProtectiveDevice').value||null,device_rating:$('editDeviceRating').value||null,notes:$('editNotes').value.trim()||null,updated_by:currentSession.user.id,updated_at:new Date().toISOString()};
+  try{
+    let saved;
+    if(editorAsset?.id){const {data,error}=await client.from('electrical_assets').update(rec).eq('id',editorAsset.id).select().single();if(error)throw error;saved=data}
+    else{const {data,error}=await client.from('electrical_assets').insert(rec).select().single();if(error)throw error;saved=data}
+    if(rec.category==='Distribution Board'){
+      if(editorAsset){const keys=[editorAsset.asset_code,editorAsset.asset_name].filter(Boolean);const {error}=await client.from('electrical_circuits').delete().in('board_asset_code',keys);if(error)throw error}
+      const rows=editorCircuits.filter(c=>c.circuit_number||c.circuit_description).map(c=>({board_asset_id:saved.id,board_asset_code:saved.asset_code,circuit_number:c.circuit_number||'Unlabelled',circuit_description:c.circuit_description||null,phase:c.phase||null,protective_device:c.protective_device||null,device_rating:c.device_rating||null,destination:c.circuit_description||null,status:c.status||'Active',updated_by:currentSession.user.id}));
+      if(rows.length){const {error}=await client.from('electrical_circuits').insert(rows);if(error)throw error}
+    }
+    closeAssetEditor();await loadElectricalAssets();const fresh=electricalAssets.find(a=>a.id===saved.id);if(fresh)openElectricalAsset(fresh)
+  }catch(e){console.error(e);alert(`Save failed: ${e.message||e}`)}
+}
+
+const electricalBackBtn=$('electricalBackBtn');
+
+if(requestedPlantRoom){
+  electricalBackBtn.textContent='← Back to Plant Room';
+  electricalBackBtn.addEventListener('click',()=>{
+    if(document.referrer && new URL(document.referrer).origin===location.origin){
+      history.back();
+    }else{
+      location.href='/';
+    }
+  });
+}else{
+  electricalBackBtn.textContent='← Dashboard';
+  electricalBackBtn.addEventListener('click',()=>location.href='/');
+}
+
+
+let electricalImportAssets=[];
+let electricalImportCircuits=[];
+let electricalImportFiles=[];
+
+function parseCsvText(text){
+  const rows=[];
+  let row=[],cell='',quoted=false;
+
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+
+    if(quoted){
+      if(ch==='"' && text[i+1]==='"'){
+        cell+='"'; i++;
+      }else if(ch==='"'){
+        quoted=false;
+      }else{
+        cell+=ch;
+      }
+    }else{
+      if(ch==='"'){
+        quoted=true;
+      }else if(ch===','){
+        row.push(cell); cell='';
+      }else if(ch==='\n'){
+        row.push(cell); rows.push(row); row=[]; cell='';
+      }else if(ch==='\r'){
+        // Ignore CR. LF completes the row.
+      }else{
+        cell+=ch;
+      }
+    }
+  }
+
+  if(cell.length || row.length){
+    row.push(cell);
+    rows.push(row);
+  }
+
+  const clean=rows.filter(r=>r.some(v=>String(v||'').trim()!==''));
+  if(!clean.length)return [];
+
+  const headers=clean[0].map(h=>String(h||'').replace(/^\uFEFF/,'').trim());
+  return clean.slice(1).map(values=>{
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=String(values[i]??'').trim());
+    return obj;
+  });
+}
+
+function electricalImportType(rows){
+  if(!rows.length)return '';
+  const keys=new Set(Object.keys(rows[0]).map(x=>x.toLowerCase()));
+  if(keys.has('asset_code') && keys.has('asset_name'))return 'assets';
+  if(keys.has('board_asset_code') && keys.has('circuit_number'))return 'circuits';
+  return '';
+}
+
+function nullIfBlank(value){
+  const v=String(value??'').trim();
+  return v==='' ? null : v;
+}
+
+function assetImportPayload(row){
+  return {
+    asset_code:String(row.asset_code||'').trim(),
+    asset_name:String(row.asset_name||'').trim(),
+    plant_room:nullIfBlank(row.plant_room),
+    category:nullIfBlank(row.category),
+    system_duty:nullIfBlank(row.system_duty),
+    manufacturer:nullIfBlank(row.manufacturer),
+    model:nullIfBlank(row.model),
+    serial_number:nullIfBlank(row.serial_number),
+    status:nullIfBlank(row.status) || 'Surveyed',
+    condition:nullIfBlank(row.condition) || 'Unknown',
+    criticality:nullIfBlank(row.criticality) || 'Medium',
+    electrical_isolation:nullIfBlank(row.electrical_isolation),
+    ppm_frequency:nullIfBlank(row.ppm_frequency),
+    notes:nullIfBlank(row.notes),
+    photo_filename:nullIfBlank(row.photo_filename),
+    updated_by:currentSession?.user?.id || null,
+    updated_at:new Date().toISOString()
+  };
+}
+
+function circuitImportPayload(row,boardId){
+  return {
+    board_asset_id:boardId || null,
+    board_asset_code:String(row.board_asset_code||'').trim(),
+    circuit_number:String(row.circuit_number||'').trim(),
+    circuit_description:nullIfBlank(row.circuit_description),
+    phase:nullIfBlank(row.phase),
+    protective_device:nullIfBlank(row.protective_device),
+    device_rating:nullIfBlank(row.device_rating),
+    destination:nullIfBlank(row.destination),
+    status:nullIfBlank(row.status) || 'Surveyed',
+    notes:nullIfBlank(row.notes),
+    updated_by:currentSession?.user?.id || null
+  };
+}
+
+function resetElectricalImport(){
+  electricalImportAssets=[];
+  electricalImportCircuits=[];
+  electricalImportFiles=[];
+  $('electricalImportFiles').value='';
+  $('importFileCount').textContent='0';
+  $('importAssetCount').textContent='0';
+  $('importCircuitCount').textContent='0';
+  $('electricalImportFileList').innerHTML='<div class="assetSub">No CSV selected yet.</div>';
+  $('electricalImportPreview').innerHTML='<div class="emptyState" style="padding:18px;">Choose the asset and/or circuit CSV to preview it.</div>';
+  $('electricalImportMessage').className='importMessage';
+  $('electricalImportMessage').textContent='Existing assets are updated by asset code. Existing circuits with the same board code and circuit number are skipped to prevent duplicates.';
+  $('runElectricalImport').disabled=true;
+}
+
+function openElectricalImport(){
+  resetElectricalImport();
+  $('electricalImportBackdrop').classList.add('open');
+}
+
+function closeElectricalImport(){
+  $('electricalImportBackdrop').classList.remove('open');
+}
+
+function renderElectricalImportPreview(){
+  const rows=[
+    ...electricalImportAssets.slice(0,6).map(r=>({
+      type:'Asset',
+      code:r.asset_code,
+      description:r.asset_name,
+      location:r.plant_room,
+      extra:r.category
+    })),
+    ...electricalImportCircuits.slice(0,6).map(r=>({
+      type:'Circuit',
+      code:`${r.board_asset_code} / ${r.circuit_number}`,
+      description:r.circuit_description,
+      location:r.destination,
+      extra:[r.protective_device,r.device_rating].filter(Boolean).join(' ')
+    }))
+  ].slice(0,12);
+
+  if(!rows.length){
+    $('electricalImportPreview').innerHTML='<div class="emptyState" style="padding:18px;">No recognised rows.</div>';
+    return;
+  }
+
+  $('electricalImportPreview').innerHTML=`
+    <table>
+      <thead><tr><th>Type</th><th>Code</th><th>Description</th><th>Location / Destination</th><th>Details</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${esc(r.type)}</td>
+          <td><strong>${esc(r.code||'')}</strong></td>
+          <td>${esc(r.description||'')}</td>
+          <td>${esc(r.location||'')}</td>
+          <td>${esc(r.extra||'')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function previewElectricalImport(){
+  const selected=[...($('electricalImportFiles').files||[])];
+
+  electricalImportAssets=[];
+  electricalImportCircuits=[];
+  electricalImportFiles=selected;
+  $('importFileCount').textContent='0';
+  $('importAssetCount').textContent='0';
+  $('importCircuitCount').textContent='0';
+  $('runElectricalImport').textContent='Import to Limewood';
+
+  if(!selected.length){
+    resetElectricalImport();
+    return;
+  }
+
+  const fileResults=[];
+
+  for(const file of selected){
+    try{
+      const text=await file.text();
+      const rows=parseCsvText(text);
+      const type=electricalImportType(rows);
+
+      if(type==='assets'){
+        const valid=rows.filter(r=>r.asset_code && r.asset_name);
+        electricalImportAssets.push(...valid);
+        fileResults.push({name:file.name,type:'Asset import',count:valid.length,ok:true});
+      }else if(type==='circuits'){
+        const valid=rows.filter(r=>r.board_asset_code && r.circuit_number);
+        electricalImportCircuits.push(...valid);
+        fileResults.push({name:file.name,type:'Circuit import',count:valid.length,ok:true});
+      }else{
+        fileResults.push({name:file.name,type:'Unrecognised CSV',count:0,ok:false});
+      }
+    }catch(error){
+      console.error(error);
+      fileResults.push({name:file.name,type:'Could not read file',count:0,ok:false});
+    }
+  }
+
+  $('importFileCount').textContent=fileResults.filter(x=>x.ok).length;
+  $('importAssetCount').textContent=electricalImportAssets.length;
+  $('importCircuitCount').textContent=electricalImportCircuits.length;
+
+  $('electricalImportFileList').innerHTML=fileResults.map(f=>`
+    <div class="importFileRow">
+      <span><strong>${esc(f.name)}</strong><br>${esc(f.type)}</span>
+      <span>${f.count} row${f.count===1?'':'s'}</span>
+    </div>
+  `).join('');
+
+  renderElectricalImportPreview();
+
+  $('runElectricalImport').disabled=
+    electricalImportAssets.length===0 && electricalImportCircuits.length===0;
+
+  const unknown=fileResults.filter(x=>!x.ok).length;
+  $('electricalImportMessage').className=unknown?'importMessage error':'importMessage';
+  $('electricalImportMessage').textContent=
+    unknown
+      ? `${unknown} file${unknown===1?' was':'s were'} not recognised. Recognised rows can still be imported.`
+      : `Ready: ${electricalImportAssets.length} assets and ${electricalImportCircuits.length} circuits.`;
+}
+
+async function upsertElectricalAssets(rows){
+  if(!rows.length)return {insertedOrUpdated:0};
+
+  const payload=rows.map(assetImportPayload);
+
+  const {data,error}=await client
+    .from('electrical_assets')
+    .upsert(payload,{onConflict:'asset_code'})
+    .select('id,asset_code');
+
+  if(error)throw new Error(`Asset import failed: ${error.message}`);
+
+  return {insertedOrUpdated:(data||[]).length};
+}
+
+async function importElectricalCircuits(rows){
+  if(!rows.length)return {inserted:0,skipped:0,missingBoards:[]};
+
+  // Reload boards after asset import so brand-new boards can receive circuits.
+  const {data:assetRows,error:assetError}=await client
+    .from('electrical_assets')
+    .select('id,asset_code,asset_name');
+
+  if(assetError)throw new Error(`Could not reload electrical assets: ${assetError.message}`);
+
+  const boardMap=new Map();
+  (assetRows||[]).forEach(a=>{
+    if(a.asset_code)boardMap.set(String(a.asset_code).trim().toLowerCase(),a.id);
+    if(a.asset_name)boardMap.set(String(a.asset_name).trim().toLowerCase(),a.id);
+  });
+
+  const {data:existing,error:existingError}=await client
+    .from('electrical_circuits')
+    .select('board_asset_code,circuit_number');
+
+  if(existingError)throw new Error(`Could not check existing circuits: ${existingError.message}`);
+
+  const existingKeys=new Set(
+    (existing||[]).map(c=>
+      `${String(c.board_asset_code||'').trim().toLowerCase()}||${String(c.circuit_number||'').trim().toLowerCase()}`
+    )
+  );
+
+  const missingBoards=new Set();
+  const toInsert=[];
+  let skipped=0;
+
+  for(const row of rows){
+    const boardCode=String(row.board_asset_code||'').trim();
+    const circuitNo=String(row.circuit_number||'').trim();
+    const key=`${boardCode.toLowerCase()}||${circuitNo.toLowerCase()}`;
+
+    if(existingKeys.has(key)){
+      skipped++;
+      continue;
+    }
+
+    const boardId=boardMap.get(boardCode.toLowerCase());
+    if(!boardId){
+      missingBoards.add(boardCode);
+      continue;
+    }
+
+    toInsert.push(circuitImportPayload(row,boardId));
+    existingKeys.add(key);
+  }
+
+  if(toInsert.length){
+    // Insert in sensible chunks for larger survey imports.
+    const chunkSize=250;
+    for(let i=0;i<toInsert.length;i+=chunkSize){
+      const chunk=toInsert.slice(i,i+chunkSize);
+      const {error}=await client.from('electrical_circuits').insert(chunk);
+      if(error)throw new Error(`Circuit import failed: ${error.message}`);
+    }
+  }
+
+  return {
+    inserted:toInsert.length,
+    skipped,
+    missingBoards:[...missingBoards]
+  };
+}
+
+async function runElectricalImport(){
+  if(!electricalImportAssets.length && !electricalImportCircuits.length)return;
+
+  $('runElectricalImport').disabled=true;
+  $('electricalImportMessage').className='importMessage';
+  $('electricalImportMessage').textContent='Importing assets…';
+
+  try{
+    const assetResult=await upsertElectricalAssets(electricalImportAssets);
+
+    $('electricalImportMessage').textContent=
+      `Assets complete (${assetResult.insertedOrUpdated}). Importing circuits…`;
+
+    const circuitResult=await importElectricalCircuits(electricalImportCircuits);
+
+    await loadElectricalAssets();
+
+    let summary=
+      `Import complete.\n` +
+      `${assetResult.insertedOrUpdated} asset record${assetResult.insertedOrUpdated===1?'':'s'} added/updated.\n` +
+      `${circuitResult.inserted} circuit${circuitResult.inserted===1?'':'s'} added.\n` +
+      `${circuitResult.skipped} existing circuit${circuitResult.skipped===1?'':'s'} skipped.`;
+
+    if(circuitResult.missingBoards.length){
+      summary+=`\n${circuitResult.missingBoards.length} board code${circuitResult.missingBoards.length===1?' was':'s were'} not found: ${circuitResult.missingBoards.join(', ')}`;
+    }
+
+    $('electricalImportMessage').className='importMessage success';
+    $('electricalImportMessage').textContent=summary;
+    $('runElectricalImport').textContent='Imported ✓';
+
+  }catch(error){
+    console.error(error);
+    $('electricalImportMessage').className='importMessage error';
+    $('electricalImportMessage').textContent=error.message || String(error);
+    $('runElectricalImport').disabled=false;
+  }
+}
+
+$('importElectricalCsvBtn').addEventListener('click',openElectricalImport);
+$('closeElectricalImport').addEventListener('click',closeElectricalImport);
+$('cancelElectricalImport').addEventListener('click',closeElectricalImport);
+$('electricalImportBackdrop').addEventListener('click',e=>{
+  if(e.target===$('electricalImportBackdrop'))closeElectricalImport();
+});
+$('electricalImportFiles').addEventListener('change',previewElectricalImport);
+$('runElectricalImport').addEventListener('click',runElectricalImport);
+
+
+$('electricalSearch').addEventListener('input',renderElectricalAssets);
+$('electricalRoomFilter').addEventListener('change',renderElectricalAssets);
+$('electricalCategoryFilter').addEventListener('change',renderElectricalAssets);
+$('electricalCriticalityFilter').addEventListener('change',renderElectricalAssets);
+$('refreshElectrical').addEventListener('click',loadElectricalAssets);$('refreshElectricalTop').addEventListener('click',loadElectricalAssets);
+$('addElectricalAssetBtn').addEventListener('click',()=>openAssetEditor(null,false));$('addDistributionBoardBtn').addEventListener('click',()=>openAssetEditor(null,true));
+$('editCurrentAssetBtn').addEventListener('click',()=>{if(currentAsset){const a=currentAsset;closeElectricalAsset();openAssetEditor(a)}});
+$('editElectricalIsolationPreset').addEventListener('change',()=>{if($('editElectricalIsolationPreset').value)$('editElectricalIsolation').value=$('editElectricalIsolationPreset').value});
+$('editCategory').addEventListener('change',updateCircuitEditorVisibility);$('addCircuitRowBtn').addEventListener('click',()=>addCircuitRow());
+$('closeAssetEditor').addEventListener('click',closeAssetEditor);$('cancelAssetEditor').addEventListener('click',closeAssetEditor);$('saveAssetEditor').addEventListener('click',saveAssetEditor);
+$('assetEditorBackdrop').addEventListener('click',e=>{if(e.target===$('assetEditorBackdrop'))closeAssetEditor()});
+$('assetImageUpload').addEventListener('change',()=>uploadCurrent($('assetImageUpload'),'photo'));$('assetFileUpload').addEventListener('change',()=>uploadCurrent($('assetFileUpload'),'document'));
+$('closeAssetModal').addEventListener('click',closeElectricalAsset);$('assetModalBackdrop').addEventListener('click',e=>{if(e.target===$('assetModalBackdrop'))closeElectricalAsset()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeElectricalAsset();closeAssetEditor()}});
+$('signOutBtn').addEventListener('click',async()=>{await client.auth.signOut();location.href='/'});
+client.auth.getSession().then(({data})=>{currentSession=data.session||null;if(!currentSession){location.href='/';return}loadElectricalAssets()});
+</script>
+
+</body>
+</html>

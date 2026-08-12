@@ -1409,7 +1409,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAsset()});
 function adjacent(n){const i=visibleRows.findIndex(a=>a.id===current?.id),a=visibleRows[i+n];if(a)openAsset(a.id)} els.previous.onclick=()=>adjacent(-1); els.next.onclick=()=>adjacent(1);
 
 
-function showMaintenanceIssues(){window.location.href='/maintenance-dashboard';}
+function showMaintenanceIssues(){window.location.href='/maintenance-dashboard.html';}
 const runGlobalSearch=()=>{const q=els.globalSearch?.value.trim()||'';if(q)showGlobalSearchResults(q);};
 $('globalSearchBtn')?.addEventListener('click',runGlobalSearch);
 els.globalSearch?.addEventListener('keydown',e=>{if(e.key==='Enter')runGlobalSearch()});

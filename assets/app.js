@@ -1613,7 +1613,11 @@ $('plantRoomHubView')?.addEventListener('click',e=>{
  else if(a==='valves'){showView('valves');openValveRoomRegister(currentHubRoom)}
  else if(a==='ppm')openPpmRoom(currentHubRoom);
  else if(a==='qr')printRoomQrLabels(currentHubRoom);
- else if(['sop','rams','manual','schematic'].includes(a))openHubDocuments(a);
+ else if(a==='schematic'){
+  const building=currentHubRoom.replace(/ Plant Room$/i,'');
+  location.href=`/drawings-schematics.html?building=${encodeURIComponent(building)}`;
+}
+else if(['sop','rams','manual'].includes(a))openHubDocuments(a);
  else if(a==='photos'){showRegister(currentHubRoom);els.search.value='';render()}
  else if(a==='logs')showLogsHome();
  else if(a==='compliance')showCompliance();

@@ -459,10 +459,9 @@ function returnFromDrawings() {
 
   const plantRoom = plantRoomForBuilding(requestedBuilding);
 
-  sessionStorage.setItem(
-    'limewoodReturnPlantRoom',
-    plantRoom
-  );
+  location.href =
+    '/?plantRoom=' + encodeURIComponent(plantRoom);
+}
 
   location.href = '/';
 }

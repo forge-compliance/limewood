@@ -1435,7 +1435,7 @@ els.assetBmsBtn?.addEventListener('click',()=>openBms(els.assetBmsBtn.dataset.bm
 
 $('metricPlantRooms')?.addEventListener('click',showPlantRoomDirectory);
 $('metricAssets')?.addEventListener('click',showAssetRegisterDirectory);
-$('metricValves')?.addEventListener('click',()=>{showView('valves');showValveDirectory()});
+$('metricDocuments')?.addEventListener('click',()=>showDocuments(''));
 $('metricPpm')?.addEventListener('click',showPpmDirectory);
 $('priorityReview')?.addEventListener('click',()=>{showRegister('');els.completeness.value='';els.search.value='';visibleRows=assets.filter(a=>['Needs review','Limited access'].includes(a.status));els.resultCount.textContent=`${visibleRows.length} assets needing review`;els.grid.innerHTML=visibleRows.map(a=>`<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.status)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}</div></div></article>`).join('')});
 $('priorityMissing')?.addEventListener('click',()=>{showRegister('');els.completeness.value='missing';render()});

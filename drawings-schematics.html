@@ -466,15 +466,6 @@ function returnFromDrawings() {
 
   location.href = '/';
 }
-
-  if (requestedBuilding) {
-    const plantRoom = plantRoomForBuilding(requestedBuilding);
-    location.href = `/?plantRoom=${encodeURIComponent(plantRoom)}`;
-    return;
-  }
-
-  location.href = '/';
-}
       function setSync(text) { $('syncStatus').textContent = text; }
 
       async function initialiseAuth() {

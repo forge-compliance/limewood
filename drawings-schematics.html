@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17372c">
+<title>Limewood Engineering | Drawings & Schematics</title>
+<link rel="stylesheet" href="assets/style.css?v=600">
+<style>
+:root{--ds-bg:#f4f7f5;--ds-panel:#fff;--ds-ink:#153329;--ds-muted:#657a72;--ds-line:#d9e2de;--ds-accent:#17372c;--ds-accent2:#235743;--ds-blue:#225ca8;--ds-amber:#9a6410;--ds-red:#a43636;--ds-green:#1f704f}
+body{background:var(--ds-bg)}
+.dsShell{min-height:100vh}.dsHeader{position:sticky;top:0;z-index:30;background:#17372c;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;box-shadow:0 3px 16px #0002}.dsBrand{display:flex;gap:12px;align-items:center}.dsMark{width:42px;height:42px;border-radius:10px;background:#fff;color:#17372c;display:grid;place-items:center;font-weight:900}.dsBrand h1{font-size:18px;margin:0}.dsBrand p{font-size:12px;margin:3px 0 0;opacity:.8}.dsHeaderActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dsHeader button{border:1px solid #ffffff33;background:#ffffff12;color:#fff;border-radius:9px;padding:9px 12px}.dsHeader button.primary{background:#fff;color:#17372c;border-color:#fff;font-weight:700}.syncDot{font-size:12px;opacity:.85}
+.dsMain{max-width:1500px;margin:auto;padding:22px}.dsHero{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}.eyebrow{font-size:11px;letter-spacing:.13em;font-weight:800;color:#4f7367}.dsHero h2{font-size:31px;color:var(--ds-ink);margin:4px 0 6px}.dsHero p{margin:0;color:var(--ds-muted)}
+.dsMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.dsMetric{background:var(--ds-panel);border:1px solid var(--ds-line);border-radius:13px;padding:15px;box-shadow:0 1px 2px #00000008}.dsMetric b{display:block;color:var(--ds-ink);font-size:27px}.dsMetric span{font-size:12px;color:var(--ds-muted)}
+.dsToolbar{background:var(--ds-panel);border:1px solid var(--ds-line);border-radius:13px;padding:12px;display:grid;grid-template-columns:minmax(240px,2.1fr) repeat(4,minmax(140px,1fr));gap:10px;margin-bottom:14px}.dsToolbar input,.dsToolbar select,.dsForm input,.dsForm select,.dsForm textarea{width:100%;border:1px solid #ccd8d2;border-radius:9px;background:#fff;color:#17372c;padding:10px 11px;font:inherit}.dsToolbar input:focus,.dsToolbar select:focus,.dsForm input:focus,.dsForm select:focus,.dsForm textarea:focus{outline:2px solid #77a99866;border-color:#5c8a79}
+.dsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}.dsCard{background:#fff;border:1px solid var(--ds-line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.16s transform,.16s box-shadow;min-height:235px;display:flex;flex-direction:column}.dsCard:hover{transform:translateY(-2px);box-shadow:0 8px 24px #17372c16}.dsThumb{height:115px;background:linear-gradient(135deg,#e7eeeb,#f9fbfa);display:grid;place-items:center;border-bottom:1px solid var(--ds-line);font-size:42px;position:relative}.dsThumb small{position:absolute;left:10px;bottom:8px;background:#17372ce8;color:#fff;border-radius:999px;padding:4px 7px;font-size:10px}.dsCardBody{padding:13px 14px 14px;display:flex;flex-direction:column;flex:1}.dsCard h3{color:var(--ds-ink);font-size:16px;margin:4px 0 6px}.dsMeta{font-size:12px;color:var(--ds-muted);line-height:1.55}.dsBadges{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:12px}.dsBadge{font-size:10px;border:1px solid var(--ds-line);border-radius:999px;padding:4px 7px;background:#f8faf9}.dsBadge.verified{color:var(--ds-green);border-color:#b7dbc9;background:#eff9f4}.dsBadge.review{color:var(--ds-amber);border-color:#ecd4a8;background:#fff9ed}.dsBadge.superseded{color:var(--ds-red);border-color:#efc0c0;background:#fff2f2}.dsBadge.reference{color:var(--ds-blue);border-color:#bdd0ea;background:#f0f6ff}.dsEmpty{grid-column:1/-1;background:#fff;border:1px dashed #b9c9c1;border-radius:13px;text-align:center;padding:52px 20px;color:var(--ds-muted)}
+.dsModal{position:fixed;inset:0;background:#06110bc4;z-index:100;display:none;align-items:center;justify-content:center;padding:16px}.dsModal.open{display:flex}.dsModalCard{background:#fff;border-radius:15px;width:min(980px,100%);max-height:92vh;overflow:auto;box-shadow:0 24px 80px #0007}.dsModalHead{position:sticky;top:0;z-index:4;background:#fff;border-bottom:1px solid var(--ds-line);padding:16px 18px;display:flex;justify-content:space-between;align-items:start;gap:10px}.dsModalHead h2{color:var(--ds-ink);margin:3px 0 0}.dsClose{border:0;background:#eef3f0;color:#17372c;width:36px;height:36px;border-radius:50%;font-size:22px}.dsModalBody{padding:18px}.dsForm{display:grid;grid-template-columns:1fr 1fr;gap:12px}.dsForm label{color:var(--ds-muted);font-size:12px}.dsForm label.full{grid-column:1/-1}.dsForm textarea{min-height:90px;resize:vertical}.dsModalActions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:15px}.dsBtn{border:1px solid #c9d5cf;background:#f5f8f6;color:#17372c;border-radius:9px;padding:10px 13px}.dsBtn.primary{background:#17372c;color:#fff;border-color:#17372c}.dsBtn.danger{color:#9d2e2e;border-color:#e3b6b6;background:#fff5f5}.dsNote{font-size:12px;color:var(--ds-muted);margin:10px 0 0}.dsViewer{height:min(62vh,720px);background:#19231f;border-radius:10px;display:grid;place-items:center;overflow:hidden}.dsViewer img{width:100%;height:100%;object-fit:contain}.dsViewer iframe{width:100%;height:100%;border:0;background:#fff}.dsNoFile{color:#d7e1dc;text-align:center;padding:30px}.dsDetails{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}.dsDetail{border:1px solid var(--ds-line);border-radius:9px;padding:9px 10px}.dsDetail small{display:block;color:var(--ds-muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.dsDetail b{display:block;color:var(--ds-ink);font-size:13px;margin-top:3px;overflow-wrap:anywhere}.dsNotes{margin-top:12px;color:#334b42;white-space:pre-wrap}.dsFileHint{font-size:11px;color:var(--ds-muted);margin-top:5px}.hidden{display:none!important}
+@media(max-width:880px){.dsMetrics{grid-template-columns:1fr 1fr}.dsToolbar{grid-template-columns:1fr 1fr}.dsToolbar .wide{grid-column:1/-1}.dsDetails{grid-template-columns:1fr 1fr}.dsHero{align-items:flex-start;flex-direction:column}.dsHeader{position:static;align-items:flex-start}.dsHeaderActions{justify-content:flex-end}}
+@media(max-width:580px){.dsMain{padding:13px}.dsHeader{padding:12px}.dsBrand p{display:none}.dsHeaderActions .syncDot{width:100%;text-align:right}.dsMetrics{gap:8px}.dsMetric{padding:12px}.dsToolbar{grid-template-columns:1fr}.dsToolbar .wide{grid-column:auto}.dsDetails{grid-template-columns:1fr}.dsForm{grid-template-columns:1fr}.dsForm label.full{grid-column:auto}.dsModal{padding:6px}.dsHero h2{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="dsShell">
+<header class="dsHeader">
+  <div class="dsBrand"><div class="dsMark">LW</div><div><h1>Limewood Engineering</h1><p>Drawings & Schematics Centre · Powered by Forge Compliance</p></div></div>
+  <div class="dsHeaderActions"><span id="syncStatus" class="syncDot">Connecting…</span><button onclick="location.href='/'">← Dashboard</button><button id="addBtn" class="primary">+ Add drawing</button><button id="signOutBtn">Sign out</button></div>
+</header>
+<main class="dsMain">
+<section class="dsHero"><div><span class="eyebrow">ESTATE ENGINEERING INFORMATION</span><h2>Drawings & Schematics</h2><p>Electrical, hydraulic, mechanical, floor plans, schedules, valve charts and control drawings in one place.</p></div></section>
+<section class="dsMetrics">
+ <div class="dsMetric"><b id="metricTotal">0</b><span>Total drawing records</span></div>
+ <div class="dsMetric"><b id="metricVerified">0</b><span>Verified on site</span></div>
+ <div class="dsMetric"><b id="metricReview">0</b><span>Need verification</span></div>
+ <div class="dsMetric"><b id="metricBuildings">0</b><span>Buildings / areas</span></div>
+</section>
+<section class="dsToolbar">
+ <input id="search" class="wide" placeholder="Search title, drawing number, building, system, location or related equipment…">
+ <select id="building"><option value="">All buildings / areas</option></select>
+ <select id="system"><option value="">All systems</option></select>
+ <select id="type"><option value="">All drawing types</option></select>
+ <select id="status"><option value="">All statuses</option><option>Verified on site</option><option>Existing - not verified</option><option>Reference only</option><option>Superseded / incorrect</option></select>
+</section>
+<section id="grid" class="dsGrid"></section>
+</main>
+</div>
+
+<div id="editModal" class="dsModal" aria-hidden="true"><div class="dsModalCard">
+ <div class="dsModalHead"><div><span class="eyebrow">DRAWING RECORD</span><h2 id="formHeading">Add drawing</h2></div><button class="dsClose" data-close="editModal">×</button></div>
+ <div class="dsModalBody"><div class="dsForm">
+  <label>Drawing title<input id="fTitle" autocomplete="off"></label>
+  <label>Drawing / reference number<input id="fNumber" autocomplete="off"></label>
+  <label>Building / area<input id="fBuilding" list="buildingList" autocomplete="off"></label>
+  <label>Exact location<input id="fLocation" autocomplete="off"></label>
+  <label>System<input id="fSystem" list="systemList" autocomplete="off"></label>
+  <label>Drawing type<select id="fType"><option>Electrical schematic</option><option>Hydraulic schematic</option><option>Mechanical schematic</option><option>Control schematic</option><option>Distribution schedule</option><option>Floor plan / layout</option><option>Valve chart</option><option>Plant schematic</option><option>Other</option></select></label>
+  <label>Status<select id="fStatus"><option>Existing - not verified</option><option>Verified on site</option><option>Reference only</option><option>Superseded / incorrect</option></select></label>
+  <label>Revision<input id="fRevision" autocomplete="off"></label>
+  <label>Drawing date<input id="fDate" type="date"></label>
+  <label>Related asset / DB / equipment<input id="fRelated" autocomplete="off"></label>
+  <label class="full">Notes<textarea id="fNotes"></textarea></label>
+  <label class="full">Digital drawing / photo / PDF<input id="fFile" type="file" accept=".pdf,image/*"><div class="dsFileHint" id="fileHint">PDF or image. Stored in the existing private Supabase file bucket.</div></label>
+ </div>
+ <p id="formMessage" class="dsNote"></p>
+ <div class="dsModalActions"><button class="dsBtn" data-close="editModal">Cancel</button><button id="deleteBtn" class="dsBtn danger hidden">Delete record</button><button id="saveBtn" class="dsBtn primary">Save drawing</button></div></div>
+</div></div>
+
+<div id="viewModal" class="dsModal" aria-hidden="true"><div class="dsModalCard">
+ <div class="dsModalHead"><div><span id="viewEyebrow" class="eyebrow">DRAWING</span><h2 id="viewTitle">Drawing</h2></div><button class="dsClose" data-close="viewModal">×</button></div>
+ <div class="dsModalBody"><div id="viewer" class="dsViewer"><div class="dsNoFile">No digital file attached.</div></div><div id="details" class="dsDetails"></div><div id="viewNotes" class="dsNotes"></div><div class="dsModalActions"><button id="openFileBtn" class="dsBtn hidden">Open original</button><button id="editBtn" class="dsBtn primary">Edit record</button></div></div>
+</div></div>
+
+<datalist id="buildingList"><option>Main House</option><option>Coach House</option><option>Staff House</option><option>Spa</option><option>Green Barn</option><option>The Crescent</option><option>Pavilion</option><option>Riser 8</option><option>Riser 17</option></datalist>
+<datalist id="systemList"><option>Electrical Distribution</option><option>Lighting Controls</option><option>Heating / LTHW</option><option>HWS / CWS</option><option>Ventilation</option><option>Controls / BMS</option><option>Fire & Life Safety</option><option>Pool & Spa</option></datalist>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/config.js?v=20260805-51"></script>
+<script>
+(()=>{'use strict';
+const cfg=window.LIMEWOOD_CONFIG||{};
+const client=(window.supabase&&cfg.supabaseUrl&&cfg.supabasePublishableKey)?window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+const bucket=cfg.storageBucket||'asset-files';
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+let rows=[],current=null,currentFileUrl='',editingId=null,session=null;
+const demo=[
+ {id:'demo-ch',title:'Coach House Electrical Distribution',drawing_number:'CH-ELEC',building:'Coach House',location:'Coach House',system:'Electrical Distribution',drawing_type:'Electrical schematic',status:'Existing - not verified',revision:null,drawing_date:null,related_asset:'DB Coach House 4 / DB Coach House 6',notes:'Source material captured during site survey.',storage_path:null},
+ {id:'demo-sh',title:'Staff House Boiler Room Hydraulic Schematic',drawing_number:'SH-HYD',building:'Staff House',location:'Staff House Boiler Room',system:'Heating / LTHW',drawing_type:'Hydraulic schematic',status:'Existing - not verified',revision:null,drawing_date:null,related_asset:'Staff House Boiler Room',notes:'Reference record ready for the current valve chart and hydraulic schematic.',storage_path:null},
+ {id:'demo-r17',title:'Riser 17 Engineering Record',drawing_number:'R17',building:'Riser 17',location:'Riser 17',system:'Electrical Distribution',drawing_type:'Distribution schedule',status:'Reference only',revision:null,drawing_date:null,related_asset:'Riser 17',notes:'Site record captured.',storage_path:null},
+ {id:'demo-r8',title:'Riser 8 Engineering Record',drawing_number:'R8',building:'Riser 8',location:'Riser 8',system:'Electrical Distribution',drawing_type:'Distribution schedule',status:'Reference only',revision:null,drawing_date:null,related_asset:'Riser 8',notes:'Site record captured.',storage_path:null}
+];
+function setSync(t){$('syncStatus').textContent=t}
+async function authGuard(){if(!client){setSync('Configuration missing');return false}const r=await client.auth.getSession();session=r.data.session;if(!session){location.href='/';return false}setSync('Cloud connected');return true}
+async function load(){if(!(await authGuard())){rows=demo;render();return}const {data,error}=await client.from('drawings').select('*').order('building',{ascending:true}).order('title',{ascending:true});if(error){console.warn(error);setSync('Drawings table not ready');rows=demo}else rows=data||[];render()}
+function unique(k){return [...new Set(rows.map(r=>r[k]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
+function refill(id,vals,label){const e=$(id),v=e.value;e.innerHTML='<option value="">'+esc(label)+'</option>'+vals.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');e.value=v}
+function statusClass(s){return s==='Verified on site'?'verified':s==='Superseded / incorrect'?'superseded':s==='Reference only'?'reference':'review'}
+function iconFor(t){t=String(t||'').toLowerCase();if(t.includes('hydraulic')||t.includes('valve'))return '💧';if(t.includes('electrical')||t.includes('distribution'))return '⚡';if(t.includes('floor')||t.includes('layout'))return '📐';if(t.includes('control'))return '🎛️';if(t.includes('mechanical')||t.includes('plant'))return '⚙️';return '🗺️'}
+function render(){refill('building',unique('building'),'All buildings / areas');refill('system',unique('system'),'All systems');refill('type',unique('drawing_type'),'All drawing types');$('metricTotal').textContent=rows.length;$('metricVerified').textContent=rows.filter(r=>r.status==='Verified on site').length;$('metricReview').textContent=rows.filter(r=>r.status==='Existing - not verified').length;$('metricBuildings').textContent=unique('building').length;
+ const q=$('search').value.trim().toLowerCase(),b=$('building').value,s=$('system').value,t=$('type').value,st=$('status').value;
+ const f=rows.filter(r=>(!b||r.building===b)&&(!s||r.system===s)&&(!t||r.drawing_type===t)&&(!st||r.status===st)&&(!q||[r.title,r.drawing_number,r.building,r.location,r.system,r.drawing_type,r.related_asset,r.notes,r.revision].join(' ').toLowerCase().includes(q)));
+ $('grid').innerHTML=f.length?f.map(r=>`<article class="dsCard" data-id="${esc(r.id)}"><div class="dsThumb">${iconFor(r.drawing_type)}<small>${r.storage_path?'FILE ATTACHED':'RECORD ONLY'}</small></div><div class="dsCardBody"><span class="eyebrow">${esc(r.building||'ESTATE')}</span><h3>${esc(r.title||'Untitled drawing')}</h3><div class="dsMeta">${esc(r.drawing_number||'No drawing number')} · ${esc(r.system||'Unclassified')}<br>${esc(r.location||'Location not recorded')}</div><div class="dsBadges"><span class="dsBadge">${esc(r.drawing_type||'Drawing')}</span><span class="dsBadge ${statusClass(r.status)}">${esc(r.status||'Reference only')}</span></div></div></article>`).join(''):'<div class="dsEmpty"><h3>No drawings found</h3><p>Change the filters or add a drawing record.</p></div>';
+ document.querySelectorAll('.dsCard').forEach(c=>c.onclick=()=>openRecord(c.dataset.id));}
+function modal(id,on){const e=$(id);e.classList.toggle('open',on);e.setAttribute('aria-hidden',on?'false':'true')}
+async function signedUrl(path){if(!client||!path)return'';const {data,error}=await client.storage.from(bucket).createSignedUrl(path,3600);if(error){console.warn(error);return''}return data?.signedUrl||''}
+function detail(label,value){return `<div class="dsDetail"><small>${esc(label)}</small><b>${esc(value||'—')}</b></div>`}
+async function openRecord(id){current=rows.find(r=>String(r.id)===String(id));if(!current)return;$('viewEyebrow').textContent=(current.drawing_type||'DRAWING').toUpperCase();$('viewTitle').textContent=current.title||'Untitled drawing';$('details').innerHTML=detail('Drawing no.',current.drawing_number)+detail('Building / area',current.building)+detail('Location',current.location)+detail('System',current.system)+detail('Revision',current.revision)+detail('Drawing date',current.drawing_date)+detail('Status',current.status)+detail('Related equipment',current.related_asset);$('viewNotes').textContent=current.notes||'';$('viewer').innerHTML='<div class="dsNoFile">Loading drawing…</div>';currentFileUrl='';$('openFileBtn').classList.add('hidden');modal('viewModal',true);
+ if(current.storage_path){currentFileUrl=await signedUrl(current.storage_path);if(currentFileUrl){const isPdf=/\.pdf($|\?)/i.test(current.storage_path);$('viewer').innerHTML=isPdf?`<iframe title="Drawing viewer" src="${esc(currentFileUrl)}"></iframe>`:`<img alt="${esc(current.title||'Drawing')}" src="${esc(currentFileUrl)}">`;$('openFileBtn').classList.remove('hidden')}else $('viewer').innerHTML='<div class="dsNoFile">File is attached but could not be opened. Check Storage permissions.</div>'}else $('viewer').innerHTML='<div class="dsNoFile">No digital file attached to this record yet.</div>'}
+function blankForm(){['fTitle','fNumber','fBuilding','fLocation','fSystem','fRevision','fDate','fRelated','fNotes'].forEach(id=>$(id).value='');$('fType').value='Electrical schematic';$('fStatus').value='Existing - not verified';$('fFile').value='';$('fileHint').textContent='PDF or image. Stored in the existing private Supabase file bucket.'}
+function openEdit(row=null){editingId=row&&!String(row.id).startsWith('demo-')?row.id:null;$('formHeading').textContent=row?'Edit drawing':'Add drawing';blankForm();if(row){$('fTitle').value=row.title||'';$('fNumber').value=row.drawing_number||'';$('fBuilding').value=row.building||'';$('fLocation').value=row.location||'';$('fSystem').value=row.system||'';$('fType').value=row.drawing_type||'Other';$('fStatus').value=row.status||'Existing - not verified';$('fRevision').value=row.revision||'';$('fDate').value=row.drawing_date||'';$('fRelated').value=row.related_asset||'';$('fNotes').value=row.notes||'';if(row.storage_path)$('fileHint').textContent='Current file attached. Choose another file only if you want to replace it.'}$('deleteBtn').classList.toggle('hidden',!editingId);$('formMessage').textContent='';modal('editModal',true)}
+function cleanName(n){return String(n||'file').replace(/[^a-zA-Z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(-120)||'file'}
+async function save(){if(!client||!session){$('formMessage').textContent='Cloud connection is not available.';return}const title=$('fTitle').value.trim();if(!title){$('formMessage').textContent='Drawing title is required.';return}const rec={title,drawing_number:$('fNumber').value.trim()||null,building:$('fBuilding').value.trim()||null,location:$('fLocation').value.trim()||null,system:$('fSystem').value.trim()||null,drawing_type:$('fType').value,status:$('fStatus').value,revision:$('fRevision').value.trim()||null,drawing_date:$('fDate').value||null,related_asset:$('fRelated').value.trim()||null,notes:$('fNotes').value.trim()||null,updated_at:new Date().toISOString()};$('formMessage').textContent='Saving…';$('saveBtn').disabled=true;
+ try{const file=$('fFile').files[0];if(file){const path=`drawings/${new Date().getFullYear()}/${crypto.randomUUID()}-${cleanName(file.name)}`;const up=await client.storage.from(bucket).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(up.error)throw up.error;rec.storage_path=path;rec.original_filename=file.name;rec.mime_type=file.type||null;rec.file_size=file.size}
+ let result;if(editingId)result=await client.from('drawings').update(rec).eq('id',editingId).select().single();else result=await client.from('drawings').insert({...rec,created_by:session.user.id}).select().single();if(result.error)throw result.error;modal('editModal',false);setSync('Saved to cloud');await load()}catch(e){console.error(e);$('formMessage').textContent='Could not save: '+(e.message||e)}finally{$('saveBtn').disabled=false}}
+async function removeRecord(){if(!editingId||!client)return;if(!confirm('Delete this drawing record? The uploaded file will also be removed.'))return;const row=rows.find(r=>r.id===editingId);$('formMessage').textContent='Deleting…';if(row?.storage_path){const rr=await client.storage.from(bucket).remove([row.storage_path]);if(rr.error)console.warn(rr.error)}const {error}=await client.from('drawings').delete().eq('id',editingId);if(error){$('formMessage').textContent='Could not delete: '+error.message;return}modal('editModal',false);await load()}
+$('addBtn').onclick=()=>openEdit();$('saveBtn').onclick=save;$('deleteBtn').onclick=removeRecord;$('editBtn').onclick=()=>{modal('viewModal',false);openEdit(current)};$('openFileBtn').onclick=()=>{if(currentFileUrl)window.open(currentFileUrl,'_blank','noopener')};$('signOutBtn').onclick=async()=>{try{if(client)await client.auth.signOut()}finally{location.href='/'}};document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>modal(b.dataset.close,false));document.querySelectorAll('.dsModal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)modal(m.id,false)}));['search','building','system','type','status'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('editModal',false);modal('viewModal',false)}});load();
+})();
+</script>
+</body>
+</html>

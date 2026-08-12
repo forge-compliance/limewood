@@ -269,7 +269,7 @@
       <div><b>Limewood Engineering</b><small>Estate technical control centre</small></div>
     </div>
     <div class="topActions">
-      <button class="dsBtn dark" type="button" onclick="location.href='/'">Dashboard</button>
+     <button id="pageBackBtn" class="dsBtn dark" type="button">Dashboard</button>
       <button id="signOutBtn" class="dsBtn dark" type="button">Sign out</button>
     </div>
   </header>
@@ -420,7 +420,46 @@
       let currentFileUrl = '';
       let editingId = null;
       let session = null;
+const pageParams = new URLSearchParams(location.search);
+const requestedBuilding = (pageParams.get('building') || '').trim();
 
+function plantRoomForBuilding(building) {
+  const aliases = {
+    'Lodges': 'Forest Lodges Plant Room',
+    'Forest Lodges': 'Forest Lodges Plant Room'
+  };
+
+  return aliases[building] || `${building} Plant Room`;
+}
+
+function applyPageContext() {
+  if (!requestedBuilding) return;
+
+  const buildingSelect = $('building');
+
+  const matchingOption = [...buildingSelect.options].find(option =>
+    option.value.toLowerCase() === requestedBuilding.toLowerCase()
+  );
+
+  if (matchingOption) {
+    buildingSelect.value = matchingOption.value;
+  } else {
+    $('search').value = requestedBuilding;
+  }
+
+  $('pageBackBtn').textContent = '← Back to Plant Room';
+  render();
+}
+
+function returnFromDrawings() {
+  if (!requestedBuilding) {
+    location.href = '/';
+    return;
+  }
+
+  const plantRoom = plantRoomForBuilding(requestedBuilding);
+  location.href = `/?plantRoom=${encodeURIComponent(plantRoom)}`;
+}
       function setSync(text) { $('syncStatus').textContent = text; }
 
       async function initialiseAuth() {
@@ -788,6 +827,7 @@
 
       $('search').addEventListener('input', render);
       ['building', 'system', 'type', 'status'].forEach(id => $(id).addEventListener('change', render));
+      $('pageBackBtn').addEventListener('click', returnFromDrawings);
       $('addBtn').addEventListener('click', () => openEdit());
       $('saveBtn').addEventListener('click', saveDrawing);
       $('editViewBtn').addEventListener('click', () => { modal('viewModal', false); openEdit(current); });
@@ -810,11 +850,13 @@
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape') { modal('editModal', false); modal('viewModal', false); }
       });
-
-      (async () => {
-        if (await initialiseAuth()) await loadDrawings();
+(async () => {
+  if (await initialiseAuth()) {
+    await loadDrawings();
+    applyPageContext();
+  }
+})();
       })();
-    })();
   </script>
 </body>
 </html>

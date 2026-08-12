@@ -452,13 +452,22 @@ function applyPageContext() {
 }
 
 function returnFromDrawings() {
-  if (!requestedBuilding) {
-    location.href = '/';
+  const cameFromLimewood =
+    document.referrer &&
+    new URL(document.referrer).origin === location.origin;
+
+  if (cameFromLimewood && history.length > 1) {
+    history.back();
     return;
   }
 
-  const plantRoom = plantRoomForBuilding(requestedBuilding);
-  location.href = `/?plantRoom=${encodeURIComponent(plantRoom)}`;
+  if (requestedBuilding) {
+    const plantRoom = plantRoomForBuilding(requestedBuilding);
+    location.href = `/?plantRoom=${encodeURIComponent(plantRoom)}`;
+    return;
+  }
+
+  location.href = '/';
 }
       function setSync(text) { $('syncStatus').textContent = text; }
 

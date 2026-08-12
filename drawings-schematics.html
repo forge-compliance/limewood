@@ -452,14 +452,20 @@ function applyPageContext() {
 }
 
 function returnFromDrawings() {
-  const cameFromLimewood =
-    document.referrer &&
-    new URL(document.referrer).origin === location.origin;
-
-  if (cameFromLimewood && history.length > 1) {
-    history.back();
+  if (!requestedBuilding) {
+    location.href = '/';
     return;
   }
+
+  const plantRoom = plantRoomForBuilding(requestedBuilding);
+
+  sessionStorage.setItem(
+    'limewoodReturnPlantRoom',
+    plantRoom
+  );
+
+  location.href = '/';
+}
 
   if (requestedBuilding) {
     const plantRoom = plantRoomForBuilding(requestedBuilding);

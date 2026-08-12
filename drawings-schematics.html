@@ -424,12 +424,12 @@ const pageParams = new URLSearchParams(location.search);
 const requestedBuilding = (pageParams.get('building') || '').trim();
 
 function plantRoomForBuilding(building) {
-  const aliases = {
-    'Lodges': 'Forest Lodges Plant Room',
-    'Forest Lodges': 'Forest Lodges Plant Room'
-  };
+ const aliases = {
+  'Lodges': 'Forest Lodges Plant Room',
+  'Forest Lodges': 'Forest Lodges Plant Room'
+};
 
-  return aliases[building] || `${building} Plant Room`;
+return aliases[building] || (building + ' Plant Room');
 }
 
 function applyPageContext() {

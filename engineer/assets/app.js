@@ -348,8 +348,7 @@ if(selected.status==='completed'){
 
 linkedAsset=asset;
 workTarget='asset';
- const jobInList=jobs.find(j=>j.id===selected.id);
-if(jobInList) jobInList.asset_id=asset.id;
+ 
   linkedAsset=asset;
   workTarget='asset';
 

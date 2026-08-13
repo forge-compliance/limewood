@@ -548,6 +548,7 @@ function renderDetails() {
   renderGallery(); renderLinks();
 }
 
+  async function openMaintenanceHistory() {
 function setEditing(on) {
   editing = on;
   els.editPanel.hidden = !on;

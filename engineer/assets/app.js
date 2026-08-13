@@ -105,7 +105,7 @@ function updateWorkTarget(){
 
   if(linkedAsset){
     card.hidden=false;
-    name.textContent=`${linkedAsset.id} · ${linkedAsset.name}`;
+   name.textContent=`${linkedAsset.asset_code||''} · ${linkedAsset.asset_name||'Asset'}`;
   }else if(workTarget==='general'){
     card.hidden=false;
     name.textContent='🔧 General maintenance – no asset required';
@@ -150,6 +150,7 @@ $('assetSearchInput').oninput=()=>{
 
 async function runAssetSearch(term){
   const host=$('assetSearchResults');
+
   const words=term
     .trim()
     .toLowerCase()
@@ -160,6 +161,124 @@ async function runAssetSearch(term){
     host.innerHTML='<div class="empty">Start typing to search assets.</div>';
     return;
   }
+
+  host.innerHTML='<div class="empty">Searching…</div>';
+
+  const [
+    {data:assetData,error:assetError},
+    {data:buildingData,error:buildingError},
+    {data:roomData,error:roomError}
+  ]=await Promise.all([
+    client.from('assets').select('*').limit(500),
+    client.from('buildings').select('id,name'),
+    client.from('plant_rooms').select('id,name')
+  ]);
+
+  if(assetError){
+    host.innerHTML=`<div class="empty">${esc(assetError.message)}</div>`;
+    return;
+  }
+
+  if(buildingError){
+    console.warn('Building lookup failed',buildingError);
+  }
+
+  if(roomError){
+    console.warn('Plant room lookup failed',roomError);
+  }
+
+  const buildings=new Map(
+    (buildingData||[]).map(b=>[String(b.id),b.name])
+  );
+
+  const plantRooms=new Map(
+    (roomData||[]).map(r=>[String(r.id),r.name])
+  );
+
+  const matches=(assetData||[]).filter(asset=>{
+
+    const buildingName=
+      buildings.get(String(asset.building_id||''))||'';
+
+    const plantRoomName=
+      plantRooms.get(String(asset.plant_room_id||''))||'';
+
+    const haystack=[
+      asset.asset_code,
+      asset.asset_name,
+      buildingName,
+      plantRoomName,
+      asset.category,
+      asset.system_duty,
+      asset.manufacturer,
+      asset.model,
+      asset.serial_number,
+      asset.asset_tag,
+      asset.operational_status,
+      asset.condition,
+      asset.criticality
+    ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+    return words.every(word=>haystack.includes(word));
+
+  }).slice(0,30);
+
+  if(!matches.length){
+    host.innerHTML=`
+      <div class="empty">
+        <b>No matching assets.</b><br>
+        <span>Try another search or add a new asset.</span>
+      </div>`;
+    return;
+  }
+
+  host.innerHTML=matches.map(asset=>{
+
+    const buildingName=
+      buildings.get(String(asset.building_id||''))||'';
+
+    const plantRoomName=
+      plantRooms.get(String(asset.plant_room_id||''))||'';
+
+    return `
+      <button
+        type="button"
+        class="asset-search-result"
+        data-asset-id="${esc(asset.id)}"
+      >
+        <b>${esc(asset.asset_name||asset.asset_code||'Asset')}</b>
+
+        <span>
+          ${esc(asset.asset_code||'')}
+          ${asset.manufacturer?' · '+esc(asset.manufacturer):''}
+        </span>
+
+        <small>
+          ${esc(
+            [buildingName,plantRoomName]
+              .filter(Boolean)
+              .join(' · ') ||
+            asset.category ||
+            'Location not recorded'
+          )}
+        </small>
+      </button>
+    `;
+  }).join('');
+
+  host.querySelectorAll('.asset-search-result').forEach(button=>{
+    button.onclick=()=>{
+      const asset=matches.find(
+        a=>String(a.id)===button.dataset.assetId
+      );
+
+      if(asset) linkAsset(asset);
+    };
+  });
+}
 
   host.innerHTML='<div class="empty">Searching…</div>';
 
@@ -239,8 +358,7 @@ if(jobInList) jobInList.asset_id=asset.id;
 
   $('assetSearchPanel').hidden=true;
 
-  toast(`Linked to ${asset.name||asset.id}`);
-}
+toast(`Linked to ${asset.asset_name||asset.asset_code||asset.id}`);
 
 $('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
 $('completeJob').onclick=async()=>{if(!selected||selected.status==='completed')return;if(!selected.checked_at)return toast('Check the job before completing it.');const btn=$('completeJob');btn.disabled=true;const note=$('newNote').value.trim();await updateJob({status:'completed',completed_at:new Date().toISOString(),completed_by:session.user.id},note?`Completed by ${profileName}: ${note}`:`Job completed by ${profileName}`,'completed');};

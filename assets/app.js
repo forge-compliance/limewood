@@ -45,7 +45,7 @@ const els = {
   previous:$('prevBtn'), next:$('nextBtn'), back:$('backBtn'), edit:$('editBtn'), editPanel:$('editPanel'),
   editFields:$('editFields'), manufacturerLink:$('mManufacturerLink'), manualLink:$('mManualLink'), photos:$('mPhotos'),
   docTitle:$('mDocTitle'), docType:$('mDocType'), document:$('mDocument'), gallery:$('photoGallery'), links:$('assetLinks'),
-  addAsset:$('addAssetBtn'), assetBmsBtn:$('assetBmsBtn'), assetQrBtn:$('assetQrBtn'), missingCount:$('missingCount'), criticalCount:$('criticalCount'), dashboardDocumentCount:$('dashboardDocumentCount'), qualityPercent:$('qualityPercent'), recentActivity:$('recentActivity'), globalSearch:$('globalSearch')
+  addAsset:$('addAssetBtn'), assetBmsBtn:$('assetBmsBtn'), assetQrBtn:$('assetQrBtn'), maintenanceHistoryBtn:$('maintenanceHistoryBtn'), missingCount:$('missingCount'), criticalCount:$('criticalCount'), dashboardDocumentCount:$('dashboardDocumentCount'), qualityPercent:$('qualityPercent'), recentActivity:$('recentActivity'), globalSearch:$('globalSearch')
 };
 
 const docEls = {
@@ -74,7 +74,6 @@ let libraryDocuments = [];
 let sopRecords = [];
 let documentTypeContext = '';
 
-
 function bmsKeyForRoom(room='') {
   const r=String(room).toLowerCase();
   if(r.includes('staff')) return 'staff';
@@ -92,7 +91,6 @@ function openBms(key='overview') {
   if(!url) return alert('The BMS address has not been configured.');
   window.open(url,'_blank','noopener');
 }
-
 
 const complianceRegisters = [
   {key:'fire',icon:'🚨',title:'Fire & life safety',terms:['fire','emergency lighting','alarm','sprinkler'],category:'Fire & Life Safety'},
@@ -296,7 +294,6 @@ function renderValveRoomButtons(rooms){
 }
 function showValveDirectory(){const select=$('valveRoom');if(select)select.value='';$('valveSearch').value='';$('valvePosition').value='';renderValves();}
 function openValveRoomRegister(room){const select=$('valveRoom');if(!select||!room)return;select.value=room;$('valveSearch').value='';$('valvePosition').value='';renderValves();}
-
 
 let currentPpmRoom='';
 
@@ -630,7 +627,7 @@ async function previewValveImport(){
  try{
   const matrix=await valveFileMatrix(file);valveImportRows=mapValveCsvRows(matrix,$('valveImportRoom').value);
   const existing=new Set(valveRecords.map(valveRoomTagKey));
-   const duplicates=valveImportRows.filter(v=>existing.has(valveRoomTagKey(v))).length;
+  const duplicates=valveImportRows.filter(v=>existing.has(valveRoomTagKey(v))).length;
   $('valveImportSummary').innerHTML=`<b>${valveImportRows.length}</b> rows detected · <b>${valveImportRows.length-duplicates}</b> new · <b>${duplicates}</b> existing tag${duplicates===1?'':'s'}`;
   $('valveImportPreview').innerHTML=valveImportRows.slice(0,12).map(v=>`<tr><td><b>${esc(v.tag)}</b></td><td>${esc(v.service_duty)}</td><td>${esc(v.valve_type||'To confirm')}</td><td>${esc(v.size||'To confirm')}</td><td>${esc(v.normal_position)}</td></tr>`).join('')+(valveImportRows.length>12?`<tr><td colspan="5" class="emptyState">Previewing 12 of ${valveImportRows.length} rows.</td></tr>`:'');
   $('confirmValveImport').disabled=!valveImportRows.length;$('valveImportMessage').textContent='';
@@ -762,7 +759,7 @@ async function loadCloud() {
   plantRooms = pRes.data || [];
   const photos = phRes.data || [];
   const docs = dRes.data || [];
- const photoUrls = photos.map(p => ({...p, url: ''}));
+  const photoUrls = photos.map(p => ({...p, url: ''}));
   const docUrls = docs.map(d => ({...d, url: d.external_url || ''}));
   assets = (aRes.data || []).map(row => toView({
     ...row,
@@ -772,7 +769,6 @@ async function loadCloud() {
   setSync(`Cloud synced · ${assets.length} assets`);
   populateFilters(); updateStats(); render();
 }
-
 
 async function loadDocumentCentre() {
   // The main document table is the dependable core. SOP control tables are optional,
@@ -798,7 +794,7 @@ async function loadDocumentCentre() {
       number:looksNumbered ? parts.shift() : '', title:parts.join(' · ') || rawTitle,
       category:'General', revision:d.revision || '', status:'approved', buildingId:'', plantRoomId:'',
       assetIds:d.asset_id ? [d.asset_id] : [], createdAt:d.created_at,
-     url:d.external_url || '', raw:d
+      url:d.external_url || '', raw:d
     };
   }));
 
@@ -809,7 +805,7 @@ async function loadDocumentCentre() {
       key:`sop-${row.id}`, source:'sops', id:row.id, type:'sop', number:row.sop_number, title:row.title,
       category:row.category || 'General', revision:row.revision || '1', status:row.status || 'draft', buildingId:row.building_id || '',
       plantRoomId:row.plant_room_id || '', assetIds:links.filter(x=>x.sop_id===row.id).map(x=>x.asset_id), createdAt:row.created_at,
-     url:'', storagePath:path, raw:row
+      url:'', storagePath:path, raw:row
     };
   })) : [];
 
@@ -1250,6 +1246,61 @@ function renderDetails() {
   if(els.assetBmsBtn){ const key=bmsKeyForRoom(current.room); els.assetBmsBtn.hidden=!['staff','main','coach','spa','green','crescent','pavilion'].includes(key); els.assetBmsBtn.dataset.bmsKey=key; }
 }
 
+async function openMaintenanceHistory() {
+  if (!current?.uuid) {
+    alert('This asset has not been saved to the database yet.');
+    return;
+  }
+
+  if (!els.maintenanceHistoryBtn) return;
+
+  const originalText = els.maintenanceHistoryBtn.textContent;
+  els.maintenanceHistoryBtn.disabled = true;
+  els.maintenanceHistoryBtn.textContent = 'Loading history…';
+
+  try {
+    const { data, error } = await client
+      .from('maintenance_records')
+      .select('*')
+      .eq('asset_id', current.uuid)
+      .order('work_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const records = data || [];
+
+    if (!records.length) {
+      alert(`No maintenance history has been recorded for ${current.id} · ${current.name}.`);
+      return;
+    }
+
+    const text = records.map(record => {
+      const parts = [
+        record.work_date || 'Date not recorded',
+        record.work_type || 'Maintenance',
+        record.description || '',
+        record.engineer_name ? `Engineer: ${record.engineer_name}` : '',
+        record.findings ? `Findings: ${record.findings}` : '',
+        record.actions_taken ? `Actions: ${record.actions_taken}` : '',
+        record.follow_up_required
+          ? `Follow-up required${record.follow_up_date ? `: ${record.follow_up_date}` : ''}`
+          : ''
+      ].filter(Boolean);
+
+      return parts.join('\n');
+    }).join('\n\n--------------------\n\n');
+
+    alert(`${current.id} · ${current.name}\n\nMAINTENANCE HISTORY\n\n${text}`);
+  } catch (error) {
+    console.error('Maintenance history load failed:', error);
+    alert(`Could not load maintenance history: ${error.message || error}`);
+  } finally {
+    els.maintenanceHistoryBtn.disabled = false;
+    els.maintenanceHistoryBtn.textContent = originalText;
+  }
+}
+
 function setEditing(on) {
   editing = on;
   els.editPanel.hidden = !on;
@@ -1366,16 +1417,22 @@ async function startApp(newSession) {
     await loadOperations();
     await loadLogs();
     showView('dashboard');
-    const returnPlantRoom =
-  sessionStorage.getItem('limewoodReturnPlantRoom');
 
-if (returnPlantRoom) {
-  sessionStorage.removeItem('limewoodReturnPlantRoom');
-  showPlantRoomHub(returnPlantRoom);
-} else {
-  openRequestedPlantRoomFromUrl();
-}
-    const directAsset=new URLSearchParams(location.search).get('asset'); if(directAsset&&assets.some(a=>a.id===directAsset)){showRegister('');setTimeout(()=>openAsset(directAsset),100);}
+    const returnPlantRoom =
+      sessionStorage.getItem('limewoodReturnPlantRoom');
+
+    if (returnPlantRoom) {
+      sessionStorage.removeItem('limewoodReturnPlantRoom');
+      showPlantRoomHub(returnPlantRoom);
+    } else {
+      openRequestedPlantRoomFromUrl();
+    }
+
+    const directAsset=new URLSearchParams(location.search).get('asset');
+    if(directAsset&&assets.some(a=>a.id===directAsset)){
+      showRegister('');
+      setTimeout(()=>openAsset(directAsset),100);
+    }
   }
   catch(error){
     console.error(error);
@@ -1390,7 +1447,6 @@ if (returnPlantRoom) {
   }
 }
 
-
 function updateDashboardGreeting(){
   const hour=new Date().getHours();
   const period=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
@@ -1403,22 +1459,63 @@ function updateDashboardGreeting(){
   const first=String(name).trim().split(/\s+/)[0];
   const greeting=$('dashboardGreeting');
   if(greeting) greeting.textContent=`${period}${first?', '+first:''}. Here is what needs attention.`;
-
 }
 
-function stopApp() { session=null; assets=[]; els.appShell.hidden=true; els.authScreen.hidden=false; els.authPassword.value=''; els.authMessage.textContent=''; }
+function stopApp() {
+  session=null;
+  assets=[];
+  els.appShell.hidden=true;
+  els.authScreen.hidden=false;
+  els.authPassword.value='';
+  els.authMessage.textContent='';
+}
 
-els.signIn.onclick=signIn; els.signUp.onclick=signUp; els.signOut.onclick=()=>client.auth.signOut(); els.refresh.onclick=()=>Promise.all([loadCloud(),loadDocumentCentre(),loadOperations(),loadLogs()]).catch(e=>{setSync(e.message,true);alert(e.message)});
-els.grid.addEventListener('click',e=>{const t=e.target.closest('[data-id]');if(t)openAsset(t.dataset.id)});
-els.grid.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.card')){e.preventDefault();openAsset(e.target.dataset.id)}});
-els.edit.onclick=()=>setEditing(!editing); els.save.onclick=saveCurrent; els.addAsset.onclick=newAsset; if(els.close) els.close.onclick=closeAsset; els.back.onclick=closeAsset; els.modal.onclick=e=>{if(e.target===els.modal)closeAsset()};
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAsset()});
+els.signIn.onclick=signIn;
+els.signUp.onclick=signUp;
+els.signOut.onclick=()=>client.auth.signOut();
+els.refresh.onclick=()=>Promise.all([loadCloud(),loadDocumentCentre(),loadOperations(),loadLogs()]).catch(e=>{setSync(e.message,true);alert(e.message)});
+
+els.grid.addEventListener('click',e=>{
+  const t=e.target.closest('[data-id]');
+  if(t)openAsset(t.dataset.id);
+});
+
+els.grid.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.card')){
+    e.preventDefault();
+    openAsset(e.target.dataset.id);
+  }
+});
+
+els.edit.onclick=()=>setEditing(!editing);
+els.save.onclick=saveCurrent;
+els.addAsset.onclick=newAsset;
+if(els.close) els.close.onclick=closeAsset;
+els.back.onclick=closeAsset;
+els.modal.onclick=e=>{if(e.target===els.modal)closeAsset()};
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeAsset();
+});
+
 [els.search,els.room,els.category,els.completeness].forEach(x=>x.addEventListener('input',render));
-function adjacent(n){const i=visibleRows.findIndex(a=>a.id===current?.id),a=visibleRows[i+n];if(a)openAsset(a.id)} els.previous.onclick=()=>adjacent(-1); els.next.onclick=()=>adjacent(1);
 
+function adjacent(n){
+  const i=visibleRows.findIndex(a=>a.id===current?.id),a=visibleRows[i+n];
+  if(a)openAsset(a.id);
+}
+els.previous.onclick=()=>adjacent(-1);
+els.next.onclick=()=>adjacent(1);
 
-function showMaintenanceIssues(){window.location.href='/maintenance-dashboard.html';}
-const runGlobalSearch=()=>{const q=els.globalSearch?.value.trim()||'';if(q)showGlobalSearchResults(q);};
+function showMaintenanceIssues(){
+  window.location.href='/maintenance-dashboard.html';
+}
+
+const runGlobalSearch=()=>{
+  const q=els.globalSearch?.value.trim()||'';
+  if(q)showGlobalSearchResults(q);
+};
+
 $('globalSearchBtn')?.addEventListener('click',runGlobalSearch);
 els.globalSearch?.addEventListener('keydown',e=>{if(e.key==='Enter')runGlobalSearch()});
 $('quickAddAsset')?.addEventListener('click',()=>{showRegister('');newAsset()});
@@ -1436,50 +1533,149 @@ $('quickDocuments')?.addEventListener('click',()=>showDocuments(''));
 $('quickCompliance')?.addEventListener('click',showCompliance);
 $('quickBms')?.addEventListener('click',()=>showView('bms'));
 $('openBmsOverview')?.addEventListener('click',()=>openBms('overview'));
-$('testBmsConnection')?.addEventListener('click',()=>{ const r=$('bmsTestResult'); r.textContent='Opening secure BMS connection…'; openBms('overview'); setTimeout(()=>r.textContent='If Niagara opened, the connection is available. If not, connect to the estate network or approved VPN.',700); });
+
+$('testBmsConnection')?.addEventListener('click',()=>{
+  const r=$('bmsTestResult');
+  r.textContent='Opening secure BMS connection…';
+  openBms('overview');
+  setTimeout(()=>r.textContent='If Niagara opened, the connection is available. If not, connect to the estate network or approved VPN.',700);
+});
+
 document.querySelectorAll('[data-bms-key]').forEach(b=>b.addEventListener('click',()=>openBms(b.dataset.bmsKey)));
+
 els.assetQrBtn?.addEventListener('click',()=>showQrForAsset(current));
 els.assetBmsBtn?.addEventListener('click',()=>openBms(els.assetBmsBtn.dataset.bmsKey||'overview'));
+els.maintenanceHistoryBtn?.addEventListener('click',openMaintenanceHistory);
 
 $('metricPlantRooms')?.addEventListener('click',showPlantRoomDirectory);
 $('metricAssets')?.addEventListener('click',showAssetRegisterDirectory);
 $('metricDocuments')?.addEventListener('click',()=>showDocuments(''));
 $('metricPpm')?.addEventListener('click',showPpmDirectory);
-$('priorityReview')?.addEventListener('click',()=>{showRegister('');els.completeness.value='';els.search.value='';visibleRows=assets.filter(a=>['Needs review','Limited access'].includes(a.status));els.resultCount.textContent=`${visibleRows.length} assets needing review`;els.grid.innerHTML=visibleRows.map(a=>`<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.status)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}</div></div></article>`).join('')});
-$('priorityMissing')?.addEventListener('click',()=>{showRegister('');els.completeness.value='missing';render()});
-$('priorityCritical')?.addEventListener('click',()=>{showRegister('');els.search.value='';visibleRows=assets.filter(a=>['high','critical'].includes(String(a.criticality||'').toLowerCase()));els.resultCount.textContent=`${visibleRows.length} critical assets`;els.grid.innerHTML=visibleRows.map(a=>`<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.criticality)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}</div></div></article>`).join('')});
+
+$('priorityReview')?.addEventListener('click',()=>{
+  showRegister('');
+  els.completeness.value='';
+  els.search.value='';
+  visibleRows=assets.filter(a=>['Needs review','Limited access'].includes(a.status));
+  els.resultCount.textContent=`${visibleRows.length} assets needing review`;
+  els.grid.innerHTML=visibleRows.map(a=>`<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.status)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}</div></div></article>`).join('');
+});
+
+$('priorityMissing')?.addEventListener('click',()=>{
+  showRegister('');
+  els.completeness.value='missing';
+  render();
+});
+
+$('priorityCritical')?.addEventListener('click',()=>{
+  showRegister('');
+  els.search.value='';
+  visibleRows=assets.filter(a=>['high','critical'].includes(String(a.criticality||'').toLowerCase()));
+  els.resultCount.textContent=`${visibleRows.length} critical assets`;
+  els.grid.innerHTML=visibleRows.map(a=>`<article class="card" tabindex="0" data-id="${esc(a.id)}"><img src="${esc(cardImage(a))}" alt="${esc(a.name)}"><div class="cardBody"><div class="topline"><span class="badge">${esc(a.id)}</span><span class="status">${esc(a.criticality)}</span></div><h4>${esc(a.name)}</h4><div class="meta">${esc(a.room)}</div></div></article>`).join('');
+});
+
 $('priorityDocuments')?.addEventListener('click',()=>showDocuments(''));
 
-const dashboardView=$('dashboardView'),plantRoomHubView=$('plantRoomHubView'),registerView=$('registerView'),documentView=$('documentView'),complianceView=$('complianceView'),ppmView=$('ppmView'),logsView=$('logsView'),valveView=$('valveView'),maintenanceIssuesView=$('maintenanceIssuesView'),placeholderView=$('placeholderView'),registerTitle=$('registerTitle'),drawer=$('drawer'),backdrop=$('drawerBackdrop');
-let currentHubRoom='';
-function closeDrawer(){drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
-function showView(n){dashboardView.hidden=n!=='dashboard';plantRoomHubView.hidden=n!=='plantRoomHub';registerView.hidden=n!=='register';documentView.hidden=n!=='documents';complianceView.hidden=n!=='compliance';ppmView.hidden=n!=='ppm';logsView.hidden=n!=='logs';valveView.hidden=n!=='valves';if(maintenanceIssuesView)maintenanceIssuesView.hidden=n!=='maintenanceIssues';$('bmsView').hidden=n!=='bms';placeholderView.hidden=n!=='placeholder'}
+const dashboardView=$('dashboardView'),
+      plantRoomHubView=$('plantRoomHubView'),
+      registerView=$('registerView'),
+      documentView=$('documentView'),
+      complianceView=$('complianceView'),
+      ppmView=$('ppmView'),
+      logsView=$('logsView'),
+      valveView=$('valveView'),
+      maintenanceIssuesView=$('maintenanceIssuesView'),
+      placeholderView=$('placeholderView'),
+      registerTitle=$('registerTitle'),
+      drawer=$('drawer'),
+      backdrop=$('drawerBackdrop');
 
-function allPlantRoomNames(){return allKnownPlantRooms();}
-function refreshPlantRoomNav(){const nav=$('plantRoomNav');if(!nav)return;const rooms=allPlantRoomNames();nav.innerHTML=rooms.length?rooms.map(r=>`<button data-hub-room="${esc(r)}">${esc(r.replace(/ Plant Room$/,''))}</button>`).join(''):'<small class="emptyState">No plant rooms added yet.</small>'; }
-function roomDocumentCount(room){const pr=plantRooms.find(r=>samePlantRoom(r.name,room));return libraryDocuments.filter(d=>String(d.plantRoomId||'')===String(pr?.id||'')||String(d.title||'').toLowerCase().includes(room.replace(/ Plant Room$/,'').toLowerCase())).length;}
+let currentHubRoom='';
+
+function closeDrawer(){
+  drawer.classList.remove('open');
+  backdrop.classList.remove('open');
+  drawer.setAttribute('aria-hidden','true');
+}
+
+function showView(n){
+  dashboardView.hidden=n!=='dashboard';
+  plantRoomHubView.hidden=n!=='plantRoomHub';
+  registerView.hidden=n!=='register';
+  documentView.hidden=n!=='documents';
+  complianceView.hidden=n!=='compliance';
+  ppmView.hidden=n!=='ppm';
+  logsView.hidden=n!=='logs';
+  valveView.hidden=n!=='valves';
+  if(maintenanceIssuesView)maintenanceIssuesView.hidden=n!=='maintenanceIssues';
+  $('bmsView').hidden=n!=='bms';
+  placeholderView.hidden=n!=='placeholder';
+}
+
+function allPlantRoomNames(){
+  return allKnownPlantRooms();
+}
+
+function refreshPlantRoomNav(){
+  const nav=$('plantRoomNav');
+  if(!nav)return;
+  const rooms=allPlantRoomNames();
+  nav.innerHTML=rooms.length
+    ?rooms.map(r=>`<button data-hub-room="${esc(r)}">${esc(r.replace(/ Plant Room$/,''))}</button>`).join('')
+    :'<small class="emptyState">No plant rooms added yet.</small>';
+}
+
+function roomDocumentCount(room){
+  const pr=plantRooms.find(r=>samePlantRoom(r.name,room));
+  return libraryDocuments.filter(d=>
+    String(d.plantRoomId||'')===String(pr?.id||'')||
+    String(d.title||'').toLowerCase().includes(room.replace(/ Plant Room$/,'').toLowerCase())
+  ).length;
+}
 
 function showAssetRegisterDirectory(){
   const rooms=allPlantRoomNames();
   const card=placeholderView.querySelector('.placeholderCard');
   card.innerHTML=`<span>ASSET REGISTERS</span><h2>Select a plant room</h2><p>Choose a plant room to open its equipment register.</p><div class="plantHubGrid directoryGrid">${rooms.length?rooms.map(r=>`<button data-select-asset-room="${esc(r)}"><span>📋</span><b>${esc(r.replace(/ Plant Room$/i,''))}</b><small>${assets.filter(a=>samePlantRoom(a.room,r)).length} asset${assets.filter(a=>samePlantRoom(a.room,r)).length===1?'':'s'}</small></button>`).join(''):'<p class="emptyState">No plant rooms have been added yet.</p>'}</div><button id="assetDirectoryAll">Open estate asset register</button>`;
-  showView('placeholder');closeDrawer();
+  showView('placeholder');
+  closeDrawer();
 }
+
 function showAboutPage(){
   const card=placeholderView.querySelector('.placeholderCard');
-  card.innerHTML=`<span>ABOUT</span><h2>Limewood Engineering</h2><p>Engineering Control Centre</p><div class="aboutForge"><b>Powered by <a href=\"https://forgecompliance.co.uk\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"forge-link\">Forge Compliance</a></b><span>Built and managed by <a href=\"https://forgecompliance.co.uk\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"forge-link\">Forge Compliance</a> Ltd.</span><small>Version 7.1.3.3</small></div><button id="aboutBack">Return to dashboard</button>`;
-  showView('placeholder');closeDrawer();
+  card.innerHTML=`<span>ABOUT</span><h2>Limewood Engineering</h2><p>Engineering Control Centre</p><div class="aboutForge"><b>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a></b><span>Built and managed by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> Ltd.</span><small>Version 7.1.3.3</small></div><button id="aboutBack">Return to dashboard</button>`;
+  showView('placeholder');
+  closeDrawer();
 }
+
 function showGlobalSearchResults(query=''){
   const q=String(query||'').trim().toLowerCase();
   if(!q)return;
-  const assetMatches=assets.filter(a=>[a.id,a.name,a.room,a.manufacturer,a.model,a.serial,a.category,a.system].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,12);
-  const valveMatches=valveRecords.filter(v=>[v.tag,v.valve_no,v.plant_room,v.service_duty,v.isolation_purpose,v.valve_type,v.location].some(x=>String(x||'').toLowerCase().includes(q))).slice(0,12);
-  const docMatches=libraryDocuments.filter(d=>[d.title,d.number,d.type,d.category,d.description].some(x=>String(x||'').toLowerCase().includes(q))).slice(0,12);
+
+  const assetMatches=assets.filter(a=>
+    [a.id,a.name,a.room,a.manufacturer,a.model,a.serial,a.category,a.system]
+      .some(v=>String(v||'').toLowerCase().includes(q))
+  ).slice(0,12);
+
+  const valveMatches=valveRecords.filter(v=>
+    [v.tag,v.valve_no,v.plant_room,v.service_duty,v.isolation_purpose,v.valve_type,v.location]
+      .some(x=>String(x||'').toLowerCase().includes(q))
+  ).slice(0,12);
+
+  const docMatches=libraryDocuments.filter(d=>
+    [d.title,d.number,d.type,d.category,d.description]
+      .some(x=>String(x||'').toLowerCase().includes(q))
+  ).slice(0,12);
+
   const card=placeholderView.querySelector('.placeholderCard');
+
   card.innerHTML=`<span>ESTATE SEARCH</span><h2>Results for “${esc(query)}”</h2><p>${assetMatches.length} assets · ${valveMatches.length} valves · ${docMatches.length} documents</p><div class="globalResultGroups"><section><h3>Assets</h3>${assetMatches.length?assetMatches.map(a=>`<button data-global-asset="${esc(a.id)}"><b>${esc(a.id)} · ${esc(a.name)}</b><small>${esc(a.room)}</small></button>`).join(''):'<small>No asset matches</small>'}</section><section><h3>Valves</h3>${valveMatches.length?valveMatches.map(v=>`<button data-global-valve="${esc(v.id||v.tag)}"><b>${esc(v.tag||v.valve_no||'Valve')}</b><small>${esc(v.plant_room||'')} · ${esc(v.isolation_purpose||v.service_duty||'')}</small></button>`).join(''):'<small>No valve matches</small>'}</section><section><h3>Documents</h3>${docMatches.length?docMatches.map(d=>`<button data-global-doc="${esc(d.title||'')}"><b>${esc(d.title||'Document')}</b><small>${esc(documentTypeLabel(d.type))}</small></button>`).join(''):'<small>No document matches</small>'}</section></div><button id="searchBack">Return to dashboard</button>`;
-  showView('placeholder');closeDrawer();
+
+  showView('placeholder');
+  closeDrawer();
 }
+
 function refreshV6Metrics(){
   const due=ppmRecords.filter(p=>['Overdue','Due soon'].includes(ppmStatus(p))).length;
   if($('metricPlantRoomCount'))$('metricPlantRoomCount').textContent=allPlantRoomNames().length;
@@ -1491,12 +1687,28 @@ function refreshV6Metrics(){
 function showPlantRoomDirectory(){
   const rooms=allPlantRoomNames();
   const card=placeholderView.querySelector('.placeholderCard');
+
   card.innerHTML=`<span>PLANT ROOMS</span><h2>Select a plant room</h2><p>Choose a plant room to open its engineering hub.</p><div class="plantHubGrid directoryGrid">${rooms.length?rooms.map(r=>`<button data-select-plant-room="${esc(r)}"><span>🏭</span><b>${esc(r.replace(/ Plant Room$/i,''))}</b><small>${assets.filter(a=>samePlantRoom(a.room,r)).length} assets · ${valveRecords.filter(v=>samePlantRoom(v.plant_room,r)).length} valves</small></button>`).join(''):'<p class="emptyState">No plant rooms have been added yet.</p>'}</div><button id="roomDirectoryBack">Return to dashboard</button>`;
+
   showView('placeholder');
   closeDrawer();
 }
 
-function showPlantRoomHub(room){currentHubRoom=canonicalPlantRoomName(room)||'Unassigned Plant Room';showView('plantRoomHub');$('hubRoomTitle').textContent=currentHubRoom;$('hubAssetCount').textContent=assets.filter(a=>samePlantRoom(a.room,currentHubRoom)).length;$('hubValveCount').textContent=valveRecords.filter(v=>samePlantRoom(v.plant_room,currentHubRoom)).length;$('hubPpmCount').textContent=ppmRecords.filter(p=>samePlantRoom(p.plant_room||assetForCode(p.asset_code)?.room,currentHubRoom)).length;$('hubDocumentCount').textContent=roomDocumentCount(currentHubRoom);$('hubRoomSummary').textContent='Choose a discipline or open this room’s assets, maintenance, documents and controls.';$('hubSearch').value='';closeDrawer();}
+function showPlantRoomHub(room){
+  currentHubRoom=canonicalPlantRoomName(room)||'Unassigned Plant Room';
+
+  showView('plantRoomHub');
+
+  $('hubRoomTitle').textContent=currentHubRoom;
+  $('hubAssetCount').textContent=assets.filter(a=>samePlantRoom(a.room,currentHubRoom)).length;
+  $('hubValveCount').textContent=valveRecords.filter(v=>samePlantRoom(v.plant_room,currentHubRoom)).length;
+  $('hubPpmCount').textContent=ppmRecords.filter(p=>samePlantRoom(p.plant_room||assetForCode(p.asset_code)?.room,currentHubRoom)).length;
+  $('hubDocumentCount').textContent=roomDocumentCount(currentHubRoom);
+  $('hubRoomSummary').textContent='Choose a discipline or open this room’s assets, maintenance, documents and controls.';
+  $('hubSearch').value='';
+  closeDrawer();
+}
+
 function openRequestedPlantRoomFromUrl(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('plantRoom');
@@ -1510,8 +1722,68 @@ function openRequestedPlantRoomFromUrl(){
   showPlantRoomHub(room);
   return true;
 }
-function printRoomQrLabels(room){if(typeof QRCode==='undefined')return alert('QR library could not load. Reload while connected to the internet.');const list=assets.filter(a=>samePlantRoom(a.room,room));if(!list.length)return alert('There are no assets in this plant room yet.');const w=open('','_blank');w.document.write('<title>'+esc(room)+' QR Labels</title><style>@page{size:A4;margin:8mm}body{font-family:Arial}.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}.label{border:1px solid #333;padding:8px;text-align:center;break-inside:avoid}.qr{width:110px;height:110px;margin:auto}.qr canvas,.qr img{width:110px!important;height:110px!important}h3{font-size:14px;margin:5px 0 2px}p{font-size:9px;margin:2px}</style><h2>'+esc(room)+'</h2><div class="sheet" id="sheet"></div>');const sheet=w.document.getElementById('sheet');list.forEach(a=>{const d=w.document.createElement('div');d.className='label';d.innerHTML=`<div class="qr"></div><h3>${esc(a.id)}</h3><p><b>${esc(a.name)}</b></p><p>${esc(a.room)}</p>`;sheet.appendChild(d);new QRCode(d.querySelector('.qr'),{text:assetUrl(a.id),width:110,height:110,correctLevel:QRCode.CorrectLevel.M});});w.document.write('<script>setTimeout(()=>print(),900)<\/script>');w.document.close();}
-function openHubDocuments(type=''){showDocuments(type);const pr=plantRooms.find(r=>samePlantRoom(r.name,currentHubRoom));if(pr){const building=buildings.find(b=>b.id===pr.building_id);if(building){docEls.buildingFilter.value=building.id;renderDocuments();}}}
+
+function printRoomQrLabels(room){
+  if(typeof QRCode==='undefined')
+    return alert('QR library could not load. Reload while connected to the internet.');
+
+  const list=assets.filter(a=>samePlantRoom(a.room,room));
+
+  if(!list.length)
+    return alert('There are no assets in this plant room yet.');
+
+  const w=open('','_blank');
+
+  w.document.write(
+    '<title>'+esc(room)+' QR Labels</title>'+
+    '<style>'+
+    '@page{size:A4;margin:8mm}'+
+    'body{font-family:Arial}'+
+    '.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm}'+
+    '.label{border:1px solid #333;padding:8px;text-align:center;break-inside:avoid}'+
+    '.qr{width:110px;height:110px;margin:auto}'+
+    '.qr canvas,.qr img{width:110px!important;height:110px!important}'+
+    'h3{font-size:14px;margin:5px 0 2px}'+
+    'p{font-size:9px;margin:2px}'+
+    '</style>'+
+    '<h2>'+esc(room)+'</h2>'+
+    '<div class="sheet" id="sheet"></div>'
+  );
+
+  const sheet=w.document.getElementById('sheet');
+
+  list.forEach(a=>{
+    const d=w.document.createElement('div');
+    d.className='label';
+    d.innerHTML=`<div class="qr"></div><h3>${esc(a.id)}</h3><p><b>${esc(a.name)}</b></p><p>${esc(a.room)}</p>`;
+    sheet.appendChild(d);
+
+    new QRCode(d.querySelector('.qr'),{
+      text:assetUrl(a.id),
+      width:110,
+      height:110,
+      correctLevel:QRCode.CorrectLevel.M
+    });
+  });
+
+  w.document.write('<script>setTimeout(()=>print(),900)<\/script>');
+  w.document.close();
+}
+
+function openHubDocuments(type=''){
+  showDocuments(type);
+
+  const pr=plantRooms.find(r=>samePlantRoom(r.name,currentHubRoom));
+
+  if(pr){
+    const building=buildings.find(b=>b.id===pr.building_id);
+
+    if(building){
+      docEls.buildingFilter.value=building.id;
+      renderDocuments();
+    }
+  }
+}
 
 function showRegister(room=''){
   room=room?canonicalPlantRoomName(room):'';
@@ -1544,9 +1816,8 @@ function showDisciplineAssets(room,terms,title){
 
   showView('register');
 
-  // Display the same room in the toolbar where possible. The actual filtering
-  // uses registerForcedRoom, so a naming mismatch cannot leak another room in.
   const matchingRoomOption=[...els.room.options].find(o=>samePlantRoom(o.value,canonicalRoom));
+
   if(matchingRoomOption){
     els.room.value=matchingRoomOption.value;
   }else if(canonicalRoom){
@@ -1566,36 +1837,101 @@ function showDisciplineAssets(room,terms,title){
   render();
   closeDrawer();
 }
-function placeholder(t){$('placeholderTitle').textContent=t;showView('placeholder');closeDrawer()}
-$('menuBtn').onclick=()=>{drawer.scrollTop=0;drawer.classList.add('open');backdrop.classList.add('open');drawer.setAttribute('aria-hidden','false')}; $('closeDrawer').onclick=closeDrawer; backdrop.onclick=closeDrawer;
 
-$('assetRegistersMenu')?.querySelector('summary')?.addEventListener('click',e=>{e.preventDefault();$('assetRegistersMenu').open=false;showAssetRegisterDirectory();});
+function placeholder(t){
+  $('placeholderTitle').textContent=t;
+  showView('placeholder');
+  closeDrawer();
+}
+
+$('menuBtn').onclick=()=>{
+  drawer.scrollTop=0;
+  drawer.classList.add('open');
+  backdrop.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+};
+
+$('closeDrawer').onclick=closeDrawer;
+backdrop.onclick=closeDrawer;
+
+$('assetRegistersMenu')?.querySelector('summary')?.addEventListener('click',e=>{
+  e.preventDefault();
+  $('assetRegistersMenu').open=false;
+  showAssetRegisterDirectory();
+});
+
 $('plantRoomsMenu')?.querySelector('summary')?.addEventListener('click',e=>{
   e.preventDefault();
   $('plantRoomsMenu').open=false;
   showPlantRoomDirectory();
 });
+
 placeholderView.addEventListener('click',e=>{
-  const roomButton=e.target.closest('[data-select-plant-room]'); if(roomButton)showPlantRoomHub(roomButton.dataset.selectPlantRoom);
-  const assetRoom=e.target.closest('[data-select-asset-room]'); if(assetRoom)showRegister(assetRoom.dataset.selectAssetRoom);
-  const assetHit=e.target.closest('[data-global-asset]'); if(assetHit){showRegister('');setTimeout(()=>openAsset(assetHit.dataset.globalAsset),50)}
-  const valveHit=e.target.closest('[data-global-valve]'); if(valveHit)openValveDetail(valveHit.dataset.globalValve);
-  const docHit=e.target.closest('[data-global-doc]'); if(docHit){showDocuments('');docEls.search.value=docHit.dataset.globalDoc;renderDocuments()}
+  const roomButton=e.target.closest('[data-select-plant-room]');
+  if(roomButton)showPlantRoomHub(roomButton.dataset.selectPlantRoom);
+
+  const assetRoom=e.target.closest('[data-select-asset-room]');
+  if(assetRoom)showRegister(assetRoom.dataset.selectAssetRoom);
+
+  const assetHit=e.target.closest('[data-global-asset]');
+  if(assetHit){
+    showRegister('');
+    setTimeout(()=>openAsset(assetHit.dataset.globalAsset),50);
+  }
+
+  const valveHit=e.target.closest('[data-global-valve]');
+  if(valveHit)openValveDetail(valveHit.dataset.globalValve);
+
+  const docHit=e.target.closest('[data-global-doc]');
+  if(docHit){
+    showDocuments('');
+    docEls.search.value=docHit.dataset.globalDoc;
+    renderDocuments();
+  }
+
   if(e.target.closest('#assetDirectoryAll'))showRegister('');
-  if(e.target.closest('#roomDirectoryBack')||e.target.closest('#searchBack')||e.target.closest('#aboutBack'))showView('dashboard');
+
+  if(
+    e.target.closest('#roomDirectoryBack')||
+    e.target.closest('#searchBack')||
+    e.target.closest('#aboutBack')
+  ){
+    showView('dashboard');
+  }
 });
 
+$('ppmRoomButtons')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-ppm-room]');
+  if(b)openPpmRoom(b.dataset.ppmRoom);
+});
 
-$('ppmRoomButtons')?.addEventListener('click',e=>{const b=e.target.closest('[data-ppm-room]');if(b)openPpmRoom(b.dataset.ppmRoom)});
 $('backToPpmRooms')?.addEventListener('click',showPpmDirectory);
-['ppmSearch','ppmStatus'].forEach(id=>$(id)?.addEventListener('input',renderPpm));
-$('ppmCards')?.addEventListener('click',e=>{const b=e.target.closest('[data-ppm]');if(b)openPpm(b.dataset.ppm)});
-$('addPpmSchedule')?.addEventListener('click',()=>{populatePpmAddForm();openOpsModal('ppmAddModal')});
-$('closePpmAddModal')?.addEventListener('click',()=>closeOpsModal('ppmAddModal'));
+
+['ppmSearch','ppmStatus'].forEach(id=>
+  $(id)?.addEventListener('input',renderPpm)
+);
+
+$('ppmCards')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-ppm]');
+  if(b)openPpm(b.dataset.ppm);
+});
+
+$('addPpmSchedule')?.addEventListener('click',()=>{
+  populatePpmAddForm();
+  openOpsModal('ppmAddModal');
+});
+
+$('closePpmAddModal')?.addEventListener('click',()=>
+  closeOpsModal('ppmAddModal')
+);
+
 $('createPpmSchedule')?.addEventListener('click',createPpmSchedule);
 
+$('logTypeGrid')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-log-type]');
+  if(b)beginLog(b.dataset.logType);
+});
 
-$('logTypeGrid')?.addEventListener('click',e=>{const b=e.target.closest('[data-log-type]');if(b)beginLog(b.dataset.logType)});
 $('logBackTypes')?.addEventListener('click',showLogsHome);
 $('cancelLog')?.addEventListener('click',showLogsHome);
 $('dynamicLogForm')?.addEventListener('submit',saveDynamicLog);
@@ -1604,70 +1940,298 @@ $('logHistoryBack')?.addEventListener('click',showLogsHome);
 $('logHistorySearch')?.addEventListener('input',renderLogHistory);
 $('logHistoryType')?.addEventListener('change',renderLogHistory);
 
-$('drawerNav').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.hubRoom){showPlantRoomHub(b.dataset.hubRoom)}else if(b.dataset.view==='dashboard'){showView('dashboard');closeDrawer()}else if(b.dataset.view==='compliance'){showCompliance()}else if(b.dataset.view==='bms'){showView('bms');closeDrawer()}else if(b.dataset.view==='maintenanceIssues'){showMaintenanceIssues();closeDrawer()}else if(b.dataset.view==='logs'){showLogsHome()}else if(b.dataset.view==='ppm'){showPpmDirectory()}else if(b.dataset.view==='valves'){showView('valves');showValveDirectory();closeDrawer()}else if(b.dataset.view==='search'){showView('dashboard');closeDrawer();setTimeout(()=>els.globalSearch?.focus(),150)}else if(b.dataset.view==='documents'){showDocuments(b.dataset.docType||'')}else if(b.dataset.view==='about'){showAboutPage()}else if('room'in b.dataset)showPlantRoomHub(b.dataset.room||'');else if(b.dataset.placeholder)placeholder(b.dataset.placeholder)};
-document.querySelectorAll('[data-estate-room]').forEach(b=>b.onclick=()=>showPlantRoomHub(b.dataset.estateRoom)); document.querySelectorAll('.estateGrid [data-placeholder]').forEach(b=>b.onclick=()=>placeholder(b.dataset.placeholder)); $('backDashboard').onclick=()=>showView('dashboard');
+$('drawerNav').onclick=e=>{
+  const b=e.target.closest('button');
+  if(!b)return;
 
+  if(b.dataset.hubRoom){
+    showPlantRoomHub(b.dataset.hubRoom);
+  }else if(b.dataset.view==='dashboard'){
+    showView('dashboard');
+    closeDrawer();
+  }else if(b.dataset.view==='compliance'){
+    showCompliance();
+  }else if(b.dataset.view==='bms'){
+    showView('bms');
+    closeDrawer();
+  }else if(b.dataset.view==='maintenanceIssues'){
+    showMaintenanceIssues();
+    closeDrawer();
+  }else if(b.dataset.view==='logs'){
+    showLogsHome();
+  }else if(b.dataset.view==='ppm'){
+    showPpmDirectory();
+  }else if(b.dataset.view==='valves'){
+    showView('valves');
+    showValveDirectory();
+    closeDrawer();
+  }else if(b.dataset.view==='search'){
+    showView('dashboard');
+    closeDrawer();
+    setTimeout(()=>els.globalSearch?.focus(),150);
+  }else if(b.dataset.view==='documents'){
+    showDocuments(b.dataset.docType||'');
+  }else if(b.dataset.view==='about'){
+    showAboutPage();
+  }else if('room' in b.dataset){
+    showPlantRoomHub(b.dataset.room||'');
+  }else if(b.dataset.placeholder){
+    placeholder(b.dataset.placeholder);
+  }
+};
 
+document.querySelectorAll('[data-estate-room]').forEach(
+  b=>b.onclick=()=>showPlantRoomHub(b.dataset.estateRoom)
+);
+
+document.querySelectorAll('.estateGrid [data-placeholder]').forEach(
+  b=>b.onclick=()=>placeholder(b.dataset.placeholder)
+);
+
+$('backDashboard').onclick=()=>showView('dashboard');
 
 $('hubBackDashboard')?.addEventListener('click',()=>showView('dashboard'));
-$('hubSearchBtn')?.addEventListener('click',()=>{showRegister(currentHubRoom);els.search.value=$('hubSearch').value;render()});
-$('hubSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')$('hubSearchBtn').click()});
-$('plantRoomHubView')?.addEventListener('click',e=>{
- const b=e.target.closest('[data-hub-action]');if(!b)return;const a=b.dataset.hubAction;
- if(a==='electrical')location.href=`/electrical-distribution.html?room=${encodeURIComponent(currentHubRoom)}`;
- else if(a==='plumbing')showDisciplineAssets(currentHubRoom,['water','plumb','pump','valve','tank','cws','hws','dhw','tmv','booster'],'Plumbing & Water');
- else if(a==='heating')showDisciplineAssets(currentHubRoom,['heating','boiler','lthw','radiator','calorifier','heat exchanger','pressurisation'],'Heating');
- else if(a==='fire')showDisciplineAssets(currentHubRoom,['fire','alarm','emergency lighting','sprinkler','smoke','life safety'],'Fire & Life Safety');
- else if(a==='assets')showRegister(currentHubRoom);
- else if(a==='valves'){showView('valves');openValveRoomRegister(currentHubRoom)}
- else if(a==='ppm')openPpmRoom(currentHubRoom);
- else if(a==='qr')printRoomQrLabels(currentHubRoom);
- else if(a==='schematic'){
-  const building=currentHubRoom.replace(/ Plant Room$/i,'');
-  location.href=`/drawings-schematics.html?building=${encodeURIComponent(building)}`;
-}
-else if(['sop','rams','manual'].includes(a))openHubDocuments(a);
- else if(a==='photos'){showRegister(currentHubRoom);els.search.value='';render()}
- else if(a==='logs')showLogsHome();
- else if(a==='compliance')showCompliance();
- else if(a==='bms')showView('bms');
+
+$('hubSearchBtn')?.addEventListener('click',()=>{
+  showRegister(currentHubRoom);
+  els.search.value=$('hubSearch').value;
+  render();
 });
-$('uploadCompliance')?.addEventListener('click',()=>openComplianceUpload('Compliance'));
+
+$('hubSearch')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter')$('hubSearchBtn').click();
+});
+
+$('plantRoomHubView')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-hub-action]');
+  if(!b)return;
+
+  const a=b.dataset.hubAction;
+
+  if(a==='electrical'){
+    location.href=`/electrical-distribution.html?room=${encodeURIComponent(currentHubRoom)}`;
+  }
+  else if(a==='plumbing'){
+    showDisciplineAssets(
+      currentHubRoom,
+      ['water','plumb','pump','valve','tank','cws','hws','dhw','tmv','booster'],
+      'Plumbing & Water'
+    );
+  }
+  else if(a==='heating'){
+    showDisciplineAssets(
+      currentHubRoom,
+      ['heating','boiler','lthw','radiator','calorifier','heat exchanger','pressurisation'],
+      'Heating'
+    );
+  }
+  else if(a==='fire'){
+    showDisciplineAssets(
+      currentHubRoom,
+      ['fire','alarm','emergency lighting','sprinkler','smoke','life safety'],
+      'Fire & Life Safety'
+    );
+  }
+  else if(a==='assets'){
+    showRegister(currentHubRoom);
+  }
+  else if(a==='valves'){
+    showView('valves');
+    openValveRoomRegister(currentHubRoom);
+  }
+  else if(a==='ppm'){
+    openPpmRoom(currentHubRoom);
+  }
+  else if(a==='qr'){
+    printRoomQrLabels(currentHubRoom);
+  }
+  else if(a==='schematic'){
+    const building=currentHubRoom.replace(/ Plant Room$/i,'');
+    location.href=`/drawings-schematics.html?building=${encodeURIComponent(building)}`;
+  }
+  else if(['sop','rams','manual'].includes(a)){
+    openHubDocuments(a);
+  }
+  else if(a==='photos'){
+    showRegister(currentHubRoom);
+    els.search.value='';
+    render();
+  }
+  else if(a==='logs'){
+    showLogsHome();
+  }
+  else if(a==='compliance'){
+    showCompliance();
+  }
+  else if(a==='bms'){
+    showView('bms');
+  }
+});
+
+$('uploadCompliance')?.addEventListener('click',()=>
+  openComplianceUpload('Compliance')
+);
+
 $('printAllQr')?.addEventListener('click',printAllQrLabels);
-$('complianceGrid')?.addEventListener('click',e=>{const openBtn=e.target.closest('[data-compliance-open]'),up=e.target.closest('[data-compliance-upload]');if(openBtn){const r=complianceRegisters.find(x=>x.key===openBtn.dataset.complianceOpen);showDocuments('');docEls.search.value=r?.terms[0]||'';renderDocuments();}else if(up)openComplianceUpload(up.dataset.complianceUpload);});
-$('closeQrModal')?.addEventListener('click',closeQr);$('qrModal')?.addEventListener('click',e=>{if(e.target.id==='qrModal')closeQr()});
-$('downloadQr')?.addEventListener('click',()=>{const url=qrDataUrl();if(!url||!current)return;const a=document.createElement('a');a.href=url;a.download=`${cleanName(current.id)}-QR.png`;a.click();});
-$('printQr')?.addEventListener('click',()=>{if(current)printQrAsset(current)});
 
-docEls.add.onclick=openDocumentUpload; docEls.close.onclick=closeDocumentUpload; docEls.modal.onclick=e=>{if(e.target===docEls.modal)closeDocumentUpload()}; docEls.save.onclick=saveLibraryDocument;
+$('complianceGrid')?.addEventListener('click',e=>{
+  const openBtn=e.target.closest('[data-compliance-open]');
+  const up=e.target.closest('[data-compliance-upload]');
+
+  if(openBtn){
+    const r=complianceRegisters.find(x=>x.key===openBtn.dataset.complianceOpen);
+    showDocuments('');
+    docEls.search.value=r?.terms[0]||'';
+    renderDocuments();
+  }else if(up){
+    openComplianceUpload(up.dataset.complianceUpload);
+  }
+});
+
+$('closeQrModal')?.addEventListener('click',closeQr);
+
+$('qrModal')?.addEventListener('click',e=>{
+  if(e.target.id==='qrModal')closeQr();
+});
+
+$('downloadQr')?.addEventListener('click',()=>{
+  const url=qrDataUrl();
+  if(!url||!current)return;
+
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`${cleanName(current.id)}-QR.png`;
+  a.click();
+});
+
+$('printQr')?.addEventListener('click',()=>{
+  if(current)printQrAsset(current);
+});
+
+docEls.add.onclick=openDocumentUpload;
+docEls.close.onclick=closeDocumentUpload;
+docEls.modal.onclick=e=>{
+  if(e.target===docEls.modal)closeDocumentUpload();
+};
+docEls.save.onclick=saveLibraryDocument;
 docEls.building.onchange=updateDocumentPlantRooms;
-docEls.type.onchange=()=>{ const isSop=docEls.type.value==='sop'; docEls.number.placeholder=isSop?'e.g. SOP-001':'Optional document number'; if(isSop&&!docEls.revision.value)docEls.revision.value='1'; };
-docEls.file.onchange=()=>{ const file=docEls.file.files[0]; docEls.message.classList.remove('success'); docEls.message.textContent=file?`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB selected`:''; };
-[docEls.search,docEls.typeFilter,docEls.buildingFilter,docEls.statusFilter].forEach(x=>x.addEventListener('input',renderDocuments));
 
+docEls.type.onchange=()=>{
+  const isSop=docEls.type.value==='sop';
+  docEls.number.placeholder=isSop?'e.g. SOP-001':'Optional document number';
+  if(isSop&&!docEls.revision.value)docEls.revision.value='1';
+};
 
+docEls.file.onchange=()=>{
+  const file=docEls.file.files[0];
+  docEls.message.classList.remove('success');
+  docEls.message.textContent=file
+    ?`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB selected`
+    :'';
+};
 
+[
+  docEls.search,
+  docEls.typeFilter,
+  docEls.buildingFilter,
+  docEls.statusFilter
+].forEach(x=>x.addEventListener('input',renderDocuments));
 
-['valveSearch','valveRoom','valvePosition'].forEach(id=>$(id)?.addEventListener('input',renderValves));
-$('valveRoomButtons')?.addEventListener('click',e=>{const b=e.target.closest('[data-valve-room-card]');if(!b)return;openValveRoomRegister(b.dataset.valveRoomCard||'');});
+['valveSearch','valveRoom','valvePosition'].forEach(id=>
+  $(id)?.addEventListener('input',renderValves)
+);
+
+$('valveRoomButtons')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-valve-room-card]');
+  if(!b)return;
+  openValveRoomRegister(b.dataset.valveRoomCard||'');
+});
+
 $('backToValveRooms')?.addEventListener('click',showValveDirectory);
 
-$('ppmRows')?.addEventListener('click',e=>{const b=e.target.closest('[data-ppm]');if(b)openPpm(b.dataset.ppm)});
-$('valveRows')?.addEventListener('click',e=>{const b=e.target.closest('[data-valve-detail]');if(b)openValveDetail(b.dataset.valveDetail)});
-$('importValves')?.addEventListener('click',openValveImport);$('addImportPlantRoom')?.addEventListener('click',()=>addPlantRoomFromUi('valveImportRoom'));$('addValvePlantRoom')?.addEventListener('click',()=>addPlantRoomFromUi('vRoom'));$('closeValveImport')?.addEventListener('click',()=>closeOpsModal('valveImportModal'));$('cancelValveImport')?.addEventListener('click',()=>closeOpsModal('valveImportModal'));$('valveImportFile')?.addEventListener('change',previewValveImport);$('valveImportRoom')?.addEventListener('change',()=>{if($('valveImportFile').files[0])previewValveImport()});$('confirmValveImport')?.addEventListener('click',confirmValveImport);$('valveImportModal')?.addEventListener('click',e=>{if(e.target.id==='valveImportModal')closeOpsModal('valveImportModal')});
-$('addValve')?.addEventListener('click',()=>openValve());$('saveValve')?.addEventListener('click',saveValveRecord);$('deleteValve')?.addEventListener('click',deleteValveRecord);$('closeValveModal')?.addEventListener('click',()=>closeOpsModal('valveModal'));$('closeValveDetail')?.addEventListener('click',()=>closeOpsModal('valveDetailModal'));$('valveDetailModal')?.addEventListener('click',e=>{if(e.target.id==='valveDetailModal')closeOpsModal('valveDetailModal')});$('editValveFromDetail')?.addEventListener('click',()=>{const id=currentValveDetailId;closeOpsModal('valveDetailModal');openValve(id)});$('previousValve')?.addEventListener('click',()=>stepValveDetail(-1));$('nextValve')?.addEventListener('click',()=>stepValveDetail(1));$('valveQrButton')?.addEventListener('click',showValveQr);
-$('savePpm')?.addEventListener('click',savePpmRecord);$('closePpmModal')?.addEventListener('click',()=>closeOpsModal('ppmModal'));
-$('exportPpm')?.addEventListener('click',exportPpmCsv);$('exportValves')?.addEventListener('click',exportValveCsv);
-$('ppmLast')?.addEventListener('change',()=>{if($('ppmLast').value&&!$('ppmNext').value)$('ppmNext').value=addMonthsIso($('ppmLast').value,frequencyMonths($('ppmFrequency').value))});
+$('ppmRows')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-ppm]');
+  if(b)openPpm(b.dataset.ppm);
+});
+
+$('valveRows')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-valve-detail]');
+  if(b)openValveDetail(b.dataset.valveDetail);
+});
+
+$('importValves')?.addEventListener('click',openValveImport);
+$('addImportPlantRoom')?.addEventListener('click',()=>addPlantRoomFromUi('valveImportRoom'));
+$('addValvePlantRoom')?.addEventListener('click',()=>addPlantRoomFromUi('vRoom'));
+$('closeValveImport')?.addEventListener('click',()=>closeOpsModal('valveImportModal'));
+$('cancelValveImport')?.addEventListener('click',()=>closeOpsModal('valveImportModal'));
+$('valveImportFile')?.addEventListener('change',previewValveImport);
+
+$('valveImportRoom')?.addEventListener('change',()=>{
+  if($('valveImportFile').files[0])previewValveImport();
+});
+
+$('confirmValveImport')?.addEventListener('click',confirmValveImport);
+
+$('valveImportModal')?.addEventListener('click',e=>{
+  if(e.target.id==='valveImportModal')closeOpsModal('valveImportModal');
+});
+
+$('addValve')?.addEventListener('click',()=>openValve());
+$('saveValve')?.addEventListener('click',saveValveRecord);
+$('deleteValve')?.addEventListener('click',deleteValveRecord);
+$('closeValveModal')?.addEventListener('click',()=>closeOpsModal('valveModal'));
+$('closeValveDetail')?.addEventListener('click',()=>closeOpsModal('valveDetailModal'));
+
+$('valveDetailModal')?.addEventListener('click',e=>{
+  if(e.target.id==='valveDetailModal')closeOpsModal('valveDetailModal');
+});
+
+$('editValveFromDetail')?.addEventListener('click',()=>{
+  const id=currentValveDetailId;
+  closeOpsModal('valveDetailModal');
+  openValve(id);
+});
+
+$('previousValve')?.addEventListener('click',()=>stepValveDetail(-1));
+$('nextValve')?.addEventListener('click',()=>stepValveDetail(1));
+$('valveQrButton')?.addEventListener('click',showValveQr);
+
+$('savePpm')?.addEventListener('click',savePpmRecord);
+$('closePpmModal')?.addEventListener('click',()=>closeOpsModal('ppmModal'));
+$('exportPpm')?.addEventListener('click',exportPpmCsv);
+$('exportValves')?.addEventListener('click',exportValveCsv);
+
+$('ppmLast')?.addEventListener('change',()=>{
+  if($('ppmLast').value&&!$('ppmNext').value){
+    $('ppmNext').value=addMonthsIso(
+      $('ppmLast').value,
+      frequencyMonths($('ppmFrequency').value)
+    );
+  }
+});
 
 client.auth.onAuthStateChange((event,newSession)=>{
   // Do not make Supabase calls from inside the auth callback.
   // Deferring avoids holding the auth lock while startApp loads database data.
-  if(newSession&&!session) setTimeout(()=>startApp(newSession),0);
-  else if(!newSession&&session) setTimeout(()=>stopApp(),0);
+  if(newSession&&!session){
+    setTimeout(()=>startApp(newSession),0);
+  }
+  else if(!newSession&&session){
+    setTimeout(()=>stopApp(),0);
+  }
 });
-client.auth.getSession().then(({data})=>{ if(data.session && !session) startApp(data.session); else if(!data.session) stopApp(); });
+
+client.auth.getSession().then(({data})=>{
+  if(data.session && !session){
+    startApp(data.session);
+  }
+  else if(!data.session){
+    stopApp();
+  }
+});
+
 })();
+
 const $ = id => document.getElementById(id);
 
 let deferredInstallPrompt=null;
@@ -1675,13 +2239,19 @@ let deferredInstallPrompt=null;
 function updateInstallUi(){
   const btn=$('installAppButton');
   const help=$('installAppHelp');
+
   if(!btn||!help)return;
-  const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+
+  const standalone=
+    window.matchMedia('(display-mode: standalone)').matches||
+    window.navigator.standalone===true;
+
   if(standalone){
     btn.hidden=true;
     help.hidden=true;
     return;
   }
+
   if(deferredInstallPrompt){
     btn.hidden=false;
     help.hidden=true;
@@ -1704,8 +2274,13 @@ window.addEventListener('appinstalled',()=>{
 
 $('installAppButton')?.addEventListener('click',async()=>{
   if(!deferredInstallPrompt)return;
+
   deferredInstallPrompt.prompt();
-  try{await deferredInstallPrompt.userChoice}catch(e){}
+
+  try{
+    await deferredInstallPrompt.userChoice;
+  }catch(e){}
+
   deferredInstallPrompt=null;
   updateInstallUi();
 });
@@ -1717,39 +2292,54 @@ if('serviceWorker' in navigator){
     }catch(e){
       console.warn('Service worker registration failed',e);
     }
+
     updateInstallUi();
   });
 }else{
   updateInstallUi();
 }
 
-
 /* v7.0 unified web/PWA update handling */
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
-      const reg=await navigator.serviceWorker.register('/service-worker.js?v=700',{updateViaCache:'none'});
+      const reg=await navigator.serviceWorker.register(
+        '/service-worker.js?v=700',
+        {updateViaCache:'none'}
+      );
+
       await reg.update();
-      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+
+      if(reg.waiting){
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
+      }
+
       reg.addEventListener('updatefound',()=>{
         const worker=reg.installing;
         if(!worker)return;
+
         worker.addEventListener('statechange',()=>{
-          if(worker.state==='installed'&&navigator.serviceWorker.controller){
+          if(
+            worker.state==='installed'&&
+            navigator.serviceWorker.controller
+          ){
             worker.postMessage({type:'SKIP_WAITING'});
           }
         });
       });
-    }catch(e){console.warn('Service worker registration failed',e)}
+
+    }catch(e){
+      console.warn('Service worker registration failed',e);
+    }
   });
+
   let v7Reloading=false;
+
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(v7Reloading)return;
     v7Reloading=true;
     location.reload();
   });
 }
-
-
 
 /* v7.3 Maintenance Centre is a dedicated page at /maintenance-dashboard.html. */

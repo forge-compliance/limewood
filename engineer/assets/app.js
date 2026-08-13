@@ -230,6 +230,8 @@ async function linkAsset(asset){
   if(error)return toast(error.message);
 
   selected.asset_id=asset.id;
+ const jobInList=jobs.find(j=>j.id===selected.id);
+if(jobInList) jobInList.asset_id=asset.id;
   linkedAsset=asset;
   workTarget='asset';
 

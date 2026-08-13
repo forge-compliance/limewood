@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#173d33">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LW Engineer">
+  <title>Limewood Engineer</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="mark">LW</div>
+      <div class="eyebrow">LIMEWOOD ENGINEERING</div>
+      <h1>Engineer</h1>
+      <p>Reactive maintenance jobs. Check it, deal with it, record the outcome.</p>
+      <label>Email<input id="email" type="email" autocomplete="email" placeholder="engineer@limewoodhotel.co.uk"></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password"></label>
+      <button id="signIn" class="primary big">Sign in</button>
+      <p id="authMessage" class="message"></p>
+      <small>Powered by Forge Compliance</small>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="top-brand">
+        <div class="mark small">LW</div>
+        <div><strong>Limewood Engineer</strong><span id="engineerName">Engineering</span></div>
+      </div>
+      <button id="refresh" class="icon-btn" aria-label="Refresh">↻</button>
+    </header>
+
+    <main>
+      <section class="summary">
+        <div><span>Open</span><strong id="openCount">0</strong></div>
+        <div><span>Urgent</span><strong id="urgentCount">0</strong></div>
+        <div><span>Waiting</span><strong id="waitingCount">0</strong></div>
+      </section>
+
+      <section class="toolbar">
+        <div class="tabs" id="tabs">
+          <button class="active" data-filter="open">Open</button>
+          <button data-filter="new">New</button>
+          <button data-filter="in_progress">In progress</button>
+          <button data-filter="waiting">Waiting</button>
+          <button data-filter="completed">Completed</button>
+        </div>
+        <input id="search" class="search" type="search" placeholder="Search room, issue or job number">
+      </section>
+
+      <section id="jobList" class="job-list"></section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button id="navOpen" class="active">☰<span>Jobs</span></button>
+      <button id="navUrgent">!<span>Urgent</span></button>
+      <button id="navRefresh">↻<span>Refresh</span></button>
+      <button id="signOut">⇥<span>Sign out</span></button>
+    </nav>
+  </div>
+
+  <dialog id="jobDialog" class="job-dialog">
+    <div class="dialog-head">
+      <div><span id="detailJobNumber" class="job-number"></span><h2 id="detailLocation"></h2></div>
+      <button id="closeDialog" class="close-btn" aria-label="Close">×</button>
+    </div>
+    <div id="detailStatusLine" class="detail-status-line"></div>
+    <div class="detail-block"><label>Issue</label><p id="detailIssue"></p></div>
+    <div id="detailReporterBlock" class="detail-grid"></div>
+    <div id="detailOriginalBlock" class="detail-block" hidden><label>Original report</label><p id="detailOriginal"></p></div>
+    <div id="photoGallery" class="photo-gallery"></div>
+
+    <div class="action-grid">
+      <button id="markChecked" class="action check">✓ Checked</button>
+      <button id="startWork" class="action work">▶ Start work</button>
+      <button id="waitParts" class="action wait">◷ Waiting parts</button>
+      <button id="waitContractor" class="action wait">◷ Contractor</button>
+    </div>
+
+    <label class="notes-label">Engineer note<textarea id="newNote" rows="3" placeholder="What did you find / what have you done?"></textarea></label>
+    <button id="addNote" class="secondary full">Add note</button>
+
+    <label class="photo-button">📷 Add photo<input id="photoInput" type="file" accept="image/*" capture="environment"></label>
+
+    <section class="history">
+      <h3>Job history</h3>
+      <div id="historyList"></div>
+    </section>
+
+    <button id="completeJob" class="complete-btn">✓ Complete job</button>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/app.js?v=1"></script>
+</body>
+</html>

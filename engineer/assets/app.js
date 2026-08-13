@@ -241,48 +241,7 @@ if(jobInList) jobInList.asset_id=asset.id;
 
   toast(`Linked to ${asset.name||asset.id}`);
 }
-  const term=prompt('Search asset by name, code or location:');
-  if(!term||!term.trim())return;
 
-  const q=term.trim();
-
-  const {data,error}=await client
-    .from('assets')
-    .select('id,name,room')
-    .or(`id.ilike.%${q}%,name.ilike.%${q}%,room.ilike.%${q}%`)
-    .limit(10);
-
-  if(error)return toast(error.message);
-
-  if(!data?.length){
-    return toast('No matching assets found');
-  }
-
-  let message='Choose asset:\n\n';
-
-  data.forEach((a,i)=>{
-    message+=`${i+1}. ${a.id} · ${a.name} · ${a.room||''}\n`;
-  });
-
-  const choice=prompt(message+'\nEnter number:');
-  const index=parseInt(choice,10)-1;
-
-  if(!data[index])return;
-
-  linkedAsset=data[index];
-  workTarget='asset';
-
-  updateWorkTarget();
-
-  await client
-    .from('maintenance_jobs')
-    .update({asset_id:linkedAsset.id})
-    .eq('id',selected.id);
-
-  selected.asset_id=linkedAsset.id;
-
-  toast(`Linked to ${linkedAsset.name}`);
-}
 $('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
 $('completeJob').onclick=async()=>{if(!selected||selected.status==='completed')return;if(!selected.checked_at)return toast('Check the job before completing it.');const btn=$('completeJob');btn.disabled=true;const note=$('newNote').value.trim();await updateJob({status:'completed',completed_at:new Date().toISOString(),completed_by:session.user.id},note?`Completed by ${profileName}: ${note}`:`Job completed by ${profileName}`,'completed');};
 $('photoInput').onchange=async e=>{const file=e.target.files?.[0];if(!file||!selected)return;toast('Uploading photo…');const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`maintenance-jobs/${selected.id}/${Date.now()}-${safe}`;const {error:upErr}=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{upsert:false,contentType:file.type});if(upErr){e.target.value='';return toast(`Photo upload failed: ${upErr.message}`)}const {error}=await client.from('maintenance_job_photos').insert({job_id:selected.id,storage_path:path,uploaded_by:session.user.id});if(error)return toast(error.message);await addEvent('Photo added','photo');e.target.value='';toast('Photo added')};

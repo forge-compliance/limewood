@@ -98,8 +98,6 @@ async function updateJob(patch,note,eventType){
 $('startWork').onclick=()=>updateJob({status:'in_progress',work_started_at:selected.work_started_at||new Date().toISOString(),work_started_by:selected.work_started_by||session.user.id},`Work started by ${profileName}`,'in_progress');
 $('waitParts').onclick=()=>updateJob({status:'waiting_parts'},`Job placed on hold: waiting for parts`,'waiting_parts');
 $('waitContractor').onclick=()=>updateJob({status:'waiting_contractor'},`Job placed on hold: waiting for contractor`,'waiting_contractor');
-let linkedAsset=null;
-let workTarget='';
 
 function updateWorkTarget(){
   const card=$('linkedAssetCard');

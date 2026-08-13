@@ -105,7 +105,16 @@
     <button id="addAsset" class="action">➕ Add asset</button>
     <button id="generalMaintenance" class="action">🔧 General maintenance</button>
   </div>
-
+<div id="assetSearchPanel" class="detail-block" hidden>
+  <label for="assetSearchInput">Find asset</label>
+  <input
+    id="assetSearchInput"
+    type="search"
+    placeholder="e.g. Main House pump"
+    autocomplete="off"
+  >
+  <div id="assetSearchResults"></div>
+</div>
   <div id="linkedAssetCard" class="detail-block" hidden>
     <label>Linked asset</label>
     <p id="linkedAssetName"></p>

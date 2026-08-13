@@ -302,9 +302,9 @@ if(jobInList) jobInList.asset_id=asset.id;
   $('assetSearchPanel').hidden=true;
 
 toast(`Linked to ${asset.asset_name||asset.asset_code||asset.id}`);
+}
 
-$('addNote').onclick=
-
+$('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
 $('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
 $('completeJob').onclick=async()=>{if(!selected||selected.status==='completed')return;if(!selected.checked_at)return toast('Check the job before completing it.');const btn=$('completeJob');btn.disabled=true;const note=$('newNote').value.trim();await updateJob({status:'completed',completed_at:new Date().toISOString(),completed_by:session.user.id},note?`Completed by ${profileName}: ${note}`:`Job completed by ${profileName}`,'completed');};
 $('photoInput').onchange=async e=>{const file=e.target.files?.[0];if(!file||!selected)return;toast('Uploading photo…');const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`maintenance-jobs/${selected.id}/${Date.now()}-${safe}`;const {error:upErr}=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{upsert:false,contentType:file.type});if(upErr){e.target.value='';return toast(`Photo upload failed: ${upErr.message}`)}const {error}=await client.from('maintenance_job_photos').insert({job_id:selected.id,storage_path:path,uploaded_by:session.user.id});if(error)return toast(error.message);await addEvent('Photo added','photo');e.target.value='';toast('Photo added')};

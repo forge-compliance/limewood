@@ -47,7 +47,28 @@ $('completeJob').onclick=async()=>{if(!selected.checked_at)return toast('Check t
 $('photoInput').onchange=async e=>{const file=e.target.files?.[0];if(!file||!selected)return;toast('Uploading photo…');const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`maintenance-jobs/${selected.id}/${Date.now()}-${safe}`;const {error:upErr}=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{upsert:false,contentType:file.type});if(upErr){e.target.value='';return toast(`Photo upload failed: ${upErr.message}`)}const {error}=await client.from('maintenance_job_photos').insert({job_id:selected.id,storage_path:path,uploaded_by:session.user.id});if(error)return toast(error.message);await addEvent('Photo added','photo');e.target.value='';toast('Photo added')};
 els.signIn.onclick=async()=>{els.authMessage.textContent='';els.signIn.disabled=true;const {error}=await client.auth.signInWithPassword({email:els.email.value.trim(),password:els.password.value});els.signIn.disabled=false;if(error)els.authMessage.textContent=error.message};
 els.signOut.onclick=()=>client.auth.signOut();els.refresh.onclick=loadJobs;els.navRefresh.onclick=loadJobs;els.search.oninput=render;els.tabs.onclick=e=>{const b=e.target.closest('button[data-filter]');if(!b)return;filter=b.dataset.filter;els.tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));render()};$('navUrgent').onclick=()=>{filter='open';els.search.value='';jobs=jobs.sort((a,b)=>(b.urgency==='urgent')-(a.urgency==='urgent'));render();window.scrollTo({top:0,behavior:'smooth'})};$('navOpen').onclick=()=>{filter='open';els.search.value='';render();window.scrollTo({top:0,behavior:'smooth'})};els.close.onclick=()=>els.dialog.close();els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close()});
-async function authState(s){session=s;if(session){els.auth.hidden=true;els.app.hidden=false;await loadProfile();await loadJobs()}else{els.auth.hidden=false;els.app.hidden=true;if(els.dialog.open)els.dialog.close()}}
+async function authState(s){
+  session=s;
+
+  if(session){
+    els.auth.hidden=true;
+    els.auth.style.display='none';
+
+    els.app.hidden=false;
+    els.app.style.display='block';
+
+    await loadProfile();
+    await loadJobs();
+  }else{
+    els.auth.hidden=false;
+    els.auth.style.display='grid';
+
+    els.app.hidden=true;
+    els.app.style.display='none';
+
+    if(els.dialog.open) els.dialog.close();
+  }
+}
 client.auth.getSession().then(({data})=>authState(data.session));client.auth.onAuthStateChange((_e,s)=>authState(s));
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 })();

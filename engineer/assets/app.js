@@ -80,6 +80,7 @@ async function updateJob(patch,note,eventType){
 
   await openJob(jobId);
 }
+ $('markChecked').onclick=async()=>{
   if(!selected || selected.checked_at) return;
 
   const btn=$('markChecked');

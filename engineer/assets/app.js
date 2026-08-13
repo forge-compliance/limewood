@@ -280,64 +280,7 @@ async function runAssetSearch(term){
   });
 }
 
-  host.innerHTML='<div class="empty">Searching…</div>';
-
-  const {data,error}=await client
-    .from('assets')
-    .select('*')
-    .limit(250);
-
-  if(error){
-    host.innerHTML=`<div class="empty">${esc(error.message)}</div>`;
-    return;
-  }
-
-  const matches=(data||[]).filter(asset=>{
-    const haystack=[
-      asset.id,
-      asset.name,
-      asset.room,
-      asset.plant_room,
-      asset.location,
-      asset.asset_type,
-      asset.manufacturer,
-      asset.model
-    ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-    return words.every(word=>haystack.includes(word));
-  }).slice(0,20);
-
-  if(!matches.length){
-    host.innerHTML=`
-      <div class="empty">
-        <b>No matching assets.</b><br>
-        <span>Try another search or add a new asset.</span>
-      </div>`;
-    return;
-  }
-
-  host.innerHTML=matches.map(asset=>`
-    <button
-      type="button"
-      class="asset-search-result"
-      data-asset-id="${esc(asset.id)}"
-    >
-      <b>${esc(asset.name||'Unnamed asset')}</b>
-      <span>${esc(asset.id||'')}</span>
-      <small>${esc(asset.room||asset.plant_room||asset.location||'Location not recorded')}</small>
-    </button>
-  `).join('');
-
-  host.querySelectorAll('.asset-search-result').forEach(button=>{
-    button.onclick=()=>linkAsset(
-      matches.find(asset=>String(asset.id)===button.dataset.assetId)
-    );
-  });
-}
-
+  
 async function linkAsset(asset){
   if(!asset || !selected)return;
 
@@ -359,6 +302,8 @@ if(jobInList) jobInList.asset_id=asset.id;
   $('assetSearchPanel').hidden=true;
 
 toast(`Linked to ${asset.asset_name||asset.asset_code||asset.id}`);
+
+$('addNote').onclick=
 
 $('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
 $('completeJob').onclick=async()=>{if(!selected||selected.status==='completed')return;if(!selected.checked_at)return toast('Check the job before completing it.');const btn=$('completeJob');btn.disabled=true;const note=$('newNote').value.trim();await updateJob({status:'completed',completed_at:new Date().toISOString(),completed_by:session.user.id},note?`Completed by ${profileName}: ${note}`:`Job completed by ${profileName}`,'completed');};

@@ -280,7 +280,53 @@ async function runAssetSearch(term){
   });
 }
 
-  
+async function syncAssetMaintenanceHistory(job){
+  if(!job || !job.asset_id || job.status!=='completed') return;
+
+  const notes=await loadNotes(job.id);
+
+  const engineerNotes=notes
+    .filter(n=>['note','completed','checked','in_progress'].includes(n.event_type))
+    .map(n=>n.note)
+    .filter(Boolean);
+
+  const completedNote=notes.find(n=>n.event_type==='completed');
+
+  const workDate=new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Europe/London',
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit'
+  }).format(new Date(job.completed_at||Date.now()));
+
+  const record={
+    source_job_id:job.id,
+    asset_id:job.asset_id,
+    work_date:workDate,
+    work_type:'Reactive maintenance',
+    description:`${job.job_number||'Maintenance job'} · ${job.issue||'Maintenance work'}`,
+    engineer_name:profileName,
+    findings:engineerNotes.join('\n')||null,
+    actions_taken:completedNote?.note||'Job completed',
+    follow_up_required:false,
+    follow_up_date:null,
+    created_by:session.user.id
+  };
+
+  const {error}=await client
+    .from('maintenance_records')
+    .upsert(record,{
+      onConflict:'source_job_id'
+    });
+
+  if(error){
+    console.error('Asset history sync failed',error);
+    toast(`Job saved, but asset history failed: ${error.message}`);
+    return false;
+  }
+
+  return true;
+}  
 async function linkAsset(asset){
   if(!asset || !selected)return;
 
@@ -292,6 +338,16 @@ async function linkAsset(asset){
   if(error)return toast(error.message);
 
   selected.asset_id=asset.id;
+
+const jobInList=jobs.find(j=>j.id===selected.id);
+if(jobInList) jobInList.asset_id=asset.id;
+
+if(selected.status==='completed'){
+  await syncAssetMaintenanceHistory(selected);
+}
+
+linkedAsset=asset;
+workTarget='asset';
  const jobInList=jobs.find(j=>j.id===selected.id);
 if(jobInList) jobInList.asset_id=asset.id;
   linkedAsset=asset;

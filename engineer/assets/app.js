@@ -37,8 +37,46 @@ async function openJob(id){selected=jobs.find(j=>j.id===id);if(!selected)return;
  if(!els.dialog.open)els.dialog.showModal();render();
 }
 async function addEvent(note,eventType='note'){if(!selected)return;const text=note.trim();if(!text)return;const {error}=await client.from('maintenance_job_notes').insert({job_id:selected.id,note:text,event_type:eventType,created_by:session.user.id});if(error)return toast(error.message);await openJob(selected.id)}
-async function updateJob(patch,note,eventType){if(!selected)return;const {data,error}=await client.from('maintenance_jobs').update(patch).eq('id',selected.id).select().single();if(error)return toast(error.message);Object.assign(selected,data);if(note)await client.from('maintenance_job_notes').insert({job_id:selected.id,note,event_type:eventType||'status',created_by:session.user.id});toast(note||'Job updated');await loadJobs();await openJob(selected.id)}
-$('markChecked').onclick=async()=>{
+async function updateJob(patch,note,eventType){
+  if(!selected)return;
+
+  const jobId=selected.id;
+
+  const {data,error}=await client
+    .from('maintenance_jobs')
+    .update(patch)
+    .eq('id',jobId)
+    .select()
+    .single();
+
+  if(error)return toast(error.message);
+
+  Object.assign(selected,data);
+
+  if(note){
+    await client
+      .from('maintenance_job_notes')
+      .insert({
+        job_id:jobId,
+        note,
+        event_type:eventType||'status',
+        created_by:session.user.id
+      });
+  }
+
+  toast(note||'Job updated');
+
+  await loadJobs();
+
+  if(patch.status==='completed'){
+    if(els.dialog.open)els.dialog.close();
+    selected=null;
+    render();
+    return;
+  }
+
+  await openJob(jobId);
+}
   if(!selected || selected.checked_at) return;
 
   const btn=$('markChecked');

@@ -128,7 +128,117 @@ $('clearLinkedAsset').onclick=()=>{
   updateWorkTarget();
 };
 
-$('searchAsset').onclick=async()=>{
+$('searchAsset').onclick=()=>{
+  const panel=$('assetSearchPanel');
+  panel.hidden=false;
+  $('assetSearchInput').value='';
+  $('assetSearchResults').innerHTML=
+    '<div class="empty">Start typing an asset name, code or location.</div>';
+  $('assetSearchInput').focus();
+};
+
+let assetSearchTimer;
+
+$('assetSearchInput').oninput=()=>{
+  clearTimeout(assetSearchTimer);
+
+  assetSearchTimer=setTimeout(
+    ()=>runAssetSearch($('assetSearchInput').value),
+    200
+  );
+};
+
+async function runAssetSearch(term){
+  const host=$('assetSearchResults');
+  const words=term
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if(!words.length){
+    host.innerHTML='<div class="empty">Start typing to search assets.</div>';
+    return;
+  }
+
+  host.innerHTML='<div class="empty">Searching…</div>';
+
+  const {data,error}=await client
+    .from('assets')
+    .select('*')
+    .limit(250);
+
+  if(error){
+    host.innerHTML=`<div class="empty">${esc(error.message)}</div>`;
+    return;
+  }
+
+  const matches=(data||[]).filter(asset=>{
+    const haystack=[
+      asset.id,
+      asset.name,
+      asset.room,
+      asset.plant_room,
+      asset.location,
+      asset.asset_type,
+      asset.manufacturer,
+      asset.model
+    ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+    return words.every(word=>haystack.includes(word));
+  }).slice(0,20);
+
+  if(!matches.length){
+    host.innerHTML=`
+      <div class="empty">
+        <b>No matching assets.</b><br>
+        <span>Try another search or add a new asset.</span>
+      </div>`;
+    return;
+  }
+
+  host.innerHTML=matches.map(asset=>`
+    <button
+      type="button"
+      class="asset-search-result"
+      data-asset-id="${esc(asset.id)}"
+    >
+      <b>${esc(asset.name||'Unnamed asset')}</b>
+      <span>${esc(asset.id||'')}</span>
+      <small>${esc(asset.room||asset.plant_room||asset.location||'Location not recorded')}</small>
+    </button>
+  `).join('');
+
+  host.querySelectorAll('.asset-search-result').forEach(button=>{
+    button.onclick=()=>linkAsset(
+      matches.find(asset=>String(asset.id)===button.dataset.assetId)
+    );
+  });
+}
+
+async function linkAsset(asset){
+  if(!asset || !selected)return;
+
+  const {error}=await client
+    .from('maintenance_jobs')
+    .update({asset_id:asset.id})
+    .eq('id',selected.id);
+
+  if(error)return toast(error.message);
+
+  selected.asset_id=asset.id;
+  linkedAsset=asset;
+  workTarget='asset';
+
+  updateWorkTarget();
+
+  $('assetSearchPanel').hidden=true;
+
+  toast(`Linked to ${asset.name||asset.id}`);
+}
   const term=prompt('Search asset by name, code or location:');
   if(!term||!term.trim())return;
 

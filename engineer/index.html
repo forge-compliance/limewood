@@ -83,23 +83,48 @@
       <button id="waitContractor" class="action wait">◷ Contractor</button>
     </div>
 
-    <label class="notes-label">Engineer note<textarea id="newNote" rows="3" placeholder="What did you find / what have you done?"></textarea></label>
-    <button id="addNote" class="secondary full">Add note</button>
+    <label class="notes-label">
+  Engineer note
+  <textarea id="newNote" rows="3" placeholder="What did you find / what have you done?"></textarea>
+</label>
 
-    <label class="photo-button">📷 Add photo<input id="photoInput" type="file" accept="image/*" capture="environment"></label>
+<button id="addNote" class="secondary full">Add note</button>
 
-    <section class="history">
-      <h3>Job history</h3>
-      <div id="historyList"></div>
-    </section>
+<label class="photo-button">
+  📷 Add photo
+  <input id="photoInput" type="file" accept="image/*" capture="environment">
+</label>
 
-    <button id="completeJob" class="complete-btn">✓ Complete job</button>
+<section class="asset-link-section">
+  <h3>What did you work on?</h3>
+  <p class="muted">Link the job to an asset where relevant, or choose general maintenance.</p>
+
+  <div class="action-grid asset-actions">
+    <button id="scanAssetQr" class="action">📷 Scan asset QR</button>
+    <button id="searchAsset" class="action">🔎 Search asset</button>
+    <button id="addAsset" class="action">➕ Add asset</button>
+    <button id="generalMaintenance" class="action">🔧 General maintenance</button>
+  </div>
+
+  <div id="linkedAssetCard" class="detail-block" hidden>
+    <label>Linked asset</label>
+    <p id="linkedAssetName"></p>
+    <button id="clearLinkedAsset" class="secondary full">Remove asset link</button>
+  </div>
+</section>
+
+<section class="history">
+  <h3>Job history</h3>
+  <div id="historyList"></div>
+</section>
+
+<button id="completeJob" class="complete-btn">✓ Complete job</button>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/config.js?v=1"></script>
-  <script src="assets/app.js?v=1"></script>
+ <script src="assets/config.js?v=2"></script>
+<script src="assets/app.js?v=2"></script>
 </body>
 </html>

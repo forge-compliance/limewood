@@ -131,13 +131,12 @@ function updateWorkTarget(){
   refreshEngineerWorkflow();
 }
 
-$('generalMaintenance').onclick=()=>{
+if ($('generalMaintenance')) $('generalMaintenance').onclick=()=>{
   linkedAsset=null;
   workTarget='general';
   updateWorkTarget();
   toast('General maintenance selected');
 };
-
 $('clearLinkedAsset').onclick=()=>{
   linkedAsset=null;
   workTarget='';

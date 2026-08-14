@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
      * Normal Limewood Engineering changes do NOT require an APK rebuild because
      * the app loads the live site below.
      */
-    private static final String APP_URL = "https://limewood-engineering.pro/?creator=1";
+    private static final String APP_URL = "https://limewood-engineering.pro/?creator=1&creator_shell=1.2.1";
     private static final int FILE_CHOOSER_REQUEST = 401;
 
     private WebView webView;
@@ -71,8 +71,11 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setUserAgentString(
                 settings.getUserAgentString() + " LimewoodCreatorAndroid/1.2");
+
+        webView.clearCache(true);
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
@@ -159,7 +162,7 @@ public class MainActivity extends Activity {
                 "document.head.appendChild(style);" +
                 "var dock=document.createElement('div');dock.id='lwCreatorDock';" +
                 "dock.innerHTML='<span id=\\\"lwCreatorBadge\\\">CREATOR</span><button class=\\\"creatorHome\\\" data-c=\\\"home\\\">Home</button><button data-c=\\\"assets\\\">Assets</button><button data-c=\\\"addAsset\\\">+ Asset</button><button data-c=\\\"docs\\\">Documents</button><button data-c=\\\"ppm\\\">PPM</button><button data-c=\\\"logs\\\">Logs</button><button data-c=\\\"logBuilder\\\">Log Builder</button>';" +
-                "dock.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var a=b.dataset.c;function hit(id){var x=document.getElementById(id);if(x){x.click();return true}return false}if(a==='home'){if(typeof showView==='function'){showView('dashboard')}else{location.href='/?creator=1'}}else if(a==='assets'){if(!hit('quickEstateRegister')&&typeof showAssetRegisterDirectory==='function')showAssetRegisterDirectory()}else if(a==='addAsset'){if(!hit('quickAddAsset')){if(typeof showRegister==='function')showRegister('');if(typeof newAsset==='function')newAsset()}}else if(a==='docs'){if(!hit('quickDocuments')&&typeof showDocuments==='function')showDocuments('')}else if(a==='ppm'){if(!hit('quickPpm')&&typeof showPpmDirectory==='function')showPpmDirectory()}else if(a==='logs'){if(!hit('quickLogs')&&typeof showLogsHome==='function')showLogsHome()}else if(a==='logBuilder'){if(window.LIMEWOOD_CREATOR&&typeof window.LIMEWOOD_CREATOR.openLogBuilder==='function'){window.LIMEWOOD_CREATOR.openLogBuilder()}else{alert('Update the live Limewood app.js first, then reload Creator.')}}});" +
+                "dock.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var a=b.dataset.c;function hit(id){var x=document.getElementById(id);if(x){x.click();return true}return false}if(a==='home'){if(typeof showView==='function'){showView('dashboard')}else{location.href='/?creator=1'}}else if(a==='assets'){if(!hit('quickEstateRegister')&&typeof showAssetRegisterDirectory==='function')showAssetRegisterDirectory()}else if(a==='addAsset'){if(!hit('quickAddAsset')){if(typeof showRegister==='function')showRegister('');if(typeof newAsset==='function')newAsset()}}else if(a==='docs'){if(!hit('quickDocuments')&&typeof showDocuments==='function')showDocuments('')}else if(a==='ppm'){if(!hit('quickPpm')&&typeof showPpmDirectory==='function')showPpmDirectory()}else if(a==='logs'){if(!hit('quickLogs')&&typeof showLogsHome==='function')showLogsHome()}else if(a==='logBuilder'){(function openBuilder(attempt){if(window.LIMEWOOD_CREATOR&&typeof window.LIMEWOOD_CREATOR.openLogBuilder==='function'){window.LIMEWOOD_CREATOR.openLogBuilder();return}if(attempt<20){setTimeout(function(){openBuilder(attempt+1)},150);return}alert('Log Builder did not finish loading. Close Creator completely and reopen it.')})(0)}});" +
                 "document.body.appendChild(dock);" +
                 "})();";
         view.evaluateJavascript(js, null);

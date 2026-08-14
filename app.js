@@ -4582,3 +4582,26 @@ if('serviceWorker' in navigator){
 }
 
 /* v7.3 Maintenance Centre is a dedicated page at /maintenance-dashboard.html. */
+window.LIMEWOOD_CREATOR = window.LIMEWOOD_CREATOR || {};
+
+window.LIMEWOOD_CREATOR.openLogBuilder = async function () {
+  if (typeof openCreatorLogBuilder === 'function') {
+    return openCreatorLogBuilder();
+  }
+
+  const modal = document.getElementById('creatorLogBuilder');
+
+  if (modal) {
+    modal.hidden = false;
+    return;
+  }
+
+  alert('Log Builder functions are not available on this page.');
+};
+
+window.LIMEWOOD_CREATOR.reloadLogTemplates = async function () {
+  if (typeof loadLogTemplates === 'function') {
+    return loadLogTemplates();
+  }
+};
+

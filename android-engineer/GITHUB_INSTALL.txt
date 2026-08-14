@@ -1,0 +1,15 @@
+RECOMMENDED REPO LOCATION
+
+Put this entire Android project into:
+
+/android-engineer/
+
+in the same GitHub repository as the Limewood website.
+
+The included GitHub Actions workflow expects that folder name. After pushing it:
+1. Open GitHub > Actions.
+2. Open "Build Limewood Engineer Android".
+3. Run workflow (or push a change under /android-engineer/).
+4. When the build finishes, download the "Limewood-Engineer-debug-apk" artifact.
+
+The APK loads https://limewood-engineering.pro/engineer/ so ordinary web updates do not require rebuilding the APK.

@@ -1,0 +1,508 @@
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id); const cfg=window.LIMEWOOD_CONFIG||{};
+const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let session=null,jobs=[],filter='open',selected=null,profileName='Engineering';
+let linkedAsset=null;
+let workTarget='';
+const els={auth:$('authScreen'),app:$('app'),email:$('email'),password:$('password'),authMessage:$('authMessage'),signIn:$('signIn'),signOut:$('signOut'),refresh:$('refresh'),navRefresh:$('navRefresh'),jobList:$('jobList'),search:$('search'),tabs:$('tabs'),dialog:$('jobDialog'),close:$('closeDialog'),toast:$('toast')};
+function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function toast(msg){els.toast.textContent=msg;els.toast.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>els.toast.hidden=true,2600)}
+function fmtDate(v){if(!v)return '—';return new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}
+function age(v){if(!v)return '';const mins=Math.max(0,Math.floor((Date.now()-new Date(v))/60000));if(mins<60)return `${mins}m`;const h=Math.floor(mins/60);if(h<24)return `${h}h`;return `${Math.floor(h/24)}d`}
+function statusLabel(s){return ({new:'New',in_progress:'In progress',waiting_parts:'Waiting parts',waiting_contractor:'Waiting contractor',completed:'Completed',unable_to_complete:'Unable to complete'})[s]||s}
+function visibleJobs(){const q=els.search.value.trim().toLowerCase();return jobs.filter(j=>{const ok=filter==='open'?j.status!=='completed':filter==='waiting'?['waiting_parts','waiting_contractor'].includes(j.status):j.status===filter;const text=[j.job_number,j.location,j.issue,j.reporter_name].join(' ').toLowerCase();return ok&&(!q||text.includes(q))})}
+function render(){
+ $('openCount').textContent=jobs.filter(j=>j.status!=='completed').length;
+ $('urgentCount').textContent=jobs.filter(j=>j.status!=='completed'&&j.urgency==='urgent').length;
+ $('waitingCount').textContent=jobs.filter(j=>['waiting_parts','waiting_contractor'].includes(j.status)).length;
+ const rows=visibleJobs();
+ els.jobList.innerHTML=rows.length?rows.map(j=>`<button class="job-card ${j.urgency==='urgent'?'urgent':''}" data-id="${j.id}"><div class="job-card-inner"><div class="job-top"><div><span class="job-number">${esc(j.job_number||'NEW JOB')}</span><h3>${esc(j.location)}</h3></div><span class="age">${age(j.reported_at)} ago</span></div><p>${esc(j.issue)}</p><div class="job-meta"><span class="pill ${esc(j.status)}">${esc(statusLabel(j.status))}</span>${j.urgency==='urgent'?'<span class="pill urgent">Urgent</span>':''}${j.checked_at?'<span class="pill checked">Checked</span>':''}</div></div></button>`).join(''):'<div class="empty"><b>No jobs here.</b><br><span>Either engineering is winning or somebody has hidden the defect book.</span></div>';
+ document.querySelectorAll('.job-card').forEach(b=>b.onclick=()=>openJob(b.dataset.id));
+}
+async function loadProfile(){try{const {data}=await client.from('profiles').select('*').eq('id',session.user.id).maybeSingle();profileName=data?.full_name||data?.display_name||data?.name||session.user.email?.split('@')[0]||'Engineering'}catch{profileName=session.user.email?.split('@')[0]||'Engineering'}$('engineerName').textContent=profileName}
+async function loadJobs(){
+ const {data,error}=await client.from('maintenance_jobs').select('*').order('reported_at',{ascending:false});
+ if(error){els.jobList.innerHTML=`<div class="empty"><b>Engineer app database not ready.</b><br><span>${esc(error.message)}</span><br><br><span>Run <b>setup.sql</b> in Supabase once.</span></div>`;return}
+ jobs=data||[];render();
+}
+async function setFirstViewed(job){if(job.first_viewed_at)return;const now=new Date().toISOString();const {error}=await client.from('maintenance_jobs').update({first_viewed_at:now,first_viewed_by:session.user.id}).eq('id',job.id).is('first_viewed_at',null);if(!error){job.first_viewed_at=now;job.first_viewed_by=session.user.id}}
+async function loadNotes(jobId){const {data}=await client.from('maintenance_job_notes').select('*').eq('job_id',jobId).order('created_at',{ascending:false});return data||[]}
+async function loadPhotos(jobId){const {data}=await client.from('maintenance_job_photos').select('*').eq('job_id',jobId).order('created_at',{ascending:false});return data||[]}
+async function signedPhoto(path){const {data}=await client.storage.from(cfg.storageBucket||'asset-files').createSignedUrl(path,3600);return data?.signedUrl||''}
+async function openJob(id){selected=jobs.find(j=>j.id===id);if(!selected)return;linkedAsset=null;
+workTarget=selected.asset_id?'asset':'';
+if(selected.asset_id){
+  try{
+    const {data}=await client.from('assets').select('*').eq('id',selected.asset_id).maybeSingle();
+    linkedAsset=data||null;
+  }catch(e){console.warn('Linked asset lookup failed',e)}
+}
+await setFirstViewed(selected);$('detailJobNumber').textContent=selected.job_number||'';$('detailLocation').textContent=selected.location;$('detailIssue').textContent=selected.issue;$('detailStatusLine').innerHTML=`<span class="pill ${esc(selected.status)}">${esc(statusLabel(selected.status))}</span>${selected.urgency==='urgent'?'<span class="pill urgent">Urgent</span>':''}${selected.checked_at?'<span class="pill checked">Checked</span>':''}`;
+ $('detailReporterBlock').innerHTML=`<div><b>Reported by</b><span>${esc(selected.reporter_name||'Not supplied')}</span></div><div><b>Reported</b><span>${esc(fmtDate(selected.reported_at))}</span></div><div><b>Source</b><span>${esc(selected.source||'manual')}</span></div><div><b>Checked</b><span>${esc(selected.checked_at?fmtDate(selected.checked_at):'Not yet')}</span></div>`;
+ $('detailOriginalBlock').hidden=!selected.original_message;$('detailOriginal').textContent=selected.original_message||'';
+ $('markChecked').disabled=!!selected.checked_at||selected.status==='completed';$('startWork').disabled=selected.status==='completed';$('waitParts').disabled=selected.status==='completed';$('waitContractor').disabled=selected.status==='completed';$('completeJob').disabled=selected.status==='completed';$('newNote').value='';
+ const notes=await loadNotes(selected.id);$('historyList').innerHTML=notes.length?notes.map(n=>`<div class="history-item"><span class="history-dot"></span><div><p>${esc(n.note)}</p><small>${esc(statusLabel(n.event_type))} · ${esc(fmtDate(n.created_at))}</small></div></div>`).join(''):'<div class="empty">No engineer notes yet.</div>';
+ const photos=await loadPhotos(selected.id);const gallery=$('photoGallery');gallery.innerHTML='';for(const p of photos){const u=await signedPhoto(p.storage_path);if(u)gallery.insertAdjacentHTML('beforeend',`<a href="${esc(u)}" target="_blank"><img src="${esc(u)}" alt="Job photo"></a>`)}
+ if(!els.dialog.open)els.dialog.showModal();enhanceEngineerJobDialog();refreshEngineerWorkflow();render();
+}
+async function addEvent(note,eventType='note'){if(!selected)return;const text=note.trim();if(!text)return;const {error}=await client.from('maintenance_job_notes').insert({job_id:selected.id,note:text,event_type:eventType,created_by:session.user.id});if(error)return toast(error.message);await openJob(selected.id)}
+async function updateJob(patch,note,eventType){
+  if(!selected)return;
+
+  const jobId=selected.id;
+
+  const {data,error}=await client
+    .from('maintenance_jobs')
+    .update(patch)
+    .eq('id',jobId)
+    .select()
+    .single();
+
+  if(error)return toast(error.message);
+
+  Object.assign(selected,data);
+
+  if(note){
+    await client
+      .from('maintenance_job_notes')
+      .insert({
+        job_id:jobId,
+        note,
+        event_type:eventType||'status',
+        created_by:session.user.id
+      });
+  }
+
+  toast(note||'Job updated');
+
+  await loadJobs();
+
+  if(patch.status==='completed'){
+    if(els.dialog.open)els.dialog.close();
+    selected=null;
+    render();
+    return;
+  }
+
+  await openJob(jobId);
+}
+ $('markChecked').onclick=async()=>{
+  if(!selected || selected.checked_at) return;
+
+  const btn=$('markChecked');
+  btn.disabled=true;
+
+  await updateJob(
+    {
+      checked_at:new Date().toISOString(),
+      checked_by:session.user.id
+    },
+    `Checked by ${profileName}`,
+    'checked'
+  );
+};
+$('startWork').onclick=()=>updateJob({status:'in_progress',work_started_at:selected.work_started_at||new Date().toISOString(),work_started_by:selected.work_started_by||session.user.id},`Work started by ${profileName}`,'in_progress');
+$('waitParts').onclick=()=>updateJob({status:'waiting_parts'},`Job placed on hold: waiting for parts`,'waiting_parts');
+$('waitContractor').onclick=()=>updateJob({status:'waiting_contractor'},`Job placed on hold: waiting for contractor`,'waiting_contractor');
+
+function updateWorkTarget(){
+  const card=$('linkedAssetCard');
+  const name=$('linkedAssetName');
+
+  if(linkedAsset){
+    card.hidden=false;
+   name.textContent=`${linkedAsset.asset_code||''} · ${linkedAsset.asset_name||'Asset'}`;
+  }else if(workTarget==='general'){
+    card.hidden=false;
+    name.textContent='🔧 General maintenance – no asset required';
+  }else{
+    card.hidden=true;
+    name.textContent='';
+  }
+  refreshEngineerWorkflow();
+}
+
+$('generalMaintenance').onclick=()=>{
+  linkedAsset=null;
+  workTarget='general';
+  updateWorkTarget();
+  toast('General maintenance selected');
+};
+
+$('clearLinkedAsset').onclick=()=>{
+  linkedAsset=null;
+  workTarget='';
+  updateWorkTarget();
+};
+
+$('searchAsset').onclick=()=>{
+  const panel=$('assetSearchPanel');
+  panel.hidden=false;
+  $('assetSearchInput').value='';
+  $('assetSearchResults').innerHTML=
+    '<div class="empty">Start typing an asset name, code or location.</div>';
+  $('assetSearchInput').focus();
+};
+
+let assetSearchTimer;
+
+$('assetSearchInput').oninput=()=>{
+  clearTimeout(assetSearchTimer);
+
+  assetSearchTimer=setTimeout(
+    ()=>runAssetSearch($('assetSearchInput').value),
+    200
+  );
+};
+
+async function runAssetSearch(term){
+  const host=$('assetSearchResults');
+
+  const words=term
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if(!words.length){
+    host.innerHTML='<div class="empty">Start typing to search assets.</div>';
+    return;
+  }
+
+  host.innerHTML='<div class="empty">Searching…</div>';
+
+  const [
+    {data:assetData,error:assetError},
+    {data:buildingData,error:buildingError},
+    {data:roomData,error:roomError}
+  ]=await Promise.all([
+    client.from('assets').select('*').limit(500),
+    client.from('buildings').select('id,name'),
+    client.from('plant_rooms').select('id,name')
+  ]);
+
+  if(assetError){
+    host.innerHTML=`<div class="empty">${esc(assetError.message)}</div>`;
+    return;
+  }
+
+  if(buildingError){
+    console.warn('Building lookup failed',buildingError);
+  }
+
+  if(roomError){
+    console.warn('Plant room lookup failed',roomError);
+  }
+
+  const buildings=new Map(
+    (buildingData||[]).map(b=>[String(b.id),b.name])
+  );
+
+  const plantRooms=new Map(
+    (roomData||[]).map(r=>[String(r.id),r.name])
+  );
+
+  const matches=(assetData||[]).filter(asset=>{
+
+    const buildingName=
+      buildings.get(String(asset.building_id||''))||'';
+
+    const plantRoomName=
+      plantRooms.get(String(asset.plant_room_id||''))||'';
+
+    const haystack=[
+      asset.asset_code,
+      asset.asset_name,
+      buildingName,
+      plantRoomName,
+      asset.category,
+      asset.system_duty,
+      asset.manufacturer,
+      asset.model,
+      asset.serial_number,
+      asset.asset_tag,
+      asset.operational_status,
+      asset.condition,
+      asset.criticality
+    ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+    return words.every(word=>haystack.includes(word));
+
+  }).slice(0,30);
+
+  if(!matches.length){
+    host.innerHTML=`
+      <div class="empty">
+        <b>No matching assets.</b><br>
+        <span>Try another search or add a new asset.</span>
+      </div>`;
+    return;
+  }
+
+  host.innerHTML=matches.map(asset=>{
+
+    const buildingName=
+      buildings.get(String(asset.building_id||''))||'';
+
+    const plantRoomName=
+      plantRooms.get(String(asset.plant_room_id||''))||'';
+
+    return `
+      <button
+        type="button"
+        class="asset-search-result"
+        data-asset-id="${esc(asset.id)}"
+      >
+        <b>${esc(asset.asset_name||asset.asset_code||'Asset')}</b>
+
+        <span>
+          ${esc(asset.asset_code||'')}
+          ${asset.manufacturer?' · '+esc(asset.manufacturer):''}
+        </span>
+
+        <small>
+          ${esc(
+            [buildingName,plantRoomName]
+              .filter(Boolean)
+              .join(' · ') ||
+            asset.category ||
+            'Location not recorded'
+          )}
+        </small>
+      </button>
+    `;
+  }).join('');
+
+  host.querySelectorAll('.asset-search-result').forEach(button=>{
+    button.onclick=()=>{
+      const asset=matches.find(
+        a=>String(a.id)===button.dataset.assetId
+      );
+
+      if(asset) linkAsset(asset);
+    };
+  });
+}
+
+async function syncAssetMaintenanceHistory(job){
+  if(!job || !job.asset_id || job.status!=='completed') return;
+
+  const notes=await loadNotes(job.id);
+
+  const engineerNotes=notes
+    .filter(n=>['note','completed','checked','in_progress'].includes(n.event_type))
+    .map(n=>n.note)
+    .filter(Boolean);
+
+  const completedNote=notes.find(n=>n.event_type==='completed');
+
+  const workDate=new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Europe/London',
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit'
+  }).format(new Date(job.completed_at||Date.now()));
+
+  const record={
+    source_job_id:job.id,
+    asset_id:job.asset_id,
+    work_date:workDate,
+    work_type:'Reactive maintenance',
+    description:`${job.job_number||'Maintenance job'} · ${job.issue||'Maintenance work'}`,
+    engineer_name:profileName,
+    findings:engineerNotes.join('\n')||null,
+    actions_taken:completedNote?.note||'Job completed',
+    follow_up_required:false,
+    follow_up_date:null,
+    created_by:session.user.id
+  };
+
+  const {error}=await client
+    .from('maintenance_records')
+    .upsert(record,{
+      onConflict:'source_job_id'
+    });
+
+  if(error){
+    console.error('Asset history sync failed',error);
+    toast(`Job saved, but asset history failed: ${error.message}`);
+    return false;
+  }
+
+  return true;
+}  
+async function linkAsset(asset){
+  if(!asset || !selected)return;
+
+  const {error}=await client
+    .from('maintenance_jobs')
+    .update({asset_id:asset.id})
+    .eq('id',selected.id);
+
+  if(error)return toast(error.message);
+
+  selected.asset_id=asset.id;
+
+const jobInList=jobs.find(j=>j.id===selected.id);
+if(jobInList) jobInList.asset_id=asset.id;
+
+if(selected.status==='completed'){
+  await syncAssetMaintenanceHistory(selected);
+}
+
+linkedAsset=asset;
+workTarget='asset';
+ 
+  linkedAsset=asset;
+  workTarget='asset';
+
+  updateWorkTarget();
+
+  $('assetSearchPanel').hidden=true;
+
+toast(`Linked to ${asset.asset_name||asset.asset_code||asset.id}`);
+}
+
+$('addNote').onclick=()=>{const n=$('newNote').value;if(!n.trim())return toast('Add a note first.');addEvent(n,'note')};
+$('newNote')?.addEventListener('input',refreshEngineerWorkflow);
+
+function enhanceEngineerJobDialog(){
+  const dialog=els.dialog;
+  if(!dialog || dialog.dataset.enhanced==='1') return;
+  dialog.dataset.enhanced='1';
+
+  const head=dialog.querySelector('.dialog-head');
+  if(head){
+    const progress=document.createElement('div');
+    progress.className='job-progress';
+    progress.innerHTML=`
+      <span data-step="check"><i>1</i><b>Check</b></span>
+      <span data-step="work"><i>2</i><b>Work</b></span>
+      <span data-step="asset"><i>3</i><b>Asset</b></span>
+      <span data-step="record"><i>4</i><b>Record</b></span>
+      <span data-step="complete"><i>5</i><b>Complete</b></span>`;
+    head.insertAdjacentElement('afterend',progress);
+  }
+
+  const noteLabel=$('newNote')?.closest('label');
+  if(noteLabel){
+    noteLabel.classList.add('work-record-card');
+    const ta=$('newNote');
+    const oldPlaceholder=ta.getAttribute('placeholder')||'';
+    ta.placeholder='Record what you found and what you did…';
+    noteLabel.insertAdjacentHTML('afterbegin',`
+      <span class="workflow-kicker">04 · ENGINEERING RECORD</span>
+      <strong class="workflow-title">Findings & action</strong>
+      <small class="workflow-help">Keep this useful for the next engineer. Fault found, cause, action taken and anything still required.</small>`);
+  }
+
+  const linked=$('linkedAssetCard');
+  if(linked){
+    linked.classList.add('work-target-card');
+    linked.insertAdjacentHTML('afterbegin',`
+      <span class="workflow-kicker">03 · WORK TARGET</span>
+      <strong class="workflow-title">Asset / general maintenance</strong>`);
+  }
+
+  const photo=$('photoInput')?.closest('label');
+  if(photo){
+    photo.classList.add('job-photo-card');
+    photo.insertAdjacentHTML('afterbegin',`
+      <span class="workflow-kicker">05 · EVIDENCE</span>
+      <strong class="workflow-title">Job photos</strong>`);
+  }
+
+  const history=$('historyList')?.closest('.history');
+  if(history){
+    history.classList.add('job-history-panel');
+    const h=history.querySelector('h3');
+    if(h) h.innerHTML='<span>JOB TIMELINE</span> Engineering history';
+  }
+
+  const complete=$('completeJob');
+  if(complete){
+    complete.innerHTML='<span class="complete-icon">✓</span><span><b>Complete job</b><small>Save work and update asset history</small></span>';
+  }
+}
+
+function refreshEngineerWorkflow(){
+  const dialog=els.dialog;
+  if(!dialog) return;
+  enhanceEngineerJobDialog();
+
+  const steps=dialog.querySelectorAll('.job-progress [data-step]');
+  steps.forEach(s=>s.classList.remove('done','active'));
+
+  const checked=!!selected?.checked_at;
+  const started=!!selected?.work_started_at || selected?.status==='in_progress' || ['waiting_parts','waiting_contractor','completed'].includes(selected?.status);
+  const hasTarget=!!linkedAsset || workTarget==='general' || !!selected?.asset_id;
+  const hasRecord=!!$('newNote')?.value.trim();
+  const complete=selected?.status==='completed';
+
+  const map={
+    check: checked,
+    work: started,
+    asset: hasTarget,
+    record: hasRecord,
+    complete: complete
+  };
+  let firstIncomplete=true;
+  steps.forEach(step=>{
+    const key=step.dataset.step;
+    if(map[key]) step.classList.add('done');
+    else if(firstIncomplete){ step.classList.add('active'); firstIncomplete=false; }
+  });
+
+  const btn=$('completeJob');
+  if(btn && !complete){
+    const ready=checked && hasTarget;
+    btn.classList.toggle('ready',ready);
+    btn.title=!checked?'Check the job first':!hasTarget?'Select an asset or General maintenance before completion':'Ready to complete';
+  }
+}
+
+$('completeJob').onclick=async()=>{
+  if(!selected||selected.status==='completed')return;
+  if(!selected.checked_at)return toast('Check the job before completing it.');
+  if(!linkedAsset && workTarget!=='general' && !selected.asset_id)return toast('Select the asset worked on, or choose General maintenance.');
+  const btn=$('completeJob');
+  btn.disabled=true;
+  const note=$('newNote').value.trim();
+  await updateJob(
+    {status:'completed',completed_at:new Date().toISOString(),completed_by:session.user.id},
+    note?`Completed by ${profileName}: ${note}`:`Job completed by ${profileName}`,
+    'completed'
+  );
+};
+$('photoInput').onchange=async e=>{const file=e.target.files?.[0];if(!file||!selected)return;toast('Uploading photo…');const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=`maintenance-jobs/${selected.id}/${Date.now()}-${safe}`;const {error:upErr}=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{upsert:false,contentType:file.type});if(upErr){e.target.value='';return toast(`Photo upload failed: ${upErr.message}`)}const {error}=await client.from('maintenance_job_photos').insert({job_id:selected.id,storage_path:path,uploaded_by:session.user.id});if(error)return toast(error.message);await addEvent('Photo added','photo');e.target.value='';toast('Photo added')};
+els.signIn.onclick=async()=>{els.authMessage.textContent='';els.signIn.disabled=true;const {error}=await client.auth.signInWithPassword({email:els.email.value.trim(),password:els.password.value});els.signIn.disabled=false;if(error)els.authMessage.textContent=error.message};
+els.signOut.onclick=()=>client.auth.signOut();els.refresh.onclick=loadJobs;els.navRefresh.onclick=loadJobs;els.search.oninput=render;els.tabs.onclick=e=>{const b=e.target.closest('button[data-filter]');if(!b)return;filter=b.dataset.filter;els.tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));render()};$('navUrgent').onclick=()=>{filter='open';els.search.value='';jobs=jobs.sort((a,b)=>(b.urgency==='urgent')-(a.urgency==='urgent'));render();window.scrollTo({top:0,behavior:'smooth'})};$('navOpen').onclick=()=>{filter='open';els.search.value='';render();window.scrollTo({top:0,behavior:'smooth'})};els.close.onclick=()=>els.dialog.close();els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close()});
+async function authState(s){
+  session=s;
+
+  if(session){
+    els.auth.hidden=true;
+    els.auth.style.display='none';
+
+    els.app.hidden=false;
+    els.app.style.display='block';
+
+    await loadProfile();
+    await loadJobs();
+  }else{
+    els.auth.hidden=false;
+    els.auth.style.display='grid';
+
+    els.app.hidden=true;
+    els.app.style.display='none';
+
+    if(els.dialog.open) els.dialog.close();
+  }
+}
+client.auth.getSession().then(({data})=>authState(data.session));client.auth.onAuthStateChange((_e,s)=>authState(s));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+})();

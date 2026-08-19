@@ -1,5 +1,5 @@
 // Limewood location-aware Asset Register navigation
-// Keeps physical plant rooms separate from operational building areas.
+// Keeps physical plant rooms, operational areas and HVAC registers distinct.
 (() => {
   'use strict';
 
@@ -67,6 +67,23 @@
     if(card) card.innerHTML=`<span>ASSET REGISTERS</span><h2>${esc(title)}</h2><p>Loading shared estate locations…</p>`;
   }
 
+  function isHvacAsset(a){
+    const hay=[a.category,a.asset_name,a.manufacturer,a.model]
+      .filter(Boolean).join(' ').toLowerCase();
+    return hay.includes('air conditioning') || hay.includes('hvac') || /^ac-\d+/i.test(String(a.asset_code||''));
+  }
+
+  function locationLabel(a,d){
+    const sub=d.subAreas.find(x=>x.id===a.sub_area_id);
+    const area=d.areas.find(x=>x.id===a.area_id);
+    const building=d.buildings.find(x=>x.id===a.building_id);
+    const plant=d.plantRooms.find(x=>x.id===a.plant_room_id);
+    return [building?.name, area?.name, sub?.name, plant?.name, a.exact_location]
+      .filter(Boolean)
+      .filter((v,i,arr)=>arr.indexOf(v)===i)
+      .join(' · ') || 'Location to confirm';
+  }
+
   async function showHome(){
     setLoading();
     const d=await loadDirectory();
@@ -75,6 +92,7 @@
 
     const areaAssets=d.assets.filter(a=>a.area_id && !a.plant_room_id).length;
     const plantAssets=d.assets.filter(a=>a.plant_room_id).length;
+    const hvacAssets=d.assets.filter(isHvacAsset).length;
 
     card.innerHTML=`
       <span>ASSET REGISTERS</span>
@@ -83,8 +101,51 @@
       <div class="plantHubGrid directoryGrid">
         <button data-lw-register="plant-rooms"><span>🏭</span><b>Plant Rooms</b><small>${d.plantRooms.length} plant rooms · ${plantAssets} linked assets</small></button>
         <button data-lw-register="buildings"><span>🏨</span><b>Buildings & Areas</b><small>${d.buildings.length} buildings · ${d.areas.length} areas · ${areaAssets} area assets</small></button>
+        <button data-lw-register="hvac"><span>❄️</span><b>Air Conditioning / HVAC</b><small>${hvacAssets} HVAC asset${hvacAssets===1?'':'s'}</small></button>
       </div>
       <button data-lw-register="all">Open estate asset register</button>`;
+  }
+
+  async function showHvac(){
+    setLoading('Air Conditioning / HVAC');
+    const d=await loadDirectory();
+    const card=cardHost();
+    if(!card)return;
+
+    const rows=d.assets.filter(isHvacAsset).sort((a,b)=>{
+      const la=locationLabel(a,d), lb=locationLabel(b,d);
+      return la.localeCompare(lb,undefined,{numeric:true,sensitivity:'base'}) ||
+        String(a.asset_code||'').localeCompare(String(b.asset_code||''),undefined,{numeric:true});
+    });
+
+    const grouped=new Map();
+    for(const a of rows){
+      const building=d.buildings.find(x=>x.id===a.building_id)?.name || 'Location to confirm';
+      if(!grouped.has(building)) grouped.set(building,[]);
+      grouped.get(building).push(a);
+    }
+
+    const sections=[...grouped.entries()].map(([building,list])=>`
+      <section style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:8px">
+          <h3 style="margin:0">${esc(building)}</h3>
+          <small>${countText(list.length)}</small>
+        </div>
+        <div class="plantHubGrid directoryGrid">
+          ${list.map(a=>{
+            const loc=locationLabel(a,d);
+            const spec=[a.manufacturer,a.model].filter(Boolean).join(' · ');
+            return `<button data-lw-asset="${esc(a.asset_code)}"><span>❄️</span><b>${esc(a.asset_code)} · ${esc(a.asset_name)}</b><small>${esc(loc)}${spec?' · '+esc(spec):''}</small></button>`;
+          }).join('')}
+        </div>
+      </section>`).join('');
+
+    card.innerHTML=`
+      <span>ASSET REGISTERS · HVAC</span>
+      <h2>Air Conditioning / HVAC</h2>
+      <p>${countText(rows.length)} across the estate. Open any unit for the full asset record, plate data, documents and photographs.</p>
+      ${sections || '<p class="emptyState">No HVAC assets found.</p>'}
+      <button data-lw-register="home">← Asset Registers</button>`;
   }
 
   async function showPlantRooms(){
@@ -246,14 +307,14 @@
     if(t.dataset.lwRegister==='home') showHome();
     else if(t.dataset.lwRegister==='plant-rooms') showPlantRooms();
     else if(t.dataset.lwRegister==='buildings') showBuildings();
+    else if(t.dataset.lwRegister==='hvac') showHvac();
     else if(t.dataset.lwRegister==='all'){
-      // Hand back to the existing estate register by using its original Add Asset/filter view.
       const u=new URL(location.href); u.search=''; u.hash=''; location.href=u.toString();
     }
     else if(t.dataset.lwPlant) navigatePlantRoom(t.dataset.lwPlant);
     else if(t.dataset.lwBuilding) showBuilding(t.dataset.lwBuilding);
     else if(t.dataset.lwArea) showArea(t.dataset.lwArea);
-    else if(t.dataset.lwSubarea) showSubArea(t.dataset.lwSubarea);
+    else if(t.dataset.lwSubarea) showSubArea(t.dataset.lwSubArea);
     else if(t.dataset.lwAsset) navigateAsset(t.dataset.lwAsset);
     else if(t.dataset.lwUnassigned) showUnassigned(t.dataset.lwUnassigned);
   }

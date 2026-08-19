@@ -25,6 +25,6 @@ window.LIMEWOOD_BMS = {
   document.head.appendChild(style);
 
   const dash=document.createElement('script');
-  dash.src='/assets/dashboard-v8.js?v=20260819-1';
+  dash.src='/assets/dashboard-v8.js?v=20260819-2';
   document.head.appendChild(dash);
 })();

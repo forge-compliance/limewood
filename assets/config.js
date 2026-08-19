@@ -12,7 +12,11 @@ window.LIMEWOOD_BMS = {
 // Location-aware asset register navigation.
 // Loaded separately so plant rooms and operational areas stay distinct.
 (() => {
-  const s=document.createElement('script');
-  s.src='/assets/location-registers.js?v=20260819-1';
-  document.head.appendChild(s);
+  const nav=document.createElement('script');
+  nav.src='/assets/location-registers.js?v=20260819-2';
+  document.head.appendChild(nav);
+
+  const search=document.createElement('script');
+  search.src='/assets/dashboard-search.js?v=20260819-1';
+  document.head.appendChild(search);
 })();

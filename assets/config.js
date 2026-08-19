@@ -21,7 +21,7 @@ window.LIMEWOOD_BMS = {
 
   const style=document.createElement('link');
   style.rel='stylesheet';
-  style.href='/assets/dashboard-v8.css?v=20260819-2';
+  style.href='/assets/dashboard-v8.css?v=20260819-4';
   document.head.appendChild(style);
 
   const dash=document.createElement('script');

@@ -9,8 +9,7 @@ window.LIMEWOOD_BMS = {
   hostName: 'WINDOWS-3732600'
 };
 
-// Location-aware asset register navigation.
-// Loaded separately so plant rooms and operational areas stay distinct.
+// Location-aware navigation + friendly search + dashboard v8 skin.
 (() => {
   const nav=document.createElement('script');
   nav.src='/assets/location-registers.js?v=20260819-2';
@@ -19,4 +18,13 @@ window.LIMEWOOD_BMS = {
   const search=document.createElement('script');
   search.src='/assets/dashboard-search.js?v=20260819-1';
   document.head.appendChild(search);
+
+  const style=document.createElement('link');
+  style.rel='stylesheet';
+  style.href='/assets/dashboard-v8.css?v=20260819-1';
+  document.head.appendChild(style);
+
+  const dash=document.createElement('script');
+  dash.src='/assets/dashboard-v8.js?v=20260819-1';
+  document.head.appendChild(dash);
 })();

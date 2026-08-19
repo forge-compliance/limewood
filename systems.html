@@ -18,8 +18,9 @@
   .sysTools{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.sysTools input{flex:1;min-width:220px;padding:12px;border:1px solid #ccd3ce;border-radius:11px;background:#fff}.sysTools button{padding:11px 14px;border:0;border-radius:11px;background:#17372c;color:#fff;font-weight:800}
   .sysStats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}.sysStats article{padding:16px;background:#fff;border:1px solid #d8ddd7;border-radius:14px}.sysStats b{display:block;font-size:26px;color:#17372c}.sysStats span{font-size:12px;color:#66716c}
   .sysGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.sysCard{min-width:0;padding:17px;background:#fff;border:1px solid #d8ddd7;border-radius:15px;box-shadow:0 7px 20px rgba(23,55,44,.05)}.sysCard h3{margin:6px 0 8px;font-size:18px}.sysCard p{margin:4px 0;color:#66716c;font-size:13px;overflow-wrap:anywhere}.sysCard .badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#e8efe9;color:#285746;font-size:11px;font-weight:900}.sysCard button,.sysCard a{display:inline-block;margin-top:10px;padding:9px 11px;border:0;border-radius:9px;background:#17372c;color:#fff;text-decoration:none;font-weight:800}.empty{grid-column:1/-1;padding:32px;background:#fff;border:1px dashed #b8c1bc;border-radius:15px;text-align:center;color:#66716c}
+  .locationActions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.locationActions a{display:block;padding:22px;background:#fff;border:1px solid #d8ddd7;border-radius:15px;text-decoration:none;color:#1f2925}.locationActions b{display:block;font-size:20px;margin-bottom:6px}.locationActions span{color:#66716c}.locationActions .primaryLink{background:#17372c;color:#fff}.locationActions .primaryLink span{color:#d7e1dc}
   .settings{display:grid;gap:12px}.settings article{padding:18px;background:#fff;border:1px solid #d8ddd7;border-radius:15px}.settings button{padding:10px 13px;border:0;border-radius:10px;background:#17372c;color:#fff;font-weight:800;margin-right:8px;margin-top:8px}
-  @media(max-width:800px){.sysGrid{grid-template-columns:1fr}.sysStats{grid-template-columns:1fr 1fr}.sysTop small{display:none}}
+  @media(max-width:800px){.sysGrid{grid-template-columns:1fr}.sysStats{grid-template-columns:1fr 1fr}.sysTop small{display:none}.locationActions{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/config.js"></script>
@@ -41,6 +42,7 @@
   const view=qs.get('view')||'Engineering Systems';
   const kind=qs.get('kind')||'system';
   const room=qs.get('room')||'';
+  const showList=qs.get('list')==='1';
   const $=id=>document.getElementById(id);
   $('title').textContent=view;
 
@@ -77,6 +79,22 @@
   }
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 
+  function locationAssetsUrl(){
+    const u=new URL('/systems.html',location.origin);
+    u.searchParams.set('view',view);u.searchParams.set('kind','location');u.searchParams.set('list','1');return u.toString();
+  }
+  function locationPhotosUrl(){
+    const u=new URL('/systems.html',location.origin);
+    u.searchParams.set('view','Photo Library');u.searchParams.set('kind','system');u.searchParams.set('room',view);return u.toString();
+  }
+  function renderLocationLanding(){
+    const list=matching();
+    $('tools').hidden=true;
+    $('subtitle').textContent=`Engineering overview for ${view}. Open the filtered register when you need the individual assets.`;
+    $('count').textContent=list.length;
+    $('photoCount').textContent=photos.filter(p=>list.some(a=>a.id===p.asset_id)).length;
+    $('content').innerHTML=`<div class="locationActions"><a class="primaryLink" href="${locationAssetsUrl()}"><b>Open ${esc(view)} assets</b><span>${list.length} matching asset${list.length===1?'':'s'} in the live register</span></a><a href="${locationPhotosUrl()}"><b>Open ${esc(view)} photos</b><span>Room and equipment photographs</span></a></div>`;
+  }
   async function renderPhotoLibrary(){
     $('subtitle').textContent=room?`Photos attached to assets in ${room}.`:'Asset photographs across the estate. Full images only load when opened.';
     const q=$('search').value.trim().toLowerCase();
@@ -89,7 +107,7 @@
     $('content').innerHTML=rows.length?rows.map(p=>{const a=assets.find(x=>x.id===p.asset_id);return `<article class="sysCard"><span class="badge">PHOTO</span><h3>${esc(p.caption||a?.asset_name||'Asset photo')}</h3><p>${esc(a?[a.asset_code,a.asset_name].filter(Boolean).join(' · '):'Unassigned photo')}</p><p>${esc(p.photo_type||'General')}</p><button data-photo="${esc(p.storage_path||'')}">Open photo</button></article>`}).join(''):'<div class="empty">No photos match this view.</div>';
   }
   function renderAssets(){
-    $('subtitle').textContent=kind==='location'?`Assets and engineering records associated with ${view}.`:`Live asset register filtered for ${view}.`;
+    $('subtitle').textContent=kind==='location'?`Filtered asset register for ${view}.`:`Live asset register filtered for ${view}.`;
     const list=matching();$('count').textContent=list.length;$('photoCount').textContent=photos.filter(p=>list.some(a=>a.id===p.asset_id)).length;
     $('content').innerHTML=list.length?list.map(card).join(''):'<div class="empty">No matching assets yet. The view is working; this system/location simply has no matching registered equipment yet.</div>';
   }
@@ -111,7 +129,7 @@
       ]);
       const err=a.error||b.error||p.error||ph.error;if(err)throw err;
       assets=a.data||[];buildings=b.data||[];plantRooms=p.data||[];photos=ph.data||[];$('status').textContent='Live';
-      if(view==='Settings') renderSettings(); else if(view==='Photo Library') renderPhotoLibrary(); else renderAssets();
+      if(view==='Settings') renderSettings(); else if(view==='Photo Library') renderPhotoLibrary(); else if(kind==='location'&&!showList) renderLocationLanding(); else renderAssets();
     }catch(e){$('status').textContent='Error';$('content').innerHTML=`<div class="empty">Could not load this view: ${esc(e.message||e)}</div>`}
   }
   $('search').addEventListener('input',()=>view==='Photo Library'?renderPhotoLibrary():renderAssets());

@@ -8,3 +8,11 @@ window.LIMEWOOD_BMS = {
   readOnly: true,
   hostName: 'WINDOWS-3732600'
 };
+
+// Location-aware asset register navigation.
+// Loaded separately so plant rooms and operational areas stay distinct.
+(() => {
+  const s=document.createElement('script');
+  s.src='/assets/location-registers.js?v=20260819-1';
+  document.head.appendChild(s);
+})();

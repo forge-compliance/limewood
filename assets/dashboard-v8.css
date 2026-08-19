@@ -1,0 +1,97 @@
+/* Limewood Dashboard v8 - Modern & friendly */
+:root{--lw-green:#123f31;--lw-green-2:#0d3428;--lw-green-soft:#e9f0eb;--lw-gold:#d2b36a;--lw-ink:#1d2823;--lw-muted:#6d776f;--lw-bg:#f4f3ef;--lw-card:#fff;--lw-border:#e6e5df;--lw-shadow:0 10px 30px rgba(23,55,44,.08)}
+body{background:var(--lw-bg);color:var(--lw-ink)}
+.buildBanner{display:none!important}
+
+/* Desktop navigation becomes a proper permanent sidebar */
+@media(min-width:1051px){
+  body{padding-left:250px!important}
+  header{left:250px;padding:14px 30px;background:#fff;color:var(--lw-ink);box-shadow:0 1px 0 var(--lw-border);z-index:18}
+  header .brand{display:none}
+  header .menuBtn{display:none}
+  header .headerActions{margin-left:auto}
+  header .headerActions button{background:#f1f3f0;color:var(--lw-green);border-radius:10px}
+  header .syncStatus{color:#6c776f}
+  main{max-width:1500px;padding:28px 34px 50px}
+  .drawer{transform:none!important;width:250px;background:linear-gradient(180deg,#123f31 0%,#0c3026 100%);box-shadow:none;border-right:1px solid rgba(255,255,255,.06);z-index:25}
+  .drawerBackdrop{display:none!important}
+  .drawerHead{padding:24px 18px 18px;background:transparent;border-bottom:1px solid rgba(255,255,255,.09)}
+  .drawerHead .mark{width:42px;height:42px;background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.25)}
+  .drawerHead h2{font:600 20px Arial;margin:0}
+  .drawerHead p{font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+  .drawerHead>button{display:none}
+  .drawer nav{padding:16px 12px 28px}
+  .drawer nav>button,.drawer summary{border-radius:10px!important;margin:2px 0;padding:11px 12px!important;font-size:13px;color:#eaf0ec!important;transition:.16s;background:transparent!important}
+  .drawer nav>button:hover,.drawer summary:hover{background:rgba(255,255,255,.09)!important}
+  .drawer nav>button[data-view="dashboard"]{background:rgba(210,179,106,.18)!important;color:#fff8e5!important}
+  .drawer details{margin:2px 0!important}
+  .drawer details button{padding:9px 12px 9px 32px!important;color:#cbd8d0!important;font-size:12px}
+  .drawer .modernNavLabel{display:block;color:#95ab9f;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:15px 12px 5px}
+  .drawer #modernMoreTools{margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:7px}
+  .drawer #modernMoreTools summary{color:#cfdad4!important}
+}
+
+/* Dashboard shell */
+#dashboardView{max-width:1180px;margin:0 auto}
+.dashboardHero{background:transparent!important;color:var(--lw-ink)!important;padding:5px 0 18px!important;min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(340px,500px);gap:26px;align-items:end;box-shadow:none!important;border-radius:0!important}
+.dashboardIntro .eyebrow{color:#8e7b4e!important;font-size:10px;font-weight:800;letter-spacing:1.7px}
+.dashboardIntro h2{font:700 31px Arial!important;margin:7px 0 6px!important;color:#17241f}
+.dashboardIntro p{margin:0!important;color:var(--lw-muted)!important;font-size:14px}
+.dashboardSearch{margin:0!important}
+.dashboardSearch label{font-size:11px;color:var(--lw-muted);font-weight:700;margin-bottom:7px;display:block}
+.dashboardSearch>div{background:#fff;border:1px solid var(--lw-border);border-radius:13px;padding:5px;display:flex;box-shadow:0 5px 18px rgba(23,55,44,.05)}
+.dashboardSearch input{border:0!important;background:transparent!important;min-width:0;padding:10px 12px!important;outline:0;flex:1}
+.dashboardSearch button{border-radius:9px!important;padding:10px 16px!important;background:var(--lw-green)!important;color:#fff!important}
+
+.lwEstateHero{position:relative;min-height:245px;border-radius:18px;overflow:hidden;margin:0 0 16px;background:linear-gradient(90deg,rgba(8,37,28,.86),rgba(8,37,28,.22)),url('/assets/images/main-house/20260804_144606.jpg') center 48%/cover no-repeat;box-shadow:var(--lw-shadow);color:#fff;display:flex;align-items:flex-end;padding:26px}
+.lwEstateHero:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,27,20,.55),transparent 60%);pointer-events:none}
+.lwEstateHeroContent{position:relative;z-index:1;max-width:580px}
+.lwEstateHero .mini{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);font-size:10px;letter-spacing:1.1px;font-weight:800}
+.lwEstateHero h3{font:700 29px Arial;margin:12px 0 5px}
+.lwEstateHero p{margin:0;color:#e7eee9;font-size:13px}
+.lwEstateHero .heroStatus{position:absolute;right:22px;top:20px;z-index:1;background:rgba(255,255,255,.92);color:#17372c;padding:9px 12px;border-radius:10px;font-size:11px;font-weight:800;box-shadow:0 5px 20px #0002}
+
+.v6Metrics{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:12px!important;margin:0 0 18px!important}
+.v6Metrics button{background:var(--lw-green)!important;color:#fff!important;border:0!important;border-radius:14px!important;padding:17px 18px!important;box-shadow:none!important;text-align:left!important;min-height:92px;position:relative;overflow:hidden}
+.v6Metrics button:before{content:"";position:absolute;width:85px;height:85px;border-radius:50%;background:rgba(255,255,255,.05);right:-28px;top:-32px}
+.v6Metrics span{color:#cbd9d1!important;font-size:11px!important}
+.v6Metrics b{display:block!important;color:#fff!important;font:700 28px Arial!important;margin:6px 0 2px!important}
+.v6Metrics small{color:#b9cbbf!important;font-size:10px!important}
+
+.lwDashboardPanel,.quickSection,.dashboardLower>article,#dashboardView>section:has(.modernEstate){background:#fff;border:1px solid var(--lw-border);border-radius:16px;box-shadow:0 5px 18px rgba(23,55,44,.045)}
+.lwDashboardPanel{padding:20px;margin:0 0 16px}
+.lwDashboardPanel .sectionHead{margin-bottom:12px}
+.lwDashboardPanel .sectionHead h3,.quickSection .sectionHead h3{font:700 17px Arial!important;margin:0!important;color:#17241f}
+.lwDashboardPanel .sectionHead span,.quickSection .sectionHead span{font-size:11px;color:var(--lw-muted)}
+.priorityGrid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:10px!important;margin:0!important}
+.priorityCard{border:1px solid #eee!important;background:#fbfbf9!important;border-radius:12px!important;padding:14px!important;text-align:left!important;box-shadow:none!important;min-height:94px}
+.priorityCard span{font-size:11px!important;color:#606b64!important}
+.priorityCard b{font:700 24px Arial!important;color:var(--lw-green)!important;margin:7px 0 3px!important;display:block}
+.priorityCard small{font-size:10px!important;color:#8a918d!important;line-height:1.3}
+#priorityReview b,#priorityCritical b{color:#b76431!important}
+
+.quickSection{padding:20px!important;margin:0 0 16px!important}
+.quickSection .sectionHead{margin-bottom:12px}
+.quickGrid{display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:10px!important}
+.quickGrid button{background:#f7f8f6!important;border:1px solid #eceeea!important;border-radius:12px!important;padding:14px 10px!important;text-align:center!important;box-shadow:none!important;min-height:94px}
+.quickGrid button span{font-size:21px!important;display:block;margin-bottom:7px}
+.quickGrid button b{font:700 12px Arial!important;color:#213129!important}
+.quickGrid button small{display:none!important}
+
+#dashboardView>section:has(.modernEstate){padding:20px!important;margin:0 0 16px!important}
+.modernEstate{grid-template-columns:repeat(4,1fr)!important;gap:10px!important}
+.modernEstate button{border:1px solid #eceeea!important;box-shadow:none!important;padding:15px!important;border-radius:12px!important;background:#fbfbf9!important}
+.modernEstate b{font:700 13px Arial!important}.modernEstate span{font-size:10px!important;margin-top:5px!important}
+.modernEstate strong{font-size:9px!important}
+.dashboardLower{display:grid!important;grid-template-columns:1.4fr .8fr!important;gap:16px!important;margin:0!important}
+.dashboardLower>article{padding:20px!important}
+.activityPanel .sectionHead h3,.attentionPanel .sectionHead h3{font:700 17px Arial!important}
+.activityItem{border-top:1px solid #f0f0ec!important;padding:11px 0!important}
+.qualityRing{box-shadow:none!important;background:#f7f8f5!important}
+
+@media(max-width:1050px){
+  body{padding-left:0!important}.dashboardHero{grid-template-columns:1fr!important}.lwEstateHero{min-height:210px}.quickGrid{grid-template-columns:repeat(3,1fr)!important}.priorityGrid{grid-template-columns:repeat(2,1fr)!important}.modernEstate{grid-template-columns:repeat(2,1fr)!important}
+}
+@media(max-width:650px){
+  main{padding:18px 14px 90px!important}.dashboardHero{padding-top:0!important;gap:14px!important}.dashboardIntro h2{font-size:25px!important}.dashboardSearch>div{display:grid;grid-template-columns:1fr auto}.lwEstateHero{min-height:190px;padding:20px}.lwEstateHero h3{font-size:23px}.lwEstateHero .heroStatus{display:none}.v6Metrics{grid-template-columns:repeat(2,1fr)!important}.v6Metrics button{min-height:82px;padding:14px!important}.v6Metrics b{font-size:24px!important}.priorityGrid{grid-template-columns:1fr 1fr!important}.quickGrid{grid-template-columns:repeat(2,1fr)!important}.dashboardLower{grid-template-columns:1fr!important}.modernEstate{grid-template-columns:1fr 1fr!important}
+}

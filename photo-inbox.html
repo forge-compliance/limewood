@@ -14,92 +14,31 @@ body{background:#f4f3ef;color:#1d2823;font-family:Arial,Helvetica,sans-serif;mar
 </head>
 <body>
 <main class="photoInboxShell">
-  <header class="photoInboxHead"><div><small>LIMEWOOD ENGINEERING</small><h1>Photo Inbox</h1></div><a href="/">← Dashboard</a></header>
-
-  <section class="photoInboxCard">
-    <h2>Drop the photos here. Sort them later.</h2>
-    <p>Select a whole batch from your phone. A location hint helps, but it is optional. New uploads are automatically sent to the AI sorter after they reach the private Limewood storage.</p>
-    <label for="locationHint">Location / batch hint</label>
-    <input id="locationHint" type="text" placeholder="e.g. Spa Comms Room, Main House Kitchen, unknown plant room">
-    <label for="batchNotes">Notes</label>
-    <textarea id="batchNotes" rows="2" placeholder="Anything useful about this batch"></textarea>
-    <div class="dropZone"><strong>Select photos</strong><br><small>Multiple images supported</small><input id="photoFiles" type="file" accept="image/*" multiple></div>
-    <button id="uploadBtn" class="uploadBtn">Upload to Photo Inbox</button>
-    <div class="progressTrack"><div id="progressBar" class="progressBar"></div></div>
-    <div id="uploadStatus" class="status"></div>
-  </section>
-
-  <section class="photoInboxCard">
-    <h2>Inbox status</h2>
-    <div class="inboxStats"><div><b id="unassignedCount">0</b><span>Waiting</span></div><div><b id="aiCount">0</b><span>AI reviewed</span></div><div><b id="assignedCount">0</b><span>Assigned</span></div></div>
-    <div id="aiStatus" class="aiNote" style="margin-top:12px">AI sorter checking the queue…</div>
-  </section>
-
-  <section class="photoInboxCard"><h2>Latest uploads</h2><div id="queueList" class="queueList"><p>Loading…</p></div></section>
+<header class="photoInboxHead"><div><small>LIMEWOOD ENGINEERING</small><h1>Photo Inbox</h1></div><a href="/">← Dashboard</a></header>
+<section class="photoInboxCard">
+<h2>Drop the photos here. Sort them later.</h2>
+<p>Select a whole batch from your phone. A location hint helps, but it is optional. New uploads are automatically sent to the AI sorter after they reach the private Limewood storage.</p>
+<label for="locationHint">Location / batch hint</label><input id="locationHint" type="text" placeholder="e.g. Spa Comms Room, Main House Kitchen, unknown plant room">
+<label for="batchNotes">Notes</label><textarea id="batchNotes" rows="2" placeholder="Anything useful about this batch"></textarea>
+<div class="dropZone"><strong>Select photos</strong><br><small>Multiple images supported</small><input id="photoFiles" type="file" accept="image/*" multiple></div>
+<button id="uploadBtn" class="uploadBtn">Upload to Photo Inbox</button><div class="progressTrack"><div id="progressBar" class="progressBar"></div></div><div id="uploadStatus" class="status"></div>
+</section>
+<section class="photoInboxCard"><h2>Inbox status</h2><div class="inboxStats"><div><b id="unassignedCount">0</b><span>Waiting</span></div><div><b id="aiCount">0</b><span>AI reviewed</span></div><div><b id="assignedCount">0</b><span>Assigned</span></div></div><div id="aiStatus" class="aiNote" style="margin-top:12px">AI sorter checking the queue…</div></section>
+<section class="photoInboxCard"><h2>Latest uploads</h2><div id="queueList" class="queueList"><p>Loading…</p></div></section>
 </main>
 <script>
 (async()=>{
-  const cfg=window.LIMEWOOD_CONFIG||{};
-  const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-  const els={files:document.getElementById('photoFiles'),hint:document.getElementById('locationHint'),notes:document.getElementById('batchNotes'),btn:document.getElementById('uploadBtn'),status:document.getElementById('uploadStatus'),bar:document.getElementById('progressBar'),unassigned:document.getElementById('unassignedCount'),aiCount:document.getElementById('aiCount'),assigned:document.getElementById('assignedCount'),aiStatus:document.getElementById('aiStatus'),list:document.getElementById('queueList')};
-  const safeName=n=>String(n||'photo').replace(/[^a-zA-Z0-9._-]+/g,'_');
-
-  async function getSession(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session){location.href='/';throw new Error('Sign in required');}return data.session;}
-
-  async function refresh(){
-    const {data,error}=await client.from('photo_inbox').select('id,original_filename,location_hint,status,ai_status,created_at').order('created_at',{ascending:false}).limit(20);
-    if(error){els.list.innerHTML='<p class="error">'+error.message+'</p>';return;}
-    const rows=data||[];
-    const {count:waiting}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','unassigned');
-    const {count:reviewed}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','unassigned').eq('ai_status','processed');
-    const {count:done}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','assigned');
-    els.unassigned.textContent=waiting||0;els.aiCount.textContent=reviewed||0;els.assigned.textContent=done||0;
-    els.list.innerHTML=rows.length?rows.map(r=>`<div class="queueItem"><b>${r.original_filename}</b><small>${r.location_hint||'No location hint'} · ${r.status} · AI: ${r.ai_status||'pending'} · ${new Date(r.created_at).toLocaleString()}</small></div>`).join(''):'<p>No photos in the inbox yet.</p>';
-  }
-
-  async function runAi(body){
-    const {data,error}=await client.functions.invoke('photo-ai-sort',{body});
-    if(error)throw error;
-    if(data?.error)throw new Error(data.error);
-    return data;
-  }
-
-  async function processBacklog(){
-    try{
-      await getSession();
-      let total=0;
-      for(let i=0;i<20;i++){
-        els.aiStatus.className='aiNote';els.aiStatus.textContent=`AI sorter working… ${total} reviewed this session`;
-        const result=await runAi({limit:3});
-        const n=Number(result?.processed||0); total+=n;
-        await refresh();
-        if(!n)break;
-      }
-      els.aiStatus.className='aiNote success';els.aiStatus.textContent=total?`AI review complete for ${total} queued photo${total===1?'':'s'}. Results are ready for automatic filing.`:'AI queue is up to date.';
-    }catch(e){
-      els.aiStatus.className='aiNote error';
-      els.aiStatus.textContent=(e?.message||String(e)).includes('OPENAI_API_KEY')?'AI sorter is built but its OpenAI API key has not been added to the Supabase project yet. Uploads remain safe and queued.':'AI sorter paused: '+(e?.message||String(e));
-    }
-  }
-
-  els.btn.addEventListener('click',async()=>{
-    try{
-      const session=await getSession();const files=[...els.files.files];if(!files.length){els.status.className='status error';els.status.textContent='Choose some photos first.';return;}
-      els.btn.disabled=true;els.status.className='status';els.status.textContent=`Uploading ${files.length} photo${files.length===1?'':'s'}…`;let done=0,failed=0;
-      for(const file of files){
-        const path=`photo-inbox/${session.user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;
-        const up=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});
-        if(up.error){failed++;els.status.textContent+=`\n✗ ${file.name}: ${up.error.message}`;continue;}
-        const ins=await client.from('photo_inbox').insert({storage_path:path,original_filename:file.name,mime_type:file.type||null,file_size:file.size||null,location_hint:els.hint.value.trim()||null,notes:els.notes.value.trim()||null,uploaded_by:session.user.id}).select('id').single();
-        if(ins.error){failed++;els.status.textContent+=`\n✗ ${file.name}: ${ins.error.message}`;continue;}
-        done++;els.bar.style.width=Math.round(((done+failed)/files.length)*100)+'%';
-        runAi({id:ins.data.id}).catch(()=>{});
-      }
-      els.status.className='status '+(failed?'error':'success');els.status.textContent=`Uploaded ${done} of ${files.length}.${failed?` ${failed} failed.`:' All safely in the inbox and sent for AI review.'}`;if(done){els.files.value='';}await refresh();processBacklog();
-    }catch(e){els.status.className='status error';els.status.textContent=e.message||String(e);}finally{els.btn.disabled=false;}
-  });
-
-  try{await getSession();await refresh();processBacklog();}catch(e){console.warn(e);}
+const cfg=window.LIMEWOOD_CONFIG||{};
+const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+const els={files:document.getElementById('photoFiles'),hint:document.getElementById('locationHint'),notes:document.getElementById('batchNotes'),btn:document.getElementById('uploadBtn'),status:document.getElementById('uploadStatus'),bar:document.getElementById('progressBar'),unassigned:document.getElementById('unassignedCount'),aiCount:document.getElementById('aiCount'),assigned:document.getElementById('assignedCount'),aiStatus:document.getElementById('aiStatus'),list:document.getElementById('queueList')};
+const safeName=n=>String(n||'photo').replace(/[^a-zA-Z0-9._-]+/g,'_');
+async function getSession(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session){location.href='/';throw new Error('Sign in required');}return data.session;}
+async function refresh(){const {data,error}=await client.from('photo_inbox').select('id,original_filename,location_hint,status,ai_status,created_at').order('created_at',{ascending:false}).limit(20);if(error){els.list.innerHTML='<p class="error">'+error.message+'</p>';return;}const rows=data||[];const {count:waiting}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','unassigned');const {count:reviewed}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','unassigned').eq('ai_status','processed');const {count:done}=await client.from('photo_inbox').select('*',{count:'exact',head:true}).eq('status','assigned');els.unassigned.textContent=waiting||0;els.aiCount.textContent=reviewed||0;els.assigned.textContent=done||0;els.list.innerHTML=rows.length?rows.map(r=>`<div class="queueItem"><b>${r.original_filename}</b><small>${r.location_hint||'No location hint'} · ${r.status} · AI: ${r.ai_status||'pending'} · ${new Date(r.created_at).toLocaleString()}</small></div>`).join(''):'<p>No photos in the inbox yet.</p>';}
+async function runAi(body){const {data,error}=await client.functions.invoke('photo-ai-sort',{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;}
+async function runFiling(){const {data,error}=await client.functions.invoke('photo-ai-file',{body:{limit:100}});if(error)throw error;if(data?.error)throw new Error(data.error);await refresh();return data;}
+async function processBacklog(){try{await getSession();let total=0;for(let i=0;i<20;i++){els.aiStatus.className='aiNote';els.aiStatus.textContent=`AI sorter working… ${total} reviewed this session`;const result=await runAi({limit:3});const n=Number(result?.processed||0);total+=n;await refresh();if(!n)break;}els.aiStatus.className='aiNote';els.aiStatus.textContent='AI review complete. Filing confident matches…';const filed=await runFiling();const n=Number(filed?.counts?.assigned||0);const review=Number(filed?.counts?.review||0);const deferred=Number(filed?.counts?.deferred||0);els.aiStatus.className='aiNote success';els.aiStatus.textContent=`AI filing complete. ${n} assigned${review?`, ${review} held for review`:''}${deferred?`, ${deferred} held for specialist filing`:''}.`;}catch(e){els.aiStatus.className='aiNote error';els.aiStatus.textContent=(e?.message||String(e)).includes('OPENAI_API_KEY')?'AI sorter is built but its OpenAI API key has not been added to the Supabase project yet. Uploads remain safe and queued.':'AI pipeline paused: '+(e?.message||String(e));}}
+els.btn.addEventListener('click',async()=>{try{const session=await getSession();const files=[...els.files.files];if(!files.length){els.status.className='status error';els.status.textContent='Choose some photos first.';return;}els.btn.disabled=true;els.status.className='status';els.status.textContent=`Uploading ${files.length} photo${files.length===1?'':'s'}…`;let done=0,failed=0;for(const file of files){const path=`photo-inbox/${session.user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName(file.name)}`;const up=await client.storage.from(cfg.storageBucket||'asset-files').upload(path,file,{contentType:file.type||'image/jpeg',upsert:false});if(up.error){failed++;els.status.textContent+=`\n✗ ${file.name}: ${up.error.message}`;continue;}const ins=await client.from('photo_inbox').insert({storage_path:path,original_filename:file.name,mime_type:file.type||null,file_size:file.size||null,location_hint:els.hint.value.trim()||null,notes:els.notes.value.trim()||null,uploaded_by:session.user.id}).select('id').single();if(ins.error){failed++;els.status.textContent+=`\n✗ ${file.name}: ${ins.error.message}`;continue;}done++;els.bar.style.width=Math.round(((done+failed)/files.length)*100)+'%';runAi({id:ins.data.id}).catch(()=>{});}els.status.className='status '+(failed?'error':'success');els.status.textContent=`Uploaded ${done} of ${files.length}.${failed?` ${failed} failed.`:' All safely in the inbox and sent for AI review.'}`;if(done)els.files.value='';await refresh();processBacklog();}catch(e){els.status.className='status error';els.status.textContent=e.message||String(e);}finally{els.btn.disabled=false;}});
+try{await getSession();await refresh();processBacklog();}catch(e){console.warn(e);}
 })();
 </script>
 </body>

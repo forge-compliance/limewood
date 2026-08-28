@@ -27,4 +27,10 @@ window.LIMEWOOD_BMS = {
   const dash=document.createElement('script');
   dash.src='/assets/dashboard-v8.js?v=20260819-3';
   document.head.appendChild(dash);
+
+  if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
+    const maintenanceAssetPicker=document.createElement('script');
+    maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';
+    document.head.appendChild(maintenanceAssetPicker);
+  }
 })();

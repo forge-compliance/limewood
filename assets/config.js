@@ -41,6 +41,10 @@ window.LIMEWOOD_BMS = {
     const sopSuite=document.createElement('script');
     sopSuite.src='/assets/sop-suite.js?v=20260829-1';
     document.head.appendChild(sopSuite);
+
+    const sopCleanup=document.createElement('script');
+    sopCleanup.src='/assets/sop-card-cleanup.js?v=20260829-1';
+    document.head.appendChild(sopCleanup);
   }
 
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){

@@ -3,25 +3,20 @@ window.LIMEWOOD_CONFIG = {
   supabasePublishableKey: 'sb_publishable_BoOHg11kfg6FB3xhQHW-dw_yal1q1Yu',
   storageBucket: 'asset-files'
 };
-window.LIMEWOOD_BMS = {
-  baseUrl: 'https://192.168.170.100',
-  readOnly: true,
-  hostName: 'WINDOWS-3732600'
-};
-
-// Location-aware navigation + friendly search + dashboard v8 skin.
+window.LIMEWOOD_BMS = {baseUrl:'https://192.168.170.100',readOnly:true,hostName:'WINDOWS-3732600'};
 (() => {
-  const nav=document.createElement('script'); nav.src='/assets/location-registers.js?v=20260819-2'; document.head.appendChild(nav);
-  const search=document.createElement('script'); search.src='/assets/dashboard-search.js?v=20260819-1'; document.head.appendChild(search);
-  const style=document.createElement('link'); style.rel='stylesheet'; style.href='/assets/dashboard-v8.css?v=20260819-4'; document.head.appendChild(style);
-  const dash=document.createElement('script'); dash.src='/assets/dashboard-v8.js?v=20260819-3'; document.head.appendChild(dash);
-  const navStyle=document.createElement('link'); navStyle.rel='stylesheet'; navStyle.href='/assets/navigation-v9.css?v=20260829-1'; document.head.appendChild(navStyle);
-  const navV9=document.createElement('script'); navV9.src='/assets/navigation-v9.js?v=20260829-1'; document.head.appendChild(navV9);
-  if(/^\/(?:index\.html)?$/i.test(location.pathname)){
-    const sopBuilder=document.createElement('script'); sopBuilder.src='/assets/sop-builder.js?v=20260829-2'; document.head.appendChild(sopBuilder);
-    const sopPdf=document.createElement('script'); sopPdf.src='/assets/sop-pdf-download.js?v=20260829-1'; document.head.appendChild(sopPdf);
-  }
-  const sopPhotoLinks=document.createElement('script'); sopPhotoLinks.src='/assets/sop-photo-links.js?v=20260829-2'; document.head.appendChild(sopPhotoLinks);
-  if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){const x=document.createElement('script');x.src='/assets/maintenance-asset-picker.js?v=20260828-1';document.head.appendChild(x);}
-  if(/\/photo-inbox\.html$/i.test(location.pathname)){const x=document.createElement('script');x.src='/assets/photo-inbox-batch.js?v=20260829-2';document.head.appendChild(x);}
+ const add=(tag,props)=>{const e=document.createElement(tag);Object.assign(e,props);document.head.appendChild(e);};
+ add('script',{src:'/assets/location-registers.js?v=20260819-2'});
+ add('script',{src:'/assets/dashboard-search.js?v=20260819-1'});
+ add('link',{rel:'stylesheet',href:'/assets/dashboard-v8.css?v=20260819-4'});
+ add('script',{src:'/assets/dashboard-v8.js?v=20260819-3'});
+ add('link',{rel:'stylesheet',href:'/assets/navigation-v9.css?v=20260829-1'});
+ add('script',{src:'/assets/navigation-v9.js?v=20260829-1'});
+ if(/^\/(?:index\.html)?$/i.test(location.pathname)){
+   add('script',{src:'/assets/sop-builder.js?v=20260829-2'});
+   add('script',{src:'/assets/sop-pdf-download.js?v=20260829-1'});
+ }
+ add('script',{src:'/assets/sop-photo-links.js?v=20260829-3'});
+ if(/\/maintenance-dashboard\.html$/i.test(location.pathname))add('script',{src:'/assets/maintenance-asset-picker.js?v=20260828-1'});
+ if(/\/photo-inbox\.html$/i.test(location.pathname))add('script',{src:'/assets/photo-inbox-batch.js?v=20260829-2'});
 })();

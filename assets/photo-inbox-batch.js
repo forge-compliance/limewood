@@ -13,6 +13,11 @@
     let currentReviewId = null;
     let bypassDuplicateCheck = false;
 
+    const cfg = window.LIMEWOOD_CONFIG || {};
+    const client = window.supabase?.createClient?.(cfg.supabaseUrl, cfg.supabasePublishableKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap';
     const count = document.createElement('strong');
@@ -75,6 +80,61 @@
 
     const suggest = document.getElementById('createSuggested');
     const status = document.getElementById('reviewStatus');
+    const actions = document.querySelector('#reviewModal .reviewActions');
+
+    if (actions && !document.getElementById('deleteReviewPhoto')) {
+      const del = document.createElement('button');
+      del.id = 'deleteReviewPhoto';
+      del.type = 'button';
+      del.textContent = 'Delete photo';
+      del.style.cssText = 'border:0;background:#9f2f2f;color:#fff;padding:12px 14px;border-radius:10px;font-weight:800;margin-top:4px';
+      actions.appendChild(del);
+
+      del.addEventListener('click', async () => {
+        if (!currentReviewId || !client) return;
+        if (!confirm('Delete this photo from Human Review? This removes the inbox record and the stored photo.')) return;
+
+        del.disabled = true;
+        if (status) {
+          status.className = 'reviewStatus';
+          status.textContent = 'Deleting photo…';
+        }
+
+        try {
+          const { data: row, error: loadError } = await client
+            .from('photo_inbox')
+            .select('id,storage_path,original_filename')
+            .eq('id', currentReviewId)
+            .single();
+          if (loadError) throw loadError;
+
+          if (row?.storage_path) {
+            const storageResult = await client.storage.from(cfg.storageBucket || 'asset-files').remove([row.storage_path]);
+            if (storageResult.error) throw storageResult.error;
+          }
+
+          const { error: deleteError } = await client
+            .from('photo_inbox')
+            .delete()
+            .eq('id', currentReviewId);
+          if (deleteError) throw deleteError;
+
+          if (status) {
+            status.className = 'reviewStatus success';
+            status.textContent = 'Photo deleted.';
+          }
+          document.getElementById('reviewModal')?.classList.remove('open');
+          currentReviewId = null;
+          setTimeout(() => location.reload(), 350);
+        } catch (err) {
+          if (status) {
+            status.className = 'reviewStatus error';
+            status.textContent = 'Could not delete photo. ' + (err?.message || String(err));
+          }
+          del.disabled = false;
+        }
+      });
+    }
 
     suggest?.addEventListener('click', async event => {
       if (bypassDuplicateCheck) {
@@ -92,10 +152,6 @@
       }
 
       try {
-        const cfg = window.LIMEWOOD_CONFIG;
-        const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabasePublishableKey, {
-          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-        });
         const { data, error } = await client.functions.invoke('photo-duplicate-check', {
           body: { action: 'check', id: currentReviewId }
         });

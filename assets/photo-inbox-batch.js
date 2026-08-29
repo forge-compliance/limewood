@@ -1,4 +1,4 @@
-/* Keep repeated camera captures in one pending Photo Inbox batch. */
+/* Keep repeated camera captures in one pending Photo Inbox batch and stop duplicate asset creation. */
 (() => {
   'use strict';
 
@@ -10,6 +10,8 @@
 
     const pending = [];
     const seen = new Set();
+    let currentReviewId = null;
+    let bypassDuplicateCheck = false;
 
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap';
@@ -57,9 +59,6 @@
 
     const uploadButton = document.getElementById('uploadBtn');
     uploadButton?.addEventListener('click', () => {
-      // The page's existing upload handler reads input.files. Once it has started,
-      // leave the accumulated FileList intact; the existing code clears the input
-      // after a successful upload.
       setTimeout(() => {
         if (!input.files.length) {
           pending.length = 0;
@@ -68,6 +67,95 @@
         }
       }, 250);
     });
+
+    document.addEventListener('click', event => {
+      const review = event.target.closest?.('[data-review]');
+      if (review?.dataset?.review) currentReviewId = review.dataset.review;
+    }, true);
+
+    const suggest = document.getElementById('createSuggested');
+    const status = document.getElementById('reviewStatus');
+
+    suggest?.addEventListener('click', async event => {
+      if (bypassDuplicateCheck) {
+        bypassDuplicateCheck = false;
+        return;
+      }
+      if (!currentReviewId || !window.supabase || !window.LIMEWOOD_CONFIG) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suggest.disabled = true;
+      if (status) {
+        status.className = 'reviewStatus';
+        status.textContent = 'Checking for an existing asset first…';
+      }
+
+      try {
+        const cfg = window.LIMEWOOD_CONFIG;
+        const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabasePublishableKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+        });
+        const { data, error } = await client.functions.invoke('photo-duplicate-check', {
+          body: { action: 'check', id: currentReviewId }
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        const match = data?.matches?.[0];
+        if (match) {
+          const reason = Array.isArray(match.reasons) && match.reasons.length
+            ? `\nMatch: ${match.reasons.join(', ')}`
+            : '';
+          const useExisting = confirm(
+            `Possible existing asset found:\n\n${match.asset_code} · ${match.asset_name}` +
+            `${match.room_name ? `\n${match.room_name}` : ''}${reason}\n\nUse this existing asset instead of creating another one?`
+          );
+
+          if (useExisting) {
+            if (status) status.textContent = `Assigning to ${match.asset_code}…`;
+            let assigned;
+            if (match.source === 'electrical') {
+              const result = await client.functions.invoke('photo-duplicate-check', {
+                body: {
+                  action: 'assign_existing_electrical',
+                  id: currentReviewId,
+                  electrical_asset_id: match.id
+                }
+              });
+              if (result.error) throw result.error;
+              if (result.data?.error) throw new Error(result.data.error);
+              assigned = result.data?.asset;
+            } else {
+              const result = await client.functions.invoke('photo-ai-file', {
+                body: { action: 'approve', id: currentReviewId, asset_id: match.id }
+              });
+              if (result.error) throw result.error;
+              if (result.data?.error) throw new Error(result.data.error);
+              assigned = result.data?.asset;
+            }
+
+            if (status) {
+              status.className = 'reviewStatus success';
+              status.textContent = `Assigned to existing ${assigned?.asset_code || match.asset_code} · ${assigned?.asset_name || match.asset_name}`;
+            }
+            setTimeout(() => location.reload(), 700);
+            return;
+          }
+        }
+
+        bypassDuplicateCheck = true;
+        suggest.disabled = false;
+        suggest.click();
+      } catch (err) {
+        if (status) {
+          status.className = 'reviewStatus error';
+          status.textContent = 'Duplicate check failed, so no new asset was created. ' + (err?.message || String(err));
+        }
+      } finally {
+        suggest.disabled = false;
+      }
+    }, true);
 
     sync();
   }

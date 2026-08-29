@@ -1,10 +1,14 @@
 /* Limewood plant-room guard
    Keeps ordinary rooms/areas out of Plant Room counts and selectors.
-   The core app still owns the data; this only enforces the UI boundary. */
+   Plant rooms are now taken from the authoritative Supabase plant_rooms table,
+   rather than inferred from asset locations. */
 (() => {
   'use strict';
 
   const normalise = value => String(value || '').replace(/\s+/g, ' ').trim();
+  const cfg = window.LIMEWOOD_CONFIG || {};
+  let genuineRooms = new Set();
+  let genuineCanonical = new Map();
 
   function canonicalRoom(value){
     const raw = normalise(value);
@@ -23,8 +27,13 @@
     return raw;
   }
 
+  function roomKey(value){
+    return canonicalRoom(value).toLowerCase();
+  }
+
   function isGenuinePlantRoom(value){
-    return /\bplant\s*room$/i.test(canonicalRoom(value));
+    const key = roomKey(value);
+    return Boolean(key && genuineRooms.has(key));
   }
 
   function roomNameFromButton(button){
@@ -35,26 +44,26 @@
   }
 
   function discoveredRooms(){
-    const values = [];
-
-    document.querySelectorAll('#room option').forEach(o => {
-      if(o.value) values.push(o.value);
-    });
-
-    document.querySelectorAll('#plantRoomNav button, [data-select-plant-room]').forEach(b => {
-      const name = roomNameFromButton(b);
-      if(name) values.push(name);
-    });
-
-    return [...new Set(values
-      .map(canonicalRoom)
-      .filter(isGenuinePlantRoom))];
+    return [...genuineCanonical.values()].sort((a,b)=>a.localeCompare(b));
   }
 
   function cleanPlantRoomButtons(){
     document.querySelectorAll('#plantRoomNav button, [data-select-plant-room]').forEach(button => {
       const name = roomNameFromButton(button);
-      if(name && !isGenuinePlantRoom(name)) button.remove();
+      if(!name) return;
+      const key = roomKey(name);
+      if(!genuineRooms.has(key)) {
+        button.remove();
+        return;
+      }
+
+      const canonical = genuineCanonical.get(key);
+      if(button.dataset.selectPlantRoom) button.dataset.selectPlantRoom = canonical;
+      if(button.dataset.hubRoom) button.dataset.hubRoom = canonical;
+      if('room' in button.dataset) button.dataset.room = canonical;
+
+      const label = button.querySelector('b');
+      if(label) label.textContent = canonical.replace(/ Plant Room$/i,'');
     });
   }
 
@@ -64,36 +73,62 @@
 
     [...select.options].forEach(option => {
       if(!option.value) return;
-      if(!isGenuinePlantRoom(option.value)) option.remove();
+      const key = roomKey(option.value);
+      if(!genuineRooms.has(key)) {
+        option.remove();
+        return;
+      }
+      const canonical = genuineCanonical.get(key);
+      option.value = canonical;
+      option.textContent = canonical;
     });
 
     const seen = new Set();
     [...select.options].forEach(option => {
       if(!option.value) return;
-      const canonical = canonicalRoom(option.value);
-      const key = canonical.toLowerCase();
-      if(seen.has(key)) {
-        option.remove();
-      } else {
-        seen.add(key);
-        option.value = canonical;
-        option.textContent = canonical;
-      }
+      const key = roomKey(option.value);
+      if(seen.has(key)) option.remove();
+      else seen.add(key);
+    });
+  }
+
+  function cleanOtherPlantRoomSelectors(){
+    const selectorIds = [
+      'ppmRoom','ppmAddRoom','valveRoom','vRoom','valveImportRoom',
+      'dPlantRoom'
+    ];
+
+    selectorIds.forEach(id => {
+      const select = document.getElementById(id);
+      if(!select) return;
+
+      [...select.options].forEach(option => {
+        if(!option.value) return;
+        const key = roomKey(option.value);
+        if(!genuineRooms.has(key)) option.remove();
+        else {
+          const canonical = genuineCanonical.get(key);
+          option.value = canonical;
+          option.textContent = canonical;
+        }
+      });
     });
   }
 
   function fixCounts(){
-    const rooms = discoveredRooms();
-    if(!rooms.length) return;
+    const count = genuineRooms.size;
+    if(!count) return;
 
     const metric = document.getElementById('metricPlantRoomCount');
     const quality = document.getElementById('roomsCount');
-    if(metric) metric.textContent = String(rooms.length);
-    if(quality) quality.textContent = String(rooms.length);
+    if(metric) metric.textContent = String(count);
+    if(quality) quality.textContent = String(count);
   }
 
   function enforce(){
+    if(!genuineRooms.size) return;
     cleanRoomSelect();
+    cleanOtherPlantRoomSelectors();
     cleanPlantRoomButtons();
     fixCounts();
   }
@@ -110,12 +145,60 @@
 
   const observer = new MutationObserver(schedule);
 
+  async function loadAuthoritativeRooms(){
+    try {
+      if(!window.supabase || !cfg.supabaseUrl || !cfg.supabasePublishableKey) {
+        throw new Error('Supabase configuration unavailable');
+      }
+
+      const client = window.supabase.createClient(
+        cfg.supabaseUrl,
+        cfg.supabasePublishableKey,
+        {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}
+      );
+
+      const {data,error} = await client
+        .from('plant_rooms')
+        .select('name')
+        .order('name');
+
+      if(error) throw error;
+
+      genuineRooms = new Set();
+      genuineCanonical = new Map();
+
+      for(const row of data || []) {
+        const canonical = canonicalRoom(row.name);
+        const key = canonical.toLowerCase();
+        if(!key) continue;
+        genuineRooms.add(key);
+        genuineCanonical.set(key, canonical);
+      }
+
+      /* Preserve historic aliases while mapping them to the one real room. */
+      if(genuineRooms.has('forest cottage & lodges plant room')) {
+        [
+          'forest cottage plant room',
+          'forest lodges plant room',
+          'forest lodge plant room'
+        ].forEach(alias => {
+          genuineRooms.add(alias);
+          genuineCanonical.set(alias, 'Forest Cottage & Lodges Plant Room');
+        });
+      }
+
+      enforce();
+    } catch(error) {
+      console.warn('Plant-room guard could not load authoritative rooms:', error);
+    }
+  }
+
   function start(){
-    enforce();
     observer.observe(document.body, {subtree:true, childList:true, characterData:true});
-    setTimeout(enforce, 250);
-    setTimeout(enforce, 1000);
-    setTimeout(enforce, 2500);
+    loadAuthoritativeRooms();
+    setTimeout(enforce, 500);
+    setTimeout(enforce, 1500);
+    setTimeout(enforce, 3000);
   }
 
   if(document.readyState === 'loading') {

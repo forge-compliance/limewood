@@ -41,6 +41,10 @@ window.LIMEWOOD_BMS = {
     const sopBuilder=document.createElement('script');
     sopBuilder.src='/assets/sop-builder.js?v=20260829-1';
     document.head.appendChild(sopBuilder);
+
+    const sopPdf=document.createElement('script');
+    sopPdf.src='/assets/sop-pdf-download.js?v=20260829-1';
+    document.head.appendChild(sopPdf);
   }
 
   const sopPhotoLinks=document.createElement('script');

@@ -39,7 +39,7 @@ window.LIMEWOOD_BMS = {
 
   if(/^\/(?:index\.html)?$/i.test(location.pathname)){
     const sopBuilder=document.createElement('script');
-    sopBuilder.src='/assets/sop-builder.js?v=20260829-1';
+    sopBuilder.src='/assets/sop-builder.js?v=20260829-2';
     document.head.appendChild(sopBuilder);
 
     const sopPdf=document.createElement('script');

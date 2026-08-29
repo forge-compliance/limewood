@@ -28,6 +28,15 @@ window.LIMEWOOD_BMS = {
   dash.src='/assets/dashboard-v8.js?v=20260819-3';
   document.head.appendChild(dash);
 
+  const navStyle=document.createElement('link');
+  navStyle.rel='stylesheet';
+  navStyle.href='/assets/navigation-v9.css?v=20260829-1';
+  document.head.appendChild(navStyle);
+
+  const navV9=document.createElement('script');
+  navV9.src='/assets/navigation-v9.js?v=20260829-1';
+  document.head.appendChild(navV9);
+
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
     const maintenanceAssetPicker=document.createElement('script');
     maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';
@@ -36,7 +45,7 @@ window.LIMEWOOD_BMS = {
 
   if(/\/photo-inbox\.html$/i.test(location.pathname)){
     const photoBatch=document.createElement('script');
-    photoBatch.src='/assets/photo-inbox-batch.js?v=20260829-1';
+    photoBatch.src='/assets/photo-inbox-batch.js?v=20260829-2';
     document.head.appendChild(photoBatch);
   }
 })();

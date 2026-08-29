@@ -33,7 +33,6 @@
     const nav=$('#drawerNav');
     if(!nav || $('#lwPrimaryNav')) return;
 
-    // Keep every original route in the DOM so existing app listeners remain intact.
     const old=[...nav.children];
     const legacyBox=document.createElement('div');
     legacyBox.id='lwLegacyNav';
@@ -157,6 +156,7 @@
   }
 
   function run(){
+    if(!$('#drawerNav') || !$('#dashboardView')) return;
     buildNavigation();
     buildCoreActions();
     buildMobileBar();

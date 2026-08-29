@@ -36,6 +36,10 @@ window.LIMEWOOD_BMS = {
     const documentCentre=document.createElement('script');
     documentCentre.src='/assets/document-centre-v2.js?v=20260829-3';
     document.head.appendChild(documentCentre);
+
+    const reviewLayout=document.createElement('script');
+    reviewLayout.src='/assets/review-layout-fix.js?v=20260829-1';
+    document.head.appendChild(reviewLayout);
   }
 
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){

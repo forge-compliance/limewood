@@ -13,8 +13,8 @@ window.LIMEWOOD_BMS = {baseUrl:'https://192.168.170.100',readOnly:true,hostName:
  add('link',{rel:'stylesheet',href:'/assets/navigation-v9.css?v=20260829-1'});
  add('script',{src:'/assets/navigation-v9.js?v=20260829-1'});
  if(/^\/(?:index\.html)?$/i.test(location.pathname)){
-   add('script',{src:'/assets/sop-builder.js?v=20260829-3'});
-   add('script',{src:'/assets/sop-pdf-download.js?v=20260829-3'});
+   add('script',{src:'/assets/sop-builder.js?v=20260829-4'});
+   add('script',{src:'/assets/sop-pdf-download.js?v=20260829-4'});
  }
  add('script',{src:'/assets/sop-photo-links.js?v=20260829-4'});
  if(/\/maintenance-dashboard\.html$/i.test(location.pathname))add('script',{src:'/assets/maintenance-asset-picker.js?v=20260828-1'});

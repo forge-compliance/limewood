@@ -1,0 +1,13 @@
+// Reliable SOP card controls. Keeps card buttons independent from editor rendering.
+(()=>{'use strict';
+let db=null, busy=false, observer=null;
+function cfgReady(){const c=window.LIMEWOOD_CONFIG||{};if(!window.supabase||!c.supabaseUrl||!c.supabasePublishableKey)return null;return c;}
+function client(){if(db)return db;const c=cfgReady();if(!c)return null;db=window.supabase.createClient(c.supabaseUrl,c.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});return db;}
+function text(el){return (el?.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();}
+async function decorate(){if(busy)return;const grid=document.querySelector('#documentGrid');const c=client();if(!grid||!c)return;busy=true;try{const {data,error}=await c.from('sops').select('id,sop_number,title');if(error)throw error;for(const card of grid.querySelectorAll('.documentCard')){const t=text(card);const row=(data||[]).find(s=>{const n=String(s.sop_number||'').trim().toLowerCase(),title=String(s.title||'').trim().toLowerCase();return (n&&t.includes(n))||(title&&t.includes(title));});if(!row)continue;let b=card.querySelector('[data-lw-card-edit]');if(!b){b=document.createElement('button');b.type='button';b.className='lwSopEditBtn';b.dataset.lwCardEdit=row.id;b.textContent='View / edit SOP';const pdf=card.querySelector('.lwSopPdfBtn');pdf?card.insertBefore(b,pdf):card.appendChild(b);}else b.dataset.lwCardEdit=row.id;}}
+catch(e){console.warn('SOP card controls failed',e);}finally{busy=false;}}
+function bindGrid(){const grid=document.querySelector('#documentGrid');if(!grid||grid.dataset.lwCardWatch)return false;grid.dataset.lwCardWatch='1';observer=new MutationObserver(()=>setTimeout(decorate,50));observer.observe(grid,{childList:true,subtree:true});decorate();return true;}
+document.addEventListener('click',e=>{const b=e.target.closest?.('[data-lw-card-edit]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();const id=b.dataset.lwCardEdit;if(window.LimewoodSopBuilder?.open){window.LimewoodSopBuilder.open(id);return;}b.disabled=true;b.textContent='Opening…';let n=0;const timer=setInterval(()=>{n++;if(window.LimewoodSopBuilder?.open){clearInterval(timer);b.disabled=false;b.textContent='View / edit SOP';window.LimewoodSopBuilder.open(id);}else if(n>20){clearInterval(timer);b.disabled=false;b.textContent='View / edit SOP';alert('SOP editor did not load. Refresh the page and try again.');}},150);},true);
+function boot(){if(!cfgReady()){setTimeout(boot,200);return;}if(!bindGrid())setTimeout(boot,300);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();

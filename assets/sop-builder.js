@@ -1,5 +1,5 @@
 // Limewood SOP Builder v1
-// Creates and edits controlled SOP records directly in the SOP Library.
+// Creates and edits controlled SOP records directly in the SOP Library and Document Centre.
 (() => {
   'use strict';
 
@@ -14,10 +14,6 @@
   const MARKER='LW_SOP_BUILDER_V1:';
   let editingId=null;
   let directory={buildings:[],rooms:[]};
-
-  function isSopLibrary(){
-    return ($('#documentViewTitle')?.textContent||'').trim()==='SOP Library';
-  }
 
   function parseDescription(value){
     const s=String(value||'');
@@ -164,7 +160,8 @@
   }
 
   async function decorate(){
-    if(!isSopLibrary())return;
+    const documentView=$('#documentView');
+    if(!documentView)return;
     const hero=$('#documentView .documentHero');
     if(hero&&!$('#lwSopCreateBtn')){
       const b=document.createElement('button');b.id='lwSopCreateBtn';b.className='lwSopCreateBtn';b.type='button';b.textContent='+ Create SOP';b.onclick=()=>open();

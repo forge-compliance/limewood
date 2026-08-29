@@ -43,6 +43,10 @@ window.LIMEWOOD_BMS = {
     document.head.appendChild(sopBuilder);
   }
 
+  const sopPhotoLinks=document.createElement('script');
+  sopPhotoLinks.src='/assets/sop-photo-links.js?v=20260829-1';
+  document.head.appendChild(sopPhotoLinks);
+
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
     const maintenanceAssetPicker=document.createElement('script');
     maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';

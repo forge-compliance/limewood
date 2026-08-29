@@ -28,6 +28,12 @@ window.LIMEWOOD_BMS = {
   dash.src='/assets/dashboard-v8.js?v=20260819-3';
   document.head.appendChild(dash);
 
+  if(/^\/(?:index\.html)?$/i.test(location.pathname)){
+    const sopActions=document.createElement('script');
+    sopActions.src='/assets/sop-actions-stable.js?v=20260829-1';
+    document.head.appendChild(sopActions);
+  }
+
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
     const maintenanceAssetPicker=document.createElement('script');
     maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';

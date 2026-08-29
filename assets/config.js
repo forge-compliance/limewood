@@ -15,6 +15,7 @@ window.LIMEWOOD_BMS = {baseUrl:'https://192.168.170.100',readOnly:true,hostName:
  if(/^\/(?:index\.html)?$/i.test(location.pathname)){
    add('script',{src:'/assets/sop-builder.js?v=20260829-5'});
    add('script',{src:'/assets/sop-pdf-download.js?v=20260829-4'});
+   add('script',{src:'/assets/sop-card-controls.js?v=20260829-1'});
  }
  add('script',{src:'/assets/sop-photo-links.js?v=20260829-5'});
  if(/\/maintenance-dashboard\.html$/i.test(location.pathname))add('script',{src:'/assets/maintenance-asset-picker.js?v=20260828-1'});

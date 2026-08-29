@@ -37,6 +37,12 @@ window.LIMEWOOD_BMS = {
   navV9.src='/assets/navigation-v9.js?v=20260829-1';
   document.head.appendChild(navV9);
 
+  if(/^\/(?:index\.html)?$/i.test(location.pathname)){
+    const sopSuite=document.createElement('script');
+    sopSuite.src='/assets/sop-suite.js?v=20260829-1';
+    document.head.appendChild(sopSuite);
+  }
+
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
     const maintenanceAssetPicker=document.createElement('script');
     maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';

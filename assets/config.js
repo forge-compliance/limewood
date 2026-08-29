@@ -34,7 +34,7 @@ window.LIMEWOOD_BMS = {
     document.head.appendChild(sopActions);
 
     const documentCentre=document.createElement('script');
-    documentCentre.src='/assets/document-centre-v2.js?v=20260829-1';
+    documentCentre.src='/assets/document-centre-v2.js?v=20260829-2';
     document.head.appendChild(documentCentre);
   }
 

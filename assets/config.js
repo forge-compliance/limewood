@@ -46,7 +46,7 @@ window.LIMEWOOD_BMS = {
 
   if(/\/photo-inbox\.html$/i.test(location.pathname)){
     const photoBatch=document.createElement('script');
-    photoBatch.src='/assets/photo-inbox-batch.js?v=20260829-1';
+    photoBatch.src='/assets/photo-inbox-batch.js?v=20260829-2';
     document.head.appendChild(photoBatch);
   }
 })();

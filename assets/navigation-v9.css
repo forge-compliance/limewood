@@ -1,0 +1,43 @@
+/* Limewood Engineering navigation v9 */
+#drawerNav{padding:14px 12px 24px!important}
+.lwPrimaryNav{display:grid;gap:8px}
+.lwPrimaryNav button,.lwNavGroup summary{width:100%;box-sizing:border-box;border:0;border-radius:14px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.lwNavMain,.lwNavSearch,.lwNavGroup summary{display:grid!important;grid-template-columns:34px 1fr;column-gap:10px;align-items:center;padding:12px 14px!important;min-height:54px}
+.lwNavMain span,.lwNavSearch span,.lwNavGroup summary>span{grid-row:1/3;font-size:20px;line-height:1;text-align:center}
+.lwNavMain b,.lwNavSearch b,.lwNavGroup summary>b{font-size:15px;line-height:1.2}
+.lwNavMain small,.lwNavSearch small,.lwNavGroup summary>small{display:block;opacity:.65;font-size:11px;margin-top:2px}
+.lwNavSearch{background:rgba(255,255,255,.08)!important;margin-bottom:4px}
+.lwNavMain:hover,.lwNavSearch:hover,.lwNavGroup summary:hover,.lwNavGroup>div button:hover{background:rgba(255,255,255,.09)!important}
+.lwNavGroup{border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden}
+.lwNavGroup summary{list-style:none;position:relative;padding-right:34px!important}
+.lwNavGroup summary::-webkit-details-marker{display:none}
+.lwNavGroup summary:after{content:'›';position:absolute;right:14px;top:50%;transform:translateY(-50%) rotate(90deg);opacity:.55;font-size:20px;transition:.2s}
+.lwNavGroup[open] summary:after{transform:translateY(-50%) rotate(-90deg)}
+.lwNavGroup>div{display:grid;gap:3px;padding:0 8px 8px}
+.lwNavGroup>div button{padding:10px 12px 10px 44px!important;font-size:13px;opacity:.86}
+#lwLegacyNav{display:none!important}
+
+.lwCoreActions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:14px 0 18px}
+.lwCoreActions button{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:0;padding:14px;border-radius:16px;border:1px solid rgba(23,55,44,.12);background:var(--card,#fff);text-align:left;cursor:pointer;box-shadow:0 5px 18px rgba(23,55,44,.05)}
+.lwCoreActions button>span{font-size:22px}.lwCoreActions button>b{font-size:14px}.lwCoreActions button>small{font-size:11px;opacity:.65;line-height:1.35}
+.lwCoreActions button:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(23,55,44,.09)}
+.lwLegacyQuickActions{display:none!important}
+.lwEstateGridFixed{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))!important;width:100%!important;overflow:visible!important}
+
+.lwMobileNav{display:none}
+
+@media(max-width:900px){
+  body{padding-bottom:72px}
+  .lwCoreActions{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .lwCoreActions button{padding:13px;min-height:104px}
+  .lwEstateGridFixed{grid-template-columns:1fr 1fr!important}
+  .lwMobileNav{position:fixed;z-index:9998;display:grid;grid-template-columns:repeat(5,1fr);left:8px;right:8px;bottom:8px;min-height:58px;padding:5px;border-radius:18px;background:rgba(23,55,44,.97);box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(14px)}
+  .lwMobileNav button{border:0;background:transparent;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;font-size:17px;cursor:pointer}
+  .lwMobileNav button:active{background:rgba(255,255,255,.11)}
+  .lwMobileNav b{font-size:10px;font-weight:650}
+  #dashboardView{max-width:100%!important;overflow-x:hidden}
+}
+
+@media(max-width:520px){
+  .lwEstateGridFixed{grid-template-columns:1fr!important}
+}

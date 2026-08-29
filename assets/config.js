@@ -33,4 +33,10 @@ window.LIMEWOOD_BMS = {
     maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';
     document.head.appendChild(maintenanceAssetPicker);
   }
+
+  if(/\/photo-inbox\.html$/i.test(location.pathname)){
+    const photoBatch=document.createElement('script');
+    photoBatch.src='/assets/photo-inbox-batch.js?v=20260829-1';
+    document.head.appendChild(photoBatch);
+  }
 })();

@@ -1,160 +1,25 @@
-// Limewood SOP ↔ Photo Inbox linking
+// Limewood SOP ↔ Photo Inbox linking v2
 (() => {
   'use strict';
-
   const cfg=window.LIMEWOOD_CONFIG||{};
   if(!window.supabase||!cfg.supabaseUrl||!cfg.supabasePublishableKey)return;
-  const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{
-    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
-  });
+  const db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   const $=(s,r=document)=>r.querySelector(s);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let reviewPhotoId='';
-
-  async function currentUserId(){
-    const {data}=await db.auth.getSession();
-    return data?.session?.user?.id||null;
-  }
-
-  async function fetchSops(){
-    const {data,error}=await db.from('sops').select('id,sop_number,title,status').order('sop_number');
-    if(error)throw error;
-    return data||[];
-  }
-
-  async function linkPhotoToSop(photoId,sopId){
-    const userId=await currentUserId();
-    if(!userId)throw new Error('Sign in again before linking photos.');
-    const {error}=await db.from('sop_photos').upsert({sop_id:sopId,photo_inbox_id:photoId,created_by:userId},{onConflict:'sop_id,photo_inbox_id'});
-    if(error)throw error;
-  }
-
-  function installPhotoInboxLinker(){
-    if(!/\/photo-inbox\.html$/i.test(location.pathname))return;
-    const actions=$('.reviewActions');
-    if(!actions||$('#lwPhotoSopBox'))return;
-
-    const box=document.createElement('div');
-    box.id='lwPhotoSopBox';
-    box.className='assetPickerBox';
-    box.innerHTML=`
-      <div class="assetPickerTitle"><b>Link photo to SOP</b><span>Optional</span></div>
-      <label>SOP<select id="lwPhotoSopSelect"><option value="">Select an SOP…</option></select></label>
-      <button type="button" id="lwPhotoSopLink" class="approveBtn" style="margin-top:10px;width:100%">Link this photo to SOP</button>
-      <div id="lwPhotoSopStatus" class="reviewStatus"></div>`;
-    const tiny=[...actions.children].find(x=>x.classList?.contains('tiny'));
-    actions.insertBefore(box,tiny||actions.lastElementChild);
-
-    const select=$('#lwPhotoSopSelect');
-    fetchSops().then(rows=>{
-      select.innerHTML='<option value="">Select an SOP…</option>'+rows.map(s=>`<option value="${esc(s.id)}">${esc(s.sop_number)} · ${esc(s.title)}</option>`).join('');
-    }).catch(e=>{$('#lwPhotoSopStatus').textContent=e.message;});
-
-    document.addEventListener('click',e=>{
-      const b=e.target.closest?.('[data-review]');
-      if(b?.dataset?.review){reviewPhotoId=b.dataset.review;$('#lwPhotoSopStatus').textContent='';}
-    },true);
-
-    $('#lwPhotoSopLink').addEventListener('click',async()=>{
-      const sopId=select.value;
-      const status=$('#lwPhotoSopStatus');
-      if(!reviewPhotoId){status.textContent='Open a photo first.';return;}
-      if(!sopId){status.textContent='Choose an SOP first.';return;}
-      try{
-        await linkPhotoToSop(reviewPhotoId,sopId);
-        status.className='reviewStatus success';
-        status.textContent='Photo linked to SOP.';
-      }catch(e){status.className='reviewStatus error';status.textContent=e?.message||String(e);}
-    });
-  }
-
-  function ensureSopPhotoSection(){
-    const modal=$('#lwSopBuilder');
-    if(!modal||$('#lwSopPhotoSection'))return;
-    const grid=$('.lwSopGrid',modal);
-    if(!grid)return;
-    const wrap=document.createElement('div');
-    wrap.id='lwSopPhotoSection';
-    wrap.className='wide';
-    wrap.style.cssText='border:1px solid #dfe5e0;border-radius:12px;padding:12px;background:#f8faf8';
-    wrap.innerHTML=`
-      <label style="display:block">Linked photos</label>
-      <div id="lwSopPhotoCurrent" style="display:grid;gap:8px;margin:8px 0"></div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-        <label style="margin:0">Add an uploaded photo<select id="lwSopPhotoSelect"><option value="">Select a Photo Inbox image…</option></select></label>
-        <button type="button" id="lwSopPhotoAdd" style="border:0;border-radius:10px;background:#17372c;color:#fff;padding:11px 14px;font-weight:800">Link photo</button>
-      </div>
-      <div id="lwSopPhotoMessage" class="lwSopMessage"></div>`;
-    grid.appendChild(wrap);
-    $('#lwSopPhotoAdd').onclick=addPhotoFromSop;
-  }
-
-  async function sopFromBuilder(){
-    const number=$('#lwSopNumber')?.value?.trim();
-    if(!number)return null;
-    const {data,error}=await db.from('sops').select('id,sop_number,title').eq('sop_number',number).maybeSingle();
-    if(error)throw error;
-    return data||null;
-  }
-
-  async function loadPhotoChoices(sop){
-    const select=$('#lwSopPhotoSelect');
-    const current=$('#lwSopPhotoCurrent');
-    const msg=$('#lwSopPhotoMessage');
-    if(!select||!current)return;
-    msg.textContent='';
-    if(!sop){
-      current.innerHTML='<small>Save the SOP first, then you can link photos to it.</small>';
-      select.innerHTML='<option value="">Save SOP first…</option>';
-      select.disabled=true;
-      $('#lwSopPhotoAdd').disabled=true;
-      return;
-    }
-    select.disabled=false;$('#lwSopPhotoAdd').disabled=false;
-    const [{data:photos,error:pErr},{data:links,error:lErr}]=await Promise.all([
-      db.from('photo_inbox').select('id,original_filename,location_hint,storage_path,created_at').order('created_at',{ascending:false}).limit(150),
-      db.from('sop_photos').select('id,photo_inbox_id,caption,sort_order').eq('sop_id',sop.id).order('sort_order')
-    ]);
-    if(pErr)throw pErr;if(lErr)throw lErr;
-    const rows=photos||[];const linked=links||[];const linkedIds=new Set(linked.map(x=>String(x.photo_inbox_id)));
-    select.innerHTML='<option value="">Select a Photo Inbox image…</option>'+rows.filter(p=>!linkedIds.has(String(p.id))).map(p=>`<option value="${esc(p.id)}">${esc(p.original_filename||'Photo')} · ${esc(p.location_hint||'No location')}</option>`).join('');
-    current.innerHTML=linked.length?linked.map(link=>{
-      const p=rows.find(x=>String(x.id)===String(link.photo_inbox_id));
-      return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e1e5e1;padding:9px;border-radius:9px"><span><b>${esc(p?.original_filename||'Linked photo')}</b><br><small>${esc(p?.location_hint||'')}</small></span><button type="button" data-lw-sop-photo-unlink="${esc(link.id)}" style="border:0;background:#eee;border-radius:8px;padding:7px 9px;font-weight:700">Remove</button></div>`;
-    }).join(''):'<small>No photos linked yet.</small>';
-    current.querySelectorAll('[data-lw-sop-photo-unlink]').forEach(b=>b.onclick=async()=>{
-      const {error}=await db.from('sop_photos').delete().eq('id',b.dataset.lwSopPhotoUnlink);if(error){msg.textContent=error.message;return;}await loadPhotoChoices(sop);
-    });
-  }
-
-  async function addPhotoFromSop(){
-    const msg=$('#lwSopPhotoMessage');
-    try{
-      const sop=await sopFromBuilder();
-      if(!sop){msg.textContent='Save the SOP first.';return;}
-      const photoId=$('#lwSopPhotoSelect')?.value;
-      if(!photoId){msg.textContent='Choose a photo first.';return;}
-      await linkPhotoToSop(photoId,sop.id);
-      msg.textContent='Photo linked.';
-      await loadPhotoChoices(sop);
-    }catch(e){msg.textContent=e?.message||String(e);}
-  }
-
-  function watchSopBuilder(){
-    ensureSopPhotoSection();
-    const modal=$('#lwSopBuilder');
-    if(!modal)return;
-    const obs=new MutationObserver(async()=>{
-      if(!modal.classList.contains('open'))return;
-      ensureSopPhotoSection();
-      try{await loadPhotoChoices(await sopFromBuilder());}catch(e){const m=$('#lwSopPhotoMessage');if(m)m.textContent=e.message;}
-    });
-    obs.observe(modal,{attributes:true,attributeFilter:['class']});
-    $('#lwSopNumber')?.addEventListener('change',async()=>{if(modal.classList.contains('open'))await loadPhotoChoices(await sopFromBuilder());});
-  }
-
+  let reviewPhotoId='', pickerRows=[], pickerLinked=new Set(), pickerSop=null;
+  async function currentUserId(){const {data}=await db.auth.getSession();return data?.session?.user?.id||null;}
+  async function fetchSops(){const {data,error}=await db.from('sops').select('id,sop_number,title,status').order('sop_number');if(error)throw error;return data||[];}
+  async function linkPhotoToSop(photoId,sopId){const userId=await currentUserId();if(!userId)throw new Error('Sign in again before linking photos.');const {error}=await db.from('sop_photos').upsert({sop_id:sopId,photo_inbox_id:photoId,created_by:userId},{onConflict:'sop_id,photo_inbox_id'});if(error)throw error;}
+  function photoUrl(p){if(!p?.storage_path)return '';return db.storage.from(cfg.storageBucket||'asset-files').getPublicUrl(p.storage_path).data?.publicUrl||'';}
+  function installPhotoInboxLinker(){if(!/\/photo-inbox\.html$/i.test(location.pathname))return;const actions=$('.reviewActions');if(!actions||$('#lwPhotoSopBox'))return;const box=document.createElement('div');box.id='lwPhotoSopBox';box.className='assetPickerBox';box.innerHTML=`<div class="assetPickerTitle"><b>Link photo to SOP</b><span>Optional</span></div><label>SOP<select id="lwPhotoSopSelect"><option value="">Select an SOP…</option></select></label><button type="button" id="lwPhotoSopLink" class="approveBtn" style="margin-top:10px;width:100%">Link this photo to SOP</button><div id="lwPhotoSopStatus" class="reviewStatus"></div>`;const tiny=[...actions.children].find(x=>x.classList?.contains('tiny'));actions.insertBefore(box,tiny||actions.lastElementChild);const select=$('#lwPhotoSopSelect');fetchSops().then(rows=>select.innerHTML='<option value="">Select an SOP…</option>'+rows.map(s=>`<option value="${esc(s.id)}">${esc(s.sop_number)} · ${esc(s.title)}</option>`).join('')).catch(e=>$('#lwPhotoSopStatus').textContent=e.message);document.addEventListener('click',e=>{const b=e.target.closest?.('[data-review]');if(b?.dataset?.review){reviewPhotoId=b.dataset.review;$('#lwPhotoSopStatus').textContent='';}},true);$('#lwPhotoSopLink').onclick=async()=>{const status=$('#lwPhotoSopStatus');if(!reviewPhotoId){status.textContent='Open a photo first.';return;}if(!select.value){status.textContent='Choose an SOP first.';return;}try{await linkPhotoToSop(reviewPhotoId,select.value);status.className='reviewStatus success';status.textContent='Photo linked to SOP.';}catch(e){status.className='reviewStatus error';status.textContent=e?.message||String(e);}};}
+  function ensureStyle(){if($('#lwSopPhotoStyle'))return;const s=document.createElement('style');s.id='lwSopPhotoStyle';s.textContent=`.lwPhotoTools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.lwPhotoTools input{flex:1;min-width:170px;padding:10px;border:1px solid #d6dad6;border-radius:9px}.lwPhotoTools button{border:1px solid #c9d1cc;background:#fff;border-radius:9px;padding:9px 11px;font-weight:800}.lwPhotoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:10px;max-height:390px;overflow:auto}.lwPhotoCard{position:relative;border:2px solid transparent;border-radius:12px;background:#fff;padding:0;overflow:hidden;text-align:left;cursor:pointer;box-shadow:0 1px 4px #0001}.lwPhotoCard.selected{border-color:#17372c}.lwPhotoCard img{width:100%;height:105px;object-fit:cover;display:block;background:#e8ece9}.lwPhotoCard span{display:block;padding:7px;font-size:11px;line-height:1.25}.lwPhotoCard b{display:block;font-size:12px;color:#17372c;margin-bottom:2px}.lwLinkedPhoto{display:grid;grid-template-columns:72px 1fr auto;gap:9px;align-items:center;background:#fff;border:1px solid #e1e5e1;padding:7px;border-radius:10px}.lwLinkedPhoto img{width:72px;height:58px;object-fit:cover;border-radius:7px;background:#eee}@media(max-width:520px){.lwPhotoGrid{grid-template-columns:repeat(2,1fr)}.lwLinkedPhoto{grid-template-columns:58px 1fr auto}.lwLinkedPhoto img{width:58px;height:52px}}`;document.head.appendChild(s);}
+  function ensureSopPhotoSection(){const modal=$('#lwSopBuilder');if(!modal||$('#lwSopPhotoSection'))return;ensureStyle();const grid=$('.lwSopGrid',modal);if(!grid)return;const wrap=document.createElement('div');wrap.id='lwSopPhotoSection';wrap.className='wide';wrap.style.cssText='border:1px solid #dfe5e0;border-radius:12px;padding:12px;background:#f8faf8';wrap.innerHTML=`<label style="display:block"><b>Linked photos</b></label><div id="lwSopPhotoCurrent" style="display:grid;gap:8px;margin:8px 0"></div><div class="lwPhotoTools"><input id="lwSopPhotoSearch" placeholder="Search photos, area or asset…"><button type="button" id="lwSopPhotoShowAll">Show all photos</button></div><small id="lwSopPhotoHint"></small><div id="lwSopPhotoGrid" class="lwPhotoGrid"></div><input type="hidden" id="lwSopPhotoSelect"><button type="button" id="lwSopPhotoAdd" style="border:0;border-radius:10px;background:#17372c;color:#fff;padding:11px 14px;font-weight:800;margin-top:10px;width:100%">Link selected photo</button><div id="lwSopPhotoMessage" class="lwSopMessage"></div>`;grid.appendChild(wrap);$('#lwSopPhotoAdd').onclick=addPhotoFromSop;$('#lwSopPhotoSearch').oninput=renderPicker;$('#lwSopPhotoShowAll').onclick=()=>{$('#lwSopPhotoShowAll').dataset.all='1';renderPicker();};}
+  async function sopFromBuilder(){const number=$('#lwSopNumber')?.value?.trim();if(!number)return null;const {data,error}=await db.from('sops').select('id,sop_number,title,building_id,plant_room_id').eq('sop_number',number).maybeSingle();if(error)throw error;return data||null;}
+  function relevant(p,sop){if(!sop)return true;if(sop.plant_room_id&&p.assigned_asset?.plant_room_id===sop.plant_room_id)return true;if(sop.building_id&&p.assigned_asset?.building_id===sop.building_id)return true;const hint=String(p.location_hint||'').toLowerCase(), title=String(sop.title||'').toLowerCase();return hint&&title.includes(hint);}
+  function renderPicker(){const grid=$('#lwSopPhotoGrid'), hidden=$('#lwSopPhotoSelect'), hint=$('#lwSopPhotoHint');if(!grid)return;const q=($('#lwSopPhotoSearch')?.value||'').toLowerCase().trim(), all=$('#lwSopPhotoShowAll')?.dataset.all==='1';let rows=pickerRows.filter(p=>!pickerLinked.has(String(p.id)));if(!all&&pickerSop)rows=rows.filter(p=>relevant(p,pickerSop));if(q)rows=rows.filter(p=>[p.original_filename,p.location_hint,p.assigned_asset?.asset_name,p.assigned_asset?.asset_code].join(' ').toLowerCase().includes(q));hint.textContent=all?'Showing all uploaded photos.':`Showing photos relevant to ${pickerSop?.title||'this SOP'}. Use Show all photos if needed.`;grid.innerHTML=rows.length?rows.slice(0,100).map(p=>{const u=photoUrl(p);const label=p.assigned_asset?.asset_name||p.location_hint||'Uploaded photo';return `<button type="button" class="lwPhotoCard" data-photo="${esc(p.id)}">${u?`<img loading="lazy" src="${esc(u)}" alt="">`:'<div style="height:105px;background:#e8ece9"></div>'}<span><b>${esc(label)}</b>${esc(p.location_hint||'')}<br><small>${esc(p.original_filename||'')}</small></span></button>`;}).join('):'<small>No matching photos. Try Show all photos or search.</small>';grid.querySelectorAll('[data-photo]').forEach(b=>b.onclick=()=>{grid.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');hidden.value=b.dataset.photo;});}
+  async function loadPhotoChoices(sop){const current=$('#lwSopPhotoCurrent'),msg=$('#lwSopPhotoMessage');if(!current)return;msg.textContent='';pickerSop=sop;if(!sop){current.innerHTML='<small>Save the SOP first, then you can link photos to it.</small>';$('#lwSopPhotoGrid').innerHTML='';$('#lwSopPhotoAdd').disabled=true;return;}$('#lwSopPhotoAdd').disabled=false;$('#lwSopPhotoShowAll').dataset.all='';const [{data:photos,error:pErr},{data:links,error:lErr}]=await Promise.all([db.from('photo_inbox').select('id,original_filename,location_hint,storage_path,created_at,assigned_asset:assets!photo_inbox_assigned_asset_id_fkey(asset_name,asset_code,building_id,plant_room_id)').order('created_at',{ascending:false}).limit(300),db.from('sop_photos').select('id,photo_inbox_id,caption,sort_order').eq('sop_id',sop.id).order('sort_order')]);if(pErr)throw pErr;if(lErr)throw lErr;pickerRows=photos||[];const linked=links||[];pickerLinked=new Set(linked.map(x=>String(x.photo_inbox_id)));current.innerHTML=linked.length?linked.map(link=>{const p=pickerRows.find(x=>String(x.id)===String(link.photo_inbox_id)),u=photoUrl(p);return `<div class="lwLinkedPhoto">${u?`<img src="${esc(u)}" alt="">`:'<div></div>'}<span><b>${esc(p?.assigned_asset?.asset_name||p?.location_hint||'Linked photo')}</b><br><small>${esc(p?.original_filename||'')}</small></span><button type="button" data-lw-sop-photo-unlink="${esc(link.id)}" style="border:0;background:#eee;border-radius:8px;padding:7px 9px;font-weight:700">Remove</button></div>`;}).join('):'<small>No photos linked yet.</small>';current.querySelectorAll('[data-lw-sop-photo-unlink]').forEach(b=>b.onclick=async()=>{const {error}=await db.from('sop_photos').delete().eq('id',b.dataset.lwSopPhotoUnlink);if(error){msg.textContent=error.message;return;}await loadPhotoChoices(sop);});renderPicker();}
+  async function addPhotoFromSop(){const msg=$('#lwSopPhotoMessage');try{const sop=await sopFromBuilder();if(!sop){msg.textContent='Save the SOP first.';return;}const photoId=$('#lwSopPhotoSelect')?.value;if(!photoId){msg.textContent='Select a photo thumbnail first.';return;}await linkPhotoToSop(photoId,sop.id);msg.textContent='Photo linked.';await loadPhotoChoices(sop);}catch(e){msg.textContent=e?.message||String(e);}}
+  function watchSopBuilder(){ensureSopPhotoSection();const modal=$('#lwSopBuilder');if(!modal)return;const obs=new MutationObserver(async()=>{if(!modal.classList.contains('open'))return;ensureSopPhotoSection();try{await loadPhotoChoices(await sopFromBuilder());}catch(e){const m=$('#lwSopPhotoMessage');if(m)m.textContent=e.message;}});obs.observe(modal,{attributes:true,attributeFilter:['class']});$('#lwSopNumber')?.addEventListener('change',async()=>{if(modal.classList.contains('open'))await loadPhotoChoices(await sopFromBuilder());});}
   function run(){installPhotoInboxLinker();watchSopBuilder();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,250));
-  else setTimeout(run,250);
-  window.addEventListener('load',()=>setTimeout(run,900));
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,250));else setTimeout(run,250);window.addEventListener('load',()=>setTimeout(run,900));
 })();

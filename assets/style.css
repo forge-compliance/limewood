@@ -789,3 +789,40 @@ body.modal-open #drawerBackdrop{display:none!important;pointer-events:none!impor
 /* asset child modals above asset */
 #qrModal,#maintenanceHistoryModal{z-index:220!important}
 #qrModal .modalCard,#maintenanceHistoryModal .modalCard{position:relative;z-index:221!important}
+
+/* v7.4.2 collapsible desktop navigation rail */
+@media(min-width:901px){
+  .drawer.collapsed{
+    transform:translateX(calc(-100% + 56px))!important;
+    overflow:hidden!important;
+    box-shadow:4px 0 14px #0003;
+  }
+  .drawer.collapsed .drawerHead{
+    justify-content:flex-end;
+    padding:12px 7px;
+    min-height:64px;
+  }
+  .drawer.collapsed .drawerHead>.mark,
+  .drawer.collapsed .drawerHead>div:not(.mark),
+  .drawer.collapsed nav{
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+  .drawer.collapsed #closeDrawer{
+    visibility:visible!important;
+    pointer-events:auto!important;
+    display:grid!important;
+    place-items:center;
+    margin:0!important;
+    width:42px;
+    height:42px;
+    min-width:42px;
+    min-height:42px;
+    border-radius:12px;
+    background:#ffffff12;
+  }
+  .drawer.collapsed + main,
+  body:has(.drawer.collapsed) main{
+    padding-left:56px;
+  }
+}

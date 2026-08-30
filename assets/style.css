@@ -775,3 +775,9 @@ button#saveValve.primary{
   .historyInfoGrid,.historyNarrative{grid-template-columns:1fr}
   .historyFollowUpBox{align-items:flex-start;flex-direction:column}
 }
+
+/* asset modal above navigation */
+#modal{z-index:100!important}
+#modal .modalCard{position:relative;z-index:101}
+body.modal-open #drawer{transform:translateX(-102%)!important;pointer-events:none!important}
+body.modal-open #drawerBackdrop{display:none!important;pointer-events:none!important}

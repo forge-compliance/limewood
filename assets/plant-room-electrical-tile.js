@@ -16,9 +16,32 @@
     else grid.prepend(button);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addElectricalTile, { once: true });
-  } else {
+  function installStaffHouseSchematicRoute(){
+    const hub=document.getElementById('plantRoomHubView');
+    if(!hub || hub.dataset.staffElectricalRoute==='1') return;
+    hub.dataset.staffElectricalRoute='1';
+
+    hub.addEventListener('click', event=>{
+      const button=event.target.closest('[data-hub-action="electrical"]');
+      if(!button) return;
+
+      const room=String(document.getElementById('hubRoomTitle')?.textContent||'').trim().toLowerCase();
+      if(!room.includes('staff house')) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      location.href='/staff-house-electrical.html';
+    }, true);
+  }
+
+  function init(){
     addElectricalTile();
+    installStaffHouseSchematicRoute();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
   }
 })();

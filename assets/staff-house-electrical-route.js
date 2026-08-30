@@ -1,9 +1,9 @@
-/* Global Staff House electrical route. Any Staff House electrical entry point goes to the verified schematic. */
+/* Location-aware electrical schematic routing for verified plant rooms. */
 (() => {
   'use strict';
-  const target='/staff-house-electrical.html';
   const norm=v=>String(v||'').toLowerCase().replace(/\s+/g,' ').trim();
-  function isStaffHouseContext(el){
+
+  function contextText(el){
     const parts=[];
     let n=el;
     for(let i=0;n&&i<6;i++,n=n.parentElement){
@@ -15,19 +15,29 @@
     }
     parts.push(document.getElementById('hubRoomTitle')?.textContent||'');
     parts.push(document.querySelector('[data-current-building]')?.textContent||'');
-    return norm(parts.join(' ')).includes('staff house');
+    return norm(parts.join(' '));
   }
+
   function isElectricalEntry(el){
     const text=norm([el.textContent,el.getAttribute?.('aria-label'),el.getAttribute?.('title'),el.dataset?.hubAction,el.getAttribute?.('href')].join(' '));
     return text.includes('electrical') || text.includes('distribution board') || text.includes('circuits & isolations');
   }
+
+  function targetFor(el){
+    const ctx=contextText(el);
+    /* Main House must be checked first because some page-level text can also contain Staff House references. */
+    if(ctx.includes('main house plant room')) return '/main-house-electrical.html';
+    if(ctx.includes('staff house')) return '/staff-house-electrical.html';
+    return '';
+  }
+
   document.addEventListener('click',e=>{
     const el=e.target.closest('a,button,[role="button"],[data-hub-action]');
-    if(!el || location.pathname===target) return;
-    if(isElectricalEntry(el) && isStaffHouseContext(el)){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      location.href=target;
-    }
+    if(!el || !isElectricalEntry(el)) return;
+    const target=targetFor(el);
+    if(!target || location.pathname===target) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    location.href=target;
   },true);
 })();

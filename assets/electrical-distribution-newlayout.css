@@ -1,0 +1,55 @@
+/* Electrical Distribution compact layout aligned with the new schematic pages */
+body{background:#f4f0e8!important}
+body .electricalTopbar{padding:10px 12px!important;gap:10px!important;box-shadow:none!important;border-bottom:1px solid rgba(255,255,255,.08)!important;align-items:center!important}
+body .electricalBrand{min-width:0!important;gap:10px!important}
+body .electricalIcon{width:38px!important;height:38px!important;border-radius:10px!important;font-size:20px!important;background:#2a1807!important;color:#efb45e!important;flex:0 0 38px!important}
+body .electricalBrand h1{font-size:16px!important;line-height:1.15!important}
+body .electricalBrand p{margin-top:3px!important;font-size:9px!important;line-height:1.2!important;opacity:.7!important}
+body .topActions{gap:6px!important;justify-content:flex-end!important}
+body .topActions button{padding:8px 10px!important;border-radius:8px!important;font-size:11px!important;font-weight:700!important}
+body .electricalPage{max-width:900px!important;padding:8px!important}
+body .hero{min-height:0!important;margin:0 0 10px!important;padding:12px 4px 8px!important;border-radius:0!important;background:transparent!important;color:#1f2b27!important;box-shadow:none!important;display:block!important}
+body .heroEyebrow{margin-bottom:4px!important;color:#866e3e!important;font-size:8px!important;letter-spacing:.12em!important}
+body .hero h2{margin:0 0 4px!important;color:#173d33!important;font-family:Arial,Helvetica,sans-serif!important;font-size:18px!important;line-height:1.15!important}
+body .hero p{max-width:none!important;margin:0!important;color:#6f7b76!important;font-size:10px!important;line-height:1.35!important}
+body .metricGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin-bottom:10px!important}
+body .metricCard{padding:10px!important;border-radius:10px!important;box-shadow:none!important;background:#fff!important}
+body .metricLabel{margin-bottom:5px!important;font-size:9px!important}
+body .metricValue{font-size:22px!important}
+body .metricNote{margin-top:4px!important;font-size:8px!important}
+body .panel{border-radius:13px!important;box-shadow:none!important}
+body .panelHeader{padding:12px!important}
+body .panelHeader h3{font-size:15px!important}
+body .resultCount{font-size:9px!important}
+body .registerModeBar{padding:10px 12px 0!important;margin:0!important;gap:6px!important}
+body .registerModeBar button{padding:7px 9px!important;border-radius:8px!important;font-size:10px!important}
+body .filters{padding:10px 12px!important;gap:7px!important;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(120px,1fr)) auto!important}
+body .filters input,body .filters select,body .filters button{min-height:36px!important;padding:8px 9px!important;border-radius:8px!important;font-size:10px!important}
+body .assetTable th{padding:9px 10px!important;font-size:9px!important}
+body .assetTable td{padding:10px!important;font-size:11px!important}
+body .assetSub{font-size:9px!important}
+body .badge{font-size:9px!important;padding:4px 7px!important}
+body .circuitCountPill{font-size:9px!important}
+body .viewLink{font-size:10px!important}
+@media(max-width:700px){
+ body .electricalTopbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;padding:10px 12px!important;flex-direction:unset!important}
+ body .electricalBrand h1{font-size:15px!important}
+ body .electricalBrand p{font-size:8px!important}
+ body .electricalIcon{width:34px!important;height:34px!important;flex-basis:34px!important;font-size:18px!important}
+ body .topActions{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important;margin-top:2px!important}
+ body .topActions button{min-width:0!important;padding:7px 6px!important;font-size:9px!important}
+ body .electricalPage{padding:5px!important}
+ body .hero{padding:10px 4px 7px!important}
+ body .hero h2{font-size:17px!important}
+ body .hero p{font-size:9px!important}
+ body .metricGrid{grid-template-columns:1fr 1fr!important;gap:6px!important}
+ body .metricCard{padding:9px!important}
+ body .metricValue{font-size:20px!important}
+ body .filters{grid-template-columns:1fr 1fr!important;padding:9px!important}
+ body .filters input{grid-column:1/-1!important}
+ body .filters button{grid-column:1/-1!important}
+ body .panelHeader{padding:10px!important}
+ body .registerModeBar{padding:8px 9px 0!important}
+ body .assetTable{min-width:760px!important}
+}
+@media(max-width:430px){body .topActions{grid-template-columns:repeat(2,minmax(0,1fr))!important}body #signOutBtn{grid-column:1/-1!important}}

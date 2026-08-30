@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#17372c">
   <title>Limewood Engineering</title>
-  <link rel="stylesheet" href="assets/style.css?v=604">
+  <link rel="stylesheet" href="assets/style.css?v=605">
 
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#17372c">
@@ -35,7 +35,7 @@
   <div class="headerActions"><span id="syncStatus" class="syncStatus">Connecting…</span><button id="refreshBtn">Refresh</button><button id="signOutBtn">Sign out</button></div>
 </header>
 <div id="drawerBackdrop" class="drawerBackdrop"></div>
-<aside id="drawer" class="drawer" aria-hidden="true"><div class="drawerHead"><div class="mark">LW</div><div><h2>Limewood</h2><p>Engineering v7.4.0</p><small>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a></small></div><button id="closeDrawer" aria-label="Close menu" onclick="document.getElementById(&quot;drawer&quot;)?.classList.remove(&quot;open&quot;);document.getElementById(&quot;drawerBackdrop&quot;)?.classList.remove(&quot;open&quot;);document.getElementById(&quot;drawer&quot;)?.setAttribute(&quot;aria-hidden&quot;,&quot;true&quot;)">×</button></div><nav id="drawerNav">
+<aside id="drawer" class="drawer" aria-hidden="true"><div class="drawerHead"><div class="mark">LW</div><div><h2>Limewood</h2><p>Engineering v7.4.0</p><small>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a></small></div><button id="closeDrawer" aria-label="Collapse menu">‹</button></div><nav id="drawerNav">
 <button data-view="dashboard">🏠 Dashboard</button><button data-view="compliance">🛡 Compliance Centre</button><button data-view="bms">🟢 Live BMS Centre</button>
 <details id="assetRegistersMenu"><summary>📋 Asset Registers</summary></details>
 <details id="plantRoomsMenu"><summary>🏭 Plant Rooms</summary><div id="plantRoomNav"></div></details>
@@ -306,7 +306,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=20260830-childmodal-1"></script>
+<script src="app.js?v=20260830-navcollapse-1"></script>
 <button id="installAppButton" class="secondary installAppButton" hidden>Install Limewood Engineering</button>
 <div id="installAppHelp" class="installAppHelp" hidden>
   <b>Install on this device</b>

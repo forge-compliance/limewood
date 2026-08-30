@@ -31,6 +31,33 @@ body .assetSub{font-size:9px!important}
 body .badge{font-size:9px!important;padding:4px 7px!important}
 body .circuitCountPill{font-size:9px!important}
 body .viewLink{font-size:10px!important}
+
+/* Current quick-search page */
+body .top{padding:10px 12px 8px!important}
+body .topRow{display:flex!important;justify-content:flex-start!important}
+body .topRow .backBtn{display:none!important}
+body .actions.friendlyActions{margin:8px auto 0!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+body .actions.friendlyActions button{min-height:38px!important;font-size:10px!important;border-radius:10px!important;padding:8px 7px!important}
+body .actions.friendlyActions #backBtn{display:block!important;background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)!important}
+body .welcome{padding:12px 4px 6px!important}
+body .welcome h2{font-size:19px!important}
+body .welcome p{font-size:10px!important;max-width:620px!important}
+body .metrics{margin:4px 0 9px!important}
+body .metric{padding:9px!important}
+body .metric b{font-size:20px!important}
+body .metric span{font-size:8px!important}
+body .panelHead{padding:10px 11px 6px!important;border-bottom:0!important;align-items:flex-start!important;flex-wrap:wrap!important}
+body .panelHead h3{font-size:14px!important}
+body .panelHead .count{font-size:8px!important}
+body .searchHint{width:100%;font-size:8px;color:#8a7652;margin-top:-2px}
+body .searchHint.hide{display:none}
+body .filters.searchOnly{position:relative!important;display:block!important;padding:8px 10px 11px!important;background:#fff!important;border-bottom:0!important}
+body .filters.searchOnly .searchIcon{position:absolute;left:22px;top:50%;transform:translateY(-52%);z-index:2;color:#7a8681;font-size:18px;pointer-events:none}
+body .filters.searchOnly input{width:100%!important;min-height:40px!important;border-radius:12px!important;padding:9px 12px 9px 38px!important;font-size:11px!important;background:#f8f7f3!important;border:1px solid #d7d3ca!important}
+body .filters.searchOnly input:focus{outline:none!important;border-color:#8da89d!important;box-shadow:0 0 0 3px rgba(36,86,71,.08)!important}
+body #assetPanel[hidden],body #circuitPanel[hidden]{display:none!important}
+body:not(.hasElectricalSearch) .assetList,body:not(.hasElectricalSearch) .tableWrap{display:none!important}
+
 @media(max-width:700px){
  body .electricalTopbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;padding:10px 12px!important;flex-direction:unset!important}
  body .electricalBrand h1{font-size:15px!important}
@@ -51,5 +78,18 @@ body .viewLink{font-size:10px!important}
  body .panelHeader{padding:10px!important}
  body .registerModeBar{padding:8px 9px 0!important}
  body .assetTable{min-width:760px!important}
+ body .brand h1{font-size:17px!important}
+ body .actions.friendlyActions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body .metrics{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ body .metric{padding:8px 6px!important}
+ body .metric b{font-size:18px!important}
+ body .metric span{font-size:7px!important}
+ body .filters.searchOnly{display:block!important;padding:6px 9px 10px!important}
+ body .filters.searchOnly input{min-height:42px!important;font-size:12px!important}
 }
-@media(max-width:430px){body .topActions{grid-template-columns:repeat(2,minmax(0,1fr))!important}body #signOutBtn{grid-column:1/-1!important}}
+@media(max-width:430px){
+ body .topActions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body .actions.friendlyActions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body .metrics{grid-template-columns:1fr 1fr!important}
+ body .metric b{font-size:19px!important}
+}

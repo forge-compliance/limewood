@@ -54,8 +54,9 @@ function renderSearch(){
   }
 
   assets.forEach(a=>{
-    const hay=[a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.status,a.notes].join(' ').toLowerCase();
+    const hay=[a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.status,a.notes,(a.search_tags||[]).join(' ')].join(' ').toLowerCase();
     if(hay.includes(q))add(a,'Direct match');
+    else if(q.split(/\s+/).filter(Boolean).every(term=>hay.includes(term)))add(a,'Tagged match');
     if(roomNo){
       const code=String(a.asset_code||'').toUpperCase();
       const name=norm(a.asset_name);
@@ -67,9 +68,10 @@ function renderSearch(){
   });
 
   circuits.forEach(c=>{
-    const text=[c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes].join(' ').toLowerCase();
+    const text=[c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes,(c.search_tags||[]).join(' ')].join(' ').toLowerCase();
     const roomHit=roomNo&&new RegExp('\\b(?:room|bedroom)\\s*0*'+roomNo+'\\b','i').test(norm([c.circuit_description,c.destination,c.notes].join(' ')));
-    if(!text.includes(q)&&!roomHit)return;
+    const taggedTerms=q.split(/\s+/).filter(Boolean).every(term=>text.includes(term));
+    if(!text.includes(q)&&!taggedTerms&&!roomHit)return;
     const key=String(c.board_asset_code||'').trim().toLowerCase();
     const a=assets.find(x=>String(x.asset_code||'').trim().toLowerCase()===key||String(x.asset_name||'').trim().toLowerCase()===key);
     if(a)add(a,roomHit?'Supplies Room '+roomNo:'Circuit match',c);

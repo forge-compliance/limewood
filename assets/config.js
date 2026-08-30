@@ -29,6 +29,6 @@ window.LIMEWOOD_BMS = {
   }
   if(/\/electrical-distribution\.html$/i.test(location.pathname)){
     const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-3'; document.head.appendChild(electricalLayout);
-    const electricalSearchUx=document.createElement('script'); electricalSearchUx.src='/assets/electrical-distribution-search-ux.js?v=20260830-2'; document.head.appendChild(electricalSearchUx);
+    const electricalSearchUx=document.createElement('script'); electricalSearchUx.src='/assets/electrical-distribution-search-ux.js?v=20260830-3'; document.head.appendChild(electricalSearchUx);
   }
 })();

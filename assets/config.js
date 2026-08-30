@@ -27,6 +27,6 @@ window.LIMEWOOD_BMS = {
     const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-2'; document.head.appendChild(photoBatch);
   }
   if(/\/staff-house-electrical\.html$/i.test(location.pathname)){
-    const circuitLinks=document.createElement('script'); circuitLinks.src='/assets/staff-house-circuit-links.js?v=20260830-1'; document.head.appendChild(circuitLinks);
+    const circuitLinks=document.createElement('script'); circuitLinks.src='/assets/staff-house-circuit-links.js?v=20260830-2'; document.head.appendChild(circuitLinks);
   }
 })();

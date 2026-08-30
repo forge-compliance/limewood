@@ -4558,6 +4558,14 @@ document.querySelectorAll('[data-estate-room]').forEach(
   b=>b.onclick=()=>showPlantRoomHub(b.dataset.estateRoom)
 );
 
+document.querySelectorAll('[data-estate-building]').forEach(
+  b=>b.onclick=()=>{
+    const building=String(b.dataset.estateBuilding||'').trim();
+    if(!building)return;
+    location.href='/systems.html?view='+encodeURIComponent(building)+'&kind=location';
+  }
+);
+
 document.querySelectorAll('.estateGrid [data-placeholder]').forEach(
   b=>b.onclick=()=>placeholder(b.dataset.placeholder)
 );

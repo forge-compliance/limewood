@@ -4884,13 +4884,19 @@ client.auth.onAuthStateChange((event,newSession)=>{
   }
 });
 
-client.auth.getSession().then(({data})=>{
-  if(data.session && !session){
+client.auth.getSession().then(({data,error})=>{
+  if(error){
+    console.error('Session restore failed:',error);
+  }
+  if(data?.session && !session){
     startApp(data.session);
   }
-  else if(!data.session){
+  else if(!data?.session){
     stopApp();
-     }
+  }
+}).catch(error=>{
+  console.error('Session bootstrap failed:',error);
+  stopApp();
 });
 
 })();

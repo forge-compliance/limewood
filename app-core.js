@@ -3935,6 +3935,9 @@ async function signUp() {
 async function startApp(newSession) {
   session=newSession;
   els.authScreen.hidden=true; els.appShell.hidden=false;
+  if(window.matchMedia('(min-width:901px)').matches){
+    closeDrawer();
+  }
   updateDashboardGreeting();
   try {
     // Load existing buildings and plant rooms before attempting the one-time asset import.
@@ -4140,11 +4143,24 @@ const dashboardView=$('dashboardView'),
 let currentHubRoom='';
 
 function closeDrawer(){
-  drawer.classList.remove('open');
+  const desktop=window.matchMedia('(min-width:901px)').matches;
   backdrop.classList.remove('open');
-  drawer.setAttribute('aria-hidden','true');
-  drawer.style.transform='translateX(-102%)';
   backdrop.style.display='none';
+
+  if(desktop){
+    drawer.classList.add('open','collapsed');
+    drawer.setAttribute('aria-hidden','false');
+    drawer.style.removeProperty('transform');
+    localStorage.setItem('limewoodNavCollapsed','1');
+    const b=$('closeDrawer');
+    if(b){b.textContent='›';b.setAttribute('aria-label','Expand menu')}
+  }else{
+    drawer.classList.remove('open','collapsed');
+    drawer.setAttribute('aria-hidden','true');
+    drawer.style.transform='translateX(-102%)';
+    const b=$('closeDrawer');
+    if(b){b.textContent='×';b.setAttribute('aria-label','Close menu')}
+  }
 }
 
 function showView(n){
@@ -4388,16 +4404,28 @@ function placeholder(t){
   closeDrawer();
 }
 
-$('menuBtn').onclick=()=>{
+function expandDrawer(){
   drawer.scrollTop=0;
   drawer.style.removeProperty('transform');
   backdrop.style.removeProperty('display');
+  drawer.classList.remove('collapsed');
   drawer.classList.add('open');
   backdrop.classList.add('open');
   drawer.setAttribute('aria-hidden','false');
-};
+  localStorage.setItem('limewoodNavCollapsed','0');
+  const b=$('closeDrawer');
+  if(b){b.textContent='‹';b.setAttribute('aria-label','Collapse menu')}
+}
 
-$('closeDrawer').onclick=closeDrawer;
+$('menuBtn').onclick=expandDrawer;
+
+$('closeDrawer').onclick=()=>{
+  if(window.matchMedia('(min-width:901px)').matches && drawer.classList.contains('collapsed')){
+    expandDrawer();
+  }else{
+    closeDrawer();
+  }
+};
 backdrop.onclick=closeDrawer;
 
 $('assetRegistersMenu')?.querySelector('summary')?.addEventListener('click',e=>{

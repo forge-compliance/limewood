@@ -28,18 +28,16 @@ window.LIMEWOOD_BMS = {
     const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-2'; document.head.appendChild(photoBatch);
   }
   if(/\/electrical-distribution\.html$/i.test(location.pathname)){
-    const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-1'; document.head.appendChild(electricalLayout);
+    const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-2'; document.head.appendChild(electricalLayout);
     const addElectricalLocations=()=>{
       const select=document.getElementById('editPlantRoom');
       if(!select)return;
-      ['Office','Staff House Switchboard Room'].forEach(name=>{
+      ['Staff House Switchboard Room'].forEach(name=>{
         if(![...select.options].some(o=>o.value===name)){
-          const option=document.createElement('option');
-          option.value=name;
-          option.textContent=name;
-          select.appendChild(option);
+          const option=document.createElement('option'); option.value=name; option.textContent=name; select.appendChild(option);
         }
       });
+      [...select.options].filter(o=>o.value==='Office').forEach(o=>o.remove());
     };
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addElectricalLocations);
     else addElectricalLocations();

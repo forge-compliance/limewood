@@ -10,12 +10,35 @@
 
     const normalise=value=>String(value||'')
       .toLowerCase()
-      .replace(/\broom\s*(\d+)\b/g,'room $1')
       .replace(/[^a-z0-9]+/g,' ')
       .replace(/\s+/g,' ')
       .trim();
 
     const includesQuery=(values,q)=>normalise(values.filter(Boolean).join(' ')).includes(q);
+
+    const roomNumberFromQuery=raw=>{
+      const s=normalise(raw);
+      let m=s.match(/\b(?:room|bedroom)\s*0*(\d{1,3})\b/);
+      if(m)return String(Number(m[1]));
+      m=s.match(/^mh\s*0*(\d{1,3})$/);
+      return m?String(Number(m[1])):'';
+    };
+
+    const mainHouseGroupMatch=(asset,n)=>{
+      if(!n)return false;
+      const code=String(asset?.asset_code||'').trim().toUpperCase();
+      const name=normalise(asset?.asset_name||'');
+      const rx=new RegExp(`^MH-(?:DB|DIM)-0*${n}(?:[A-Z])?$`,'i');
+      return rx.test(code) || name.includes(`mh${n}`) || name.includes(`dimmer ${n}`);
+    };
+
+    const circuitRoomMatch=(circuit,n)=>{
+      if(!n)return false;
+      const text=normalise([
+        circuit?.circuit_description,circuit?.destination,circuit?.notes
+      ].filter(Boolean).join(' '));
+      return new RegExp(`\\b(?:room|bedroom)\\s*0*${n}\\b`,'i').test(text);
+    };
 
     function findAssetForCircuit(circuit){
       const board=String(circuit?.board_asset_code||'').trim().toLowerCase();
@@ -35,6 +58,7 @@
     renderSearch=function(){
       const raw=search.value.trim();
       const q=normalise(raw);
+      const roomNumber=roomNumberFromQuery(raw);
       const finder=$('finder');
       finder.classList.toggle('searching',!!q);
 
@@ -45,45 +69,68 @@
       }
 
       const matches=new Map();
+      const add=(asset,reason='',circuit=null)=>{
+        if(!asset)return;
+        const existing=matches.get(asset.id)||{asset,circuitMatches:[],reasons:[]};
+        if(circuit && !existing.circuitMatches.includes(circuit))existing.circuitMatches.push(circuit);
+        if(reason && !existing.reasons.includes(reason))existing.reasons.push(reason);
+        matches.set(asset.id,existing);
+      };
 
       assets.forEach(asset=>{
         if(includesQuery([
           asset.asset_code,asset.asset_name,asset.plant_room,asset.category,
           asset.system_duty,asset.manufacturer,asset.model,asset.status,asset.notes
-        ],q)){
-          matches.set(asset.id,{asset,circuitMatches:[]});
+        ],q)) add(asset,'Direct match');
+
+        if(roomNumber && mainHouseGroupMatch(asset,roomNumber)){
+          add(asset,`Main House Room ${roomNumber} group`);
         }
       });
 
       circuits.forEach(circuit=>{
-        if(!includesQuery([
+        const direct=includesQuery([
           circuit.board_asset_code,circuit.circuit_number,circuit.circuit_description,
           circuit.destination,circuit.phase,circuit.protective_device,circuit.device_rating,
           circuit.status,circuit.notes
-        ],q))return;
+        ],q);
+        const roomHit=roomNumber && circuitRoomMatch(circuit,roomNumber);
+        if(!direct && !roomHit)return;
 
         const asset=findAssetForCircuit(circuit);
         if(!asset)return;
-        const existing=matches.get(asset.id)||{asset,circuitMatches:[]};
-        existing.circuitMatches.push(circuit);
-        matches.set(asset.id,existing);
+        add(asset,roomHit?`Supplies Room ${roomNumber}`:'Circuit match',circuit);
       });
 
+      if(roomNumber){
+        circuits.forEach(circuit=>{
+          const asset=findAssetForCircuit(circuit);
+          if(asset && mainHouseGroupMatch(asset,roomNumber)) add(asset,`Main House Room ${roomNumber} group`,circuit);
+        });
+      }
+
       const rows=[...matches.values()]
-        .sort((a,b)=>String(a.asset.asset_code||'').localeCompare(String(b.asset.asset_code||''),undefined,{numeric:true}))
+        .sort((a,b)=>{
+          const ar=a.reasons.some(r=>r.startsWith('Supplies'))?0:a.reasons.includes('Direct match')?1:a.reasons.some(r=>r.includes('group'))?2:3;
+          const br=b.reasons.some(r=>r.startsWith('Supplies'))?0:b.reasons.includes('Direct match')?1:b.reasons.some(r=>r.includes('group'))?2:3;
+          return ar-br || String(a.asset.asset_name||'').localeCompare(String(b.asset.asset_name||''),undefined,{numeric:true});
+        })
         .slice(0,80);
 
       const circuitHitCount=rows.reduce((n,row)=>n+row.circuitMatches.length,0);
       $('resultsMeta').textContent=rows.length
-        ? `${rows.length} asset${rows.length===1?'':'s'}${circuitHitCount?` · ${circuitHitCount} circuit match${circuitHitCount===1?'':'es'}`:''}`
+        ? `${rows.length} result${rows.length===1?'':'s'}${circuitHitCount?` · ${circuitHitCount} related circuit${circuitHitCount===1?'':'s'}`:''}`
         : '0 matches';
 
-      $('results').innerHTML=rows.length?rows.map(({asset:a,circuitMatches})=>{
-        const circuitPreview=circuitMatches.slice(0,3).map(c=>
-          `<div class="location" style="color:#8a7652">⚡ Circuit match: ${esc(matchingCircuitText(c)||'Matched circuit')}</div>`
+      $('results').innerHTML=rows.length?rows.map(({asset:a,circuitMatches,reasons})=>{
+        const reason=reasons.find(r=>r.startsWith('Supplies')) || reasons.find(r=>r.includes('group')) || (reasons.includes('Direct match')?'Direct match':'Circuit match');
+        const reasonLine=reason && reason!=='Direct match'?`<div class="location" style="color:#9f8753;font-weight:700">⚡ ${esc(reason)}</div>`:'';
+        const usefulCircuits=circuitMatches.filter(c=>normalise(c.circuit_description||c.destination)!=='spare');
+        const circuitPreview=usefulCircuits.slice(0,3).map(c=>
+          `<div class="location" style="color:#8a7652">↳ ${esc(matchingCircuitText(c)||'Matched circuit')}</div>`
         ).join('');
-        const more=circuitMatches.length>3?`<div class="location">+ ${circuitMatches.length-3} more matching circuit${circuitMatches.length-3===1?'':'s'}</div>`:'';
-        return `<div class="assetCard" data-id="${esc(a.id)}"><div><div class="code">${esc(a.asset_code)}</div><div class="name">${esc(a.asset_name)}</div><div class="location">📍 ${esc(a.plant_room||'Location to confirm')}</div>${circuitPreview}${more}<div class="meta"><span class="pill">${esc(a.category||'Uncategorised')}</span><span class="pill ${esc(String(a.criticality||'').toLowerCase())}">${esc(a.criticality||'Not set')}</span>${canCircuits(a)?`<span class="pill">⚡ ${circuitsFor(a).length}</span>`:''}</div></div><div class="go">›</div></div>`;
+        const more=usefulCircuits.length>3?`<div class="location">+ ${usefulCircuits.length-3} more related circuit${usefulCircuits.length-3===1?'':'s'}</div>`:'';
+        return `<div class="assetCard" data-id="${esc(a.id)}"><div><div class="name" style="font-size:15px">${esc(a.asset_name)}</div><div class="location">${esc(a.plant_room||'Location to confirm')}</div>${reasonLine}${circuitPreview}${more}<div class="meta"><span class="pill">${esc(a.category||'Uncategorised')}</span><span class="pill ${esc(String(a.criticality||'').toLowerCase())}">${esc(a.criticality||'Not set')}</span>${canCircuits(a)?`<span class="pill">⚡ ${circuitsFor(a).length}</span>`:''}</div></div><div class="go">›</div></div>`;
       }).join(''):'<div class="empty">No matching electrical assets or circuits.</div>';
 
       document.querySelectorAll('.assetCard[data-id]').forEach(el=>el.onclick=()=>{
@@ -92,10 +139,7 @@
       });
     };
 
-    // The page already has its original input listener. This second listener runs
-    // afterwards so circuit/destination matches replace the simpler asset-only result.
     search.addEventListener('input',()=>requestAnimationFrame(renderSearch));
-
     if(search.value.trim())renderSearch();
   });
 })();

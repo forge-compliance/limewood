@@ -4127,6 +4127,7 @@ $('priorityCritical')?.addEventListener('click',()=>{
 $('priorityDocuments')?.addEventListener('click',()=>showDocuments(''));
 
 const dashboardView=$('dashboardView'),
+      buildingHubView=$('buildingHubView'),
       plantRoomHubView=$('plantRoomHubView'),
       registerView=$('registerView'),
       documentView=$('documentView'),
@@ -4141,6 +4142,7 @@ const dashboardView=$('dashboardView'),
       backdrop=$('drawerBackdrop');
 
 let currentHubRoom='';
+let currentBuildingHub='';
 
 function closeDrawer(){
   const desktop=window.matchMedia('(min-width:901px)').matches;
@@ -4165,6 +4167,7 @@ function closeDrawer(){
 
 function showView(n){
   dashboardView.hidden=n!=='dashboard';
+  if(buildingHubView)buildingHubView.hidden=n!=='buildingHub';
   plantRoomHubView.hidden=n!=='plantRoomHub';
   registerView.hidden=n!=='register';
   documentView.hidden=n!=='documents';
@@ -4256,6 +4259,49 @@ function showPlantRoomDirectory(){
 
   showView('placeholder');
   closeDrawer();
+}
+
+function buildingAssets(name){
+  const n=String(name||'').trim().toLowerCase();
+  return assets.filter(a=>String(a.buildingName||'').trim().toLowerCase()===n);
+}
+
+function buildingLocations(name){
+  const b=buildings.find(x=>String(x.name||'').trim().toLowerCase()===String(name||'').trim().toLowerCase());
+  if(!b)return[];
+  const areaNames=locationAreas.filter(x=>String(x.building_id)===String(b.id)).map(x=>x.name);
+  const roomNames=plantRooms.filter(x=>String(x.building_id)===String(b.id)).map(x=>x.name);
+  const exact=buildingAssets(name).map(a=>a.exactLocation).filter(Boolean);
+  return [...new Set([...areaNames,...roomNames,...exact].map(x=>String(x||'').trim()).filter(Boolean))];
+}
+
+function openBuildingSearch(query=''){
+  if(!currentBuildingHub)return;
+  const url='/systems.html?view='+encodeURIComponent(currentBuildingHub)+'&kind=location'+(query?'&q='+encodeURIComponent(query):'');
+  location.href=url;
+}
+
+function showBuildingHub(building){
+  currentBuildingHub=String(building||'').trim();
+  if(!currentBuildingHub)return;
+
+  showView('buildingHub');
+  closeDrawer();
+
+  const list=buildingAssets(currentBuildingHub);
+  const b=buildings.find(x=>String(x.name||'').trim().toLowerCase()===currentBuildingHub.toLowerCase());
+  const rooms=b?plantRooms.filter(x=>String(x.building_id)===String(b.id)):[];
+  const locations=buildingLocations(currentBuildingHub);
+  const photos=list.reduce((n,a)=>n+(Array.isArray(a.photos)?a.photos.length:0),0);
+
+  $('buildingHubTitle').textContent=currentBuildingHub;
+  $('buildingHubSummary').textContent='Search rooms, locations and assets across '+currentBuildingHub+'.';
+  $('buildingHubAssetCount').textContent=list.length;
+  $('buildingHubLocationCount').textContent=locations.length;
+  $('buildingHubPhotoCount').textContent=photos;
+  $('buildingHubPlantRoomCount').textContent=rooms.length;
+  $('buildingHubSearch').value='';
+  $('buildingHubSearch').placeholder='Search '+currentBuildingHub+'... e.g. Room 15 lights, boiler, AC';
 }
 
 function showPlantRoomHub(room){
@@ -4559,12 +4605,45 @@ document.querySelectorAll('[data-estate-room]').forEach(
 );
 
 document.querySelectorAll('[data-estate-building]').forEach(
-  b=>b.onclick=()=>{
-    const building=String(b.dataset.estateBuilding||'').trim();
-    if(!building)return;
-    location.href='/systems.html?view='+encodeURIComponent(building)+'&kind=location';
-  }
+  b=>b.onclick=()=>showBuildingHub(b.dataset.estateBuilding)
 );
+$('buildingHubBackDashboard')?.addEventListener('click',()=>showView('dashboard'));
+$('buildingHubSearchBtn')?.addEventListener('click',()=>openBuildingSearch($('buildingHubSearch').value.trim()));
+$('buildingHubSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')openBuildingSearch(e.currentTarget.value.trim())});
+
+$('buildingHubView')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-building-action]');
+  if(!b)return;
+  const action=b.dataset.buildingAction;
+
+  if(action==='search') openBuildingSearch('');
+  else if(action==='plantrooms'){
+    const building=buildings.find(x=>String(x.name||'').trim().toLowerCase()===currentBuildingHub.toLowerCase());
+    const rooms=building?plantRooms.filter(x=>String(x.building_id)===String(building.id)):[];
+    if(rooms.length===1) showPlantRoomHub(rooms[0].name);
+    else{
+      const card=placeholderView.querySelector('.placeholderCard');
+      card.innerHTML=`<span>${esc(currentBuildingHub.toUpperCase())}</span><h2>Plant Rooms</h2><p>Choose a plant room.</p><div class="plantHubGrid directoryGrid">${rooms.length?rooms.map(r=>`<button data-select-plant-room="${esc(r.name)}"><span>🏭</span><b>${esc(r.name.replace(/ Plant Room$/i,''))}</b><small>${assets.filter(a=>samePlantRoom(a.room,r.name)).length} assets</small></button>`).join(''):'<p class="emptyState">No plant rooms recorded for this building.</p>'}</div><button id="roomDirectoryBack">Return to building hub</button>`;
+      showView('placeholder');
+    }
+  }
+  else if(action==='electrical'){
+    const n=currentBuildingHub.toLowerCase();
+    if(n==='main house') location.href='/main-house-electrical.html';
+    else if(n==='staff house') location.href='/staff-house-electrical.html';
+    else location.href='/electrical-distribution.html';
+  }
+  else if(action==='schematic') location.href='/drawings-schematics.html?building='+encodeURIComponent(currentBuildingHub);
+  else if(action==='documents'){
+    showDocuments('');
+    const building=buildings.find(x=>String(x.name||'').trim().toLowerCase()===currentBuildingHub.toLowerCase());
+    if(building&&docEls?.buildingFilter){docEls.buildingFilter.value=String(building.id);renderDocuments?.()}
+  }
+  else if(action==='maintenance') location.href='/maintenance-dashboard.html';
+  else if(action==='compliance') showCompliance();
+  else if(action==='bms') openBms(bmsKeyForRoom(currentBuildingHub));
+});
+
 
 document.querySelectorAll('.estateGrid [data-placeholder]').forEach(
   b=>b.onclick=()=>placeholder(b.dataset.placeholder)

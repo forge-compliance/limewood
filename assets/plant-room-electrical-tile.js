@@ -16,32 +16,32 @@
     else grid.prepend(button);
   }
 
-  function installStaffHouseSchematicRoute(){
+  function installDedicatedSchematicRoutes(){
     const hub=document.getElementById('plantRoomHubView');
-    if(!hub || hub.dataset.staffElectricalRoute==='1') return;
-    hub.dataset.staffElectricalRoute='1';
+    if(!hub || hub.dataset.electricalRoutes==='1') return;
+    hub.dataset.electricalRoutes='1';
 
     hub.addEventListener('click', event=>{
       const button=event.target.closest('[data-hub-action="electrical"]');
       if(!button) return;
 
       const room=String(document.getElementById('hubRoomTitle')?.textContent||'').trim().toLowerCase();
-      if(!room.includes('staff house')) return;
+      let target='';
+      if(room.includes('staff house')) target='/staff-house-electrical.html';
+      else if(room.includes('main house') && room.includes('plant')) target='/main-house-electrical.html';
+      if(!target) return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
-      location.href='/staff-house-electrical.html';
+      location.href=target;
     }, true);
   }
 
   function init(){
     addElectricalTile();
-    installStaffHouseSchematicRoute();
+    installDedicatedSchematicRoutes();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
+  else init();
 })();

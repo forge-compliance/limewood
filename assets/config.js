@@ -15,6 +15,7 @@ window.LIMEWOOD_BMS = {
   const search=document.createElement('script'); search.src='/assets/dashboard-search.js?v=20260819-1'; document.head.appendChild(search);
   const style=document.createElement('link'); style.rel='stylesheet'; style.href='/assets/dashboard-v8.css?v=20260819-4'; document.head.appendChild(style);
   const dash=document.createElement('script'); dash.src='/assets/dashboard-v8.js?v=20260819-3'; document.head.appendChild(dash);
+  const staffElectricalRoute=document.createElement('script'); staffElectricalRoute.src='/assets/staff-house-electrical-route.js?v=20260830-1'; document.head.appendChild(staffElectricalRoute);
   if(/^\/(?:index\.html)?$/i.test(location.pathname)){
     const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260829-1'; document.head.appendChild(sopActions);
     const documentCentre=document.createElement('script'); documentCentre.src='/assets/document-centre-v2.js?v=20260829-3'; document.head.appendChild(documentCentre);
@@ -25,8 +26,5 @@ window.LIMEWOOD_BMS = {
   }
   if(/\/photo-inbox\.html$/i.test(location.pathname)){
     const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-2'; document.head.appendChild(photoBatch);
-  }
-  if(/\/staff-house-electrical\.html$/i.test(location.pathname)){
-    const circuitLinks=document.createElement('script'); circuitLinks.src='/assets/staff-house-circuit-links.js?v=20260830-2'; document.head.appendChild(circuitLinks);
   }
 })();

@@ -3784,6 +3784,9 @@ async function openAsset(code) {
   current = assets.find(a => a.id === code);
   if (!current) return;
 
+  // Asset detail must always take over the screen cleanly.
+  closeDrawer();
+
   current.photos = await Promise.all(
     (current.photos || []).map(async p => ({
       ...p,

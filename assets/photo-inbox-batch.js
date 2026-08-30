@@ -13,6 +13,11 @@
     let currentReviewId = null;
     let bypassDuplicateCheck = false;
 
+    /* Android browsers often replace the FileList after every camera capture.
+       Keep our own queue and allow repeated camera launches before upload. */
+    input.multiple = true;
+    input.removeAttribute('capture');
+
     const cfg = window.LIMEWOOD_CONFIG || {};
     const client = window.supabase?.createClient?.(cfg.supabaseUrl, cfg.supabasePublishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
@@ -22,11 +27,15 @@
     wrap.style.cssText = 'margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap';
     const count = document.createElement('strong');
     count.style.cssText = 'font-size:13px;color:#17372c';
+    const addMore = document.createElement('button');
+    addMore.type = 'button';
+    addMore.textContent = 'Take / add another photo';
+    addMore.style.cssText = 'border:1px solid #17372c;background:#17372c;color:#fff;padding:8px 11px;border-radius:9px;font-weight:800';
     const clear = document.createElement('button');
     clear.type = 'button';
     clear.textContent = 'Clear photos';
     clear.style.cssText = 'display:none;border:1px solid #b9c7bf;background:#fff;color:#17372c;padding:7px 10px;border-radius:9px;font-weight:700';
-    wrap.append(count, clear);
+    wrap.append(count, addMore, clear);
     input.insertAdjacentElement('afterend', wrap);
 
     function key(file) {
@@ -38,7 +47,7 @@
       pending.forEach(file => dt.items.add(file));
       input.files = dt.files;
       count.textContent = pending.length
-        ? `${pending.length} photo${pending.length === 1 ? '' : 's'} ready. Tap Select photos to add more.`
+        ? `${pending.length} photo${pending.length === 1 ? '' : 's'} ready.`
         : 'No photos selected yet.';
       clear.style.display = pending.length ? 'inline-block' : 'none';
     }
@@ -54,6 +63,8 @@
       });
       sync();
     });
+
+    addMore.addEventListener('click', () => input.click());
 
     clear.addEventListener('click', () => {
       pending.length = 0;
@@ -93,132 +104,73 @@
       del.addEventListener('click', async () => {
         if (!currentReviewId || !client) return;
         if (!confirm('Delete this photo from Human Review? This removes the inbox record and the stored photo.')) return;
-
         del.disabled = true;
-        if (status) {
-          status.className = 'reviewStatus';
-          status.textContent = 'Deleting photo…';
-        }
-
+        if (status) { status.className = 'reviewStatus'; status.textContent = 'Deleting photo…'; }
         try {
-          const { data: row, error: loadError } = await client
-            .from('photo_inbox')
-            .select('id,storage_path,original_filename')
-            .eq('id', currentReviewId)
-            .single();
+          const { data: row, error: loadError } = await client.from('photo_inbox').select('id,storage_path,original_filename').eq('id', currentReviewId).single();
           if (loadError) throw loadError;
-
           if (row?.storage_path) {
             const storageResult = await client.storage.from(cfg.storageBucket || 'asset-files').remove([row.storage_path]);
             if (storageResult.error) throw storageResult.error;
           }
-
-          const { error: deleteError } = await client
-            .from('photo_inbox')
-            .delete()
-            .eq('id', currentReviewId);
+          const { error: deleteError } = await client.from('photo_inbox').delete().eq('id', currentReviewId);
           if (deleteError) throw deleteError;
-
-          if (status) {
-            status.className = 'reviewStatus success';
-            status.textContent = 'Photo deleted.';
-          }
+          if (status) { status.className = 'reviewStatus success'; status.textContent = 'Photo deleted.'; }
           document.getElementById('reviewModal')?.classList.remove('open');
           currentReviewId = null;
           setTimeout(() => location.reload(), 350);
         } catch (err) {
-          if (status) {
-            status.className = 'reviewStatus error';
-            status.textContent = 'Could not delete photo. ' + (err?.message || String(err));
-          }
+          if (status) { status.className = 'reviewStatus error'; status.textContent = 'Could not delete photo. ' + (err?.message || String(err)); }
           del.disabled = false;
         }
       });
     }
 
     suggest?.addEventListener('click', async event => {
-      if (bypassDuplicateCheck) {
-        bypassDuplicateCheck = false;
-        return;
-      }
+      if (bypassDuplicateCheck) { bypassDuplicateCheck = false; return; }
       if (!currentReviewId || !window.supabase || !window.LIMEWOOD_CONFIG) return;
-
       event.preventDefault();
       event.stopImmediatePropagation();
       suggest.disabled = true;
-      if (status) {
-        status.className = 'reviewStatus';
-        status.textContent = 'Checking for an existing asset first…';
-      }
-
+      if (status) { status.className = 'reviewStatus'; status.textContent = 'Checking for an existing asset first…'; }
       try {
-        const { data, error } = await client.functions.invoke('photo-duplicate-check', {
-          body: { action: 'check', id: currentReviewId }
-        });
+        const { data, error } = await client.functions.invoke('photo-duplicate-check', { body: { action: 'check', id: currentReviewId } });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-
         const match = data?.matches?.[0];
         if (match) {
-          const reason = Array.isArray(match.reasons) && match.reasons.length
-            ? `\nMatch: ${match.reasons.join(', ')}`
-            : '';
-          const useExisting = confirm(
-            `Possible existing asset found:\n\n${match.asset_code} · ${match.asset_name}` +
-            `${match.room_name ? `\n${match.room_name}` : ''}${reason}\n\nUse this existing asset instead of creating another one?`
-          );
-
+          const reason = Array.isArray(match.reasons) && match.reasons.length ? `\nMatch: ${match.reasons.join(', ')}` : '';
+          const useExisting = confirm(`Possible existing asset found:\n\n${match.asset_code} · ${match.asset_name}${match.room_name ? `\n${match.room_name}` : ''}${reason}\n\nUse this existing asset instead of creating another one?`);
           if (useExisting) {
             if (status) status.textContent = `Assigning to ${match.asset_code}…`;
             let assigned;
             if (match.source === 'electrical') {
-              const result = await client.functions.invoke('photo-duplicate-check', {
-                body: {
-                  action: 'assign_existing_electrical',
-                  id: currentReviewId,
-                  electrical_asset_id: match.id
-                }
-              });
+              const result = await client.functions.invoke('photo-duplicate-check', { body: { action: 'assign_existing_electrical', id: currentReviewId, electrical_asset_id: match.id } });
               if (result.error) throw result.error;
               if (result.data?.error) throw new Error(result.data.error);
               assigned = result.data?.asset;
             } else {
-              const result = await client.functions.invoke('photo-ai-file', {
-                body: { action: 'approve', id: currentReviewId, asset_id: match.id }
-              });
+              const result = await client.functions.invoke('photo-ai-file', { body: { action: 'approve', id: currentReviewId, asset_id: match.id } });
               if (result.error) throw result.error;
               if (result.data?.error) throw new Error(result.data.error);
               assigned = result.data?.asset;
             }
-
-            if (status) {
-              status.className = 'reviewStatus success';
-              status.textContent = `Assigned to existing ${assigned?.asset_code || match.asset_code} · ${assigned?.asset_name || match.asset_name}`;
-            }
+            if (status) { status.className = 'reviewStatus success'; status.textContent = `Assigned to existing ${assigned?.asset_code || match.asset_code} · ${assigned?.asset_name || match.asset_name}`; }
             setTimeout(() => location.reload(), 700);
             return;
           }
         }
-
         bypassDuplicateCheck = true;
         suggest.disabled = false;
         suggest.click();
       } catch (err) {
-        if (status) {
-          status.className = 'reviewStatus error';
-          status.textContent = 'Duplicate check failed, so no new asset was created. ' + (err?.message || String(err));
-        }
-      } finally {
-        suggest.disabled = false;
-      }
+        if (status) { status.className = 'reviewStatus error'; status.textContent = 'Duplicate check failed, so no new asset was created. ' + (err?.message || String(err)); }
+      } finally { suggest.disabled = false; }
     }, true);
 
     sync();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', install, { once: true });
-  } else {
-    install();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+  else install();
 })();

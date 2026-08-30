@@ -643,7 +643,13 @@ function closeQr(){
   m.classList.remove('open');
   m.setAttribute('aria-hidden','true');
 
-  document.body.classList.remove('modal-open');
+  if(current && els.modal){
+    els.modal.classList.add('open');
+    els.modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+  }else{
+    document.body.classList.remove('modal-open');
+  }
 }
 
 function qrDataUrl(){

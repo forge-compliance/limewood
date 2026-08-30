@@ -3515,7 +3515,15 @@ function closeMaintenanceHistory() {
 
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden','true');
-  document.body.classList.remove('modal-open');
+
+  // Return to the asset card, not to the originating electrical page.
+  if (current && els.modal) {
+    els.modal.classList.add('open');
+    els.modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+  } else {
+    document.body.classList.remove('modal-open');
+  }
 }
 
 function historyRecordSearchText(record) {
@@ -3750,6 +3758,12 @@ async function openMaintenanceHistory() {
 
     const modal = $('maintenanceHistoryModal');
     if (!modal) throw new Error('Maintenance history screen is missing from the page.');
+
+    // Swap from asset detail to history without invoking closeAsset(),
+    // so the electrical return route is preserved for the final asset close only.
+    els.modal.classList.remove('open');
+    els.modal.setAttribute('aria-hidden','true');
+
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
     document.body.classList.add('modal-open');

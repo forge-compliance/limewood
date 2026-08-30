@@ -95,6 +95,31 @@
   <article class="attentionPanel"><div class="sectionHead"><h3>Information quality</h3><span>Survey progress</span></div><div class="qualityRing"><b id="qualityPercent">0%</b><span>records complete</span></div><div class="qualityDetails"><p><span>Registered assets</span><b id="totalCount">0</b></p><p><span>Plant rooms</span><b id="roomsCount">0</b></p><p><span>Surveyed assets</span><b id="surveyedCount">0</b></p><p><span>Cloud photographs</span><b id="photoCount">0</b></p></div></article>
 </section>
 </section>
+<section id="buildingHubView" hidden>
+  <section class="plantHubHero">
+    <button id="buildingHubBackDashboard" class="hubBack">← Dashboard</button>
+    <span class="eyebrow">BUILDING HUB</span>
+    <h2 id="buildingHubTitle">Building</h2>
+    <p id="buildingHubSummary">Search rooms, locations and assets across this building.</p>
+    <div class="plantHubSearch"><input id="buildingHubSearch" placeholder="Search this building"><button id="buildingHubSearchBtn" class="primary">Search</button></div>
+  </section>
+  <section class="plantHubStats">
+    <article><b id="buildingHubAssetCount">0</b><span>Assets</span></article>
+    <article><b id="buildingHubLocationCount">0</b><span>Locations</span></article>
+    <article><b id="buildingHubPhotoCount">0</b><span>Photos</span></article>
+    <article><b id="buildingHubPlantRoomCount">0</b><span>Plant rooms</span></article>
+  </section>
+  <section class="plantHubGrid">
+    <button data-building-action="search"><span>🔎</span><b>Rooms & Assets</b><small>Search the whole building</small></button>
+    <button data-building-action="plantrooms"><span>🏭</span><b>Plant Rooms</b><small>Engineering plant-room hubs</small></button>
+    <button data-building-action="electrical"><span>⚡</span><b>Electrical</b><small>Distribution and circuits</small></button>
+    <button data-building-action="schematic"><span>🗺</span><b>Schematics</b><small>Drawings and system maps</small></button>
+    <button data-building-action="documents"><span>📚</span><b>Documents</b><small>SOPs, RAMS and manuals</small></button>
+    <button data-building-action="maintenance"><span>🧰</span><b>Maintenance</b><small>Jobs and engineering work</small></button>
+    <button data-building-action="compliance"><span>🛡</span><b>Compliance</b><small>Evidence and review status</small></button>
+    <button data-building-action="bms"><span>🟢</span><b>Live BMS</b><small>Open Niagara controls</small></button>
+  </section>
+</section>
 <section id="plantRoomHubView" hidden>
   <section class="plantHubHero">
     <button id="hubBackDashboard" class="hubBack">← Dashboard</button>

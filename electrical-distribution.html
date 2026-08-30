@@ -94,20 +94,34 @@ function renderSearch(){
       if(a)add(a,'Room '+roomNo+' · '+intent,c);
     });
   } else {
-    assets.forEach(a=>{
-      const hay=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.status,a.notes,(a.search_tags||[]).join(' ')].join(' '));
-      if(hay.includes(norm(q)) || norm(q).split(/\s+/).filter(Boolean).every(term=>hay.includes(term)))add(a,'Direct match');
-      if(roomNo&&roomAssetHit(a))add(a,'Room '+roomNo);
-    });
+    if(roomNo){
+      // A room-only search is a location scope, not a bag-of-words search.
+      // This prevents "room" matching a plant-room location while "15" matches
+      // some unrelated code/date elsewhere on the same record.
+      assets.forEach(a=>{
+        if(roomAssetHit(a))add(a,'Room '+roomNo);
+      });
 
-    circuits.forEach(c=>{
-      const text=norm([c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes,(c.search_tags||[]).join(' ')].join(' '));
-      const roomHit=roomNo&&roomCircuitHit(c);
-      if(!text.includes(norm(q))&&!roomHit)return;
-      const key=String(c.board_asset_code||'').trim().toLowerCase();
-      const a=assets.find(x=>String(x.asset_code||'').trim().toLowerCase()===key||String(x.asset_name||'').trim().toLowerCase()===key);
-      if(a)add(a,roomHit?'Supplies Room '+roomNo:'Circuit match',c);
-    });
+      circuits.forEach(c=>{
+        if(!roomCircuitHit(c))return;
+        const key=String(c.board_asset_code||'').trim().toLowerCase();
+        const a=assets.find(x=>String(x.asset_code||'').trim().toLowerCase()===key||String(x.asset_name||'').trim().toLowerCase()===key);
+        if(a)add(a,'Supplies Room '+roomNo,c);
+      });
+    } else {
+      assets.forEach(a=>{
+        const hay=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.status,a.notes,(a.search_tags||[]).join(' ')].join(' '));
+        if(hay.includes(norm(q)) || norm(q).split(/\s+/).filter(Boolean).every(term=>hay.includes(term)))add(a,'Direct match');
+      });
+
+      circuits.forEach(c=>{
+        const text=norm([c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes,(c.search_tags||[]).join(' ')].join(' '));
+        if(!text.includes(norm(q)))return;
+        const key=String(c.board_asset_code||'').trim().toLowerCase();
+        const a=assets.find(x=>String(x.asset_code||'').trim().toLowerCase()===key||String(x.asset_name||'').trim().toLowerCase()===key);
+        if(a)add(a,'Circuit match',c);
+      });
+    }
   }
 
   const list=[...found.values()].sort((x,y)=>{

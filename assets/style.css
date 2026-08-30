@@ -826,3 +826,30 @@ body.modal-open #drawerBackdrop{display:none!important;pointer-events:none!impor
     padding-left:56px;
   }
 }
+
+/* v7.4.3 persistent desktop navigation sizing */
+@media(min-width:901px){
+  #appShell>header,#appShell>main{
+    transition:margin-left .22s ease,width .22s ease,max-width .22s ease;
+  }
+  body:has(#drawer.open:not(.collapsed)) #appShell>header,
+  body:has(#drawer.open:not(.collapsed)) #appShell>main{
+    margin-left:340px!important;
+    margin-right:0!important;
+    width:calc(100% - 340px)!important;
+    max-width:none!important;
+  }
+  body:has(#drawer.collapsed) #appShell>header,
+  body:has(#drawer.collapsed) #appShell>main{
+    margin-left:56px!important;
+    margin-right:0!important;
+    width:calc(100% - 56px)!important;
+    max-width:none!important;
+  }
+  body:has(#drawer.open:not(.collapsed)) #appShell>main,
+  body:has(#drawer.collapsed) #appShell>main{
+    padding-left:3vw!important;
+    padding-right:3vw!important;
+  }
+  .drawerBackdrop{display:none!important}
+}

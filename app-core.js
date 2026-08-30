@@ -3811,7 +3811,7 @@ function newAsset() {
   renderDetails(); setEditing(true); els.modal.classList.add('open'); els.modal.setAttribute('aria-hidden','false'); document.body.classList.add('modal-open'); els.previous.disabled=true; els.next.disabled=true;
 }
 
-function closeAsset() { els.modal.classList.remove('open'); els.modal.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open'); current=null; }
+function closeAsset() { const params=new URLSearchParams(location.search); const returnTo=params.get('return')||''; els.modal.classList.remove('open'); els.modal.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open'); current=null; if(returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) location.href=returnTo; }
 
 function cleanName(name) { return name.replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-'); }
 

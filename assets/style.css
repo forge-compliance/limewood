@@ -781,3 +781,7 @@ button#saveValve.primary{
 #modal .modalCard{position:relative;z-index:101}
 body.modal-open #drawer{transform:translateX(-102%)!important;pointer-events:none!important}
 body.modal-open #drawerBackdrop{display:none!important;pointer-events:none!important}
+
+/* maintenance history above asset modal */
+#maintenanceHistoryModal{z-index:120!important}
+#maintenanceHistoryModal .modalCard{position:relative;z-index:121}

@@ -16,6 +16,9 @@ window.LIMEWOOD_BMS = {
   const style=document.createElement('link'); style.rel='stylesheet'; style.href='/assets/dashboard-v8.css?v=20260819-4'; document.head.appendChild(style);
   const dash=document.createElement('script'); dash.src='/assets/dashboard-v8.js?v=20260819-3'; document.head.appendChild(dash);
   const staffElectricalRoute=document.createElement('script'); staffElectricalRoute.src='/assets/staff-house-electrical-route.js?v=20260830-1'; document.head.appendChild(staffElectricalRoute);
+  if(!/^\/(?:index\.html)?$/i.test(location.pathname)){
+    const siteSidebar=document.createElement('script'); siteSidebar.src='/assets/site-sidebar.js?v=20260830-2'; document.head.appendChild(siteSidebar);
+  }
   if(/^\/(?:index\.html)?$/i.test(location.pathname)){
     const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260829-1'; document.head.appendChild(sopActions);
     const documentCentre=document.createElement('script'); documentCentre.src='/assets/document-centre-v2.js?v=20260829-3'; document.head.appendChild(documentCentre);

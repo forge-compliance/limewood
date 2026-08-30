@@ -785,3 +785,7 @@ body.modal-open #drawerBackdrop{display:none!important;pointer-events:none!impor
 /* maintenance history above asset modal */
 #maintenanceHistoryModal{z-index:120!important}
 #maintenanceHistoryModal .modalCard{position:relative;z-index:121}
+
+/* asset child modals above asset */
+#qrModal,#maintenanceHistoryModal{z-index:220!important}
+#qrModal .modalCard,#maintenanceHistoryModal .modalCard{position:relative;z-index:221!important}

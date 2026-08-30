@@ -11,46 +11,19 @@ window.LIMEWOOD_BMS = {
 
 // Location-aware navigation + friendly search + dashboard v8 skin.
 (() => {
-  const nav=document.createElement('script');
-  nav.src='/assets/location-registers.js?v=20260819-2';
-  document.head.appendChild(nav);
-
-  const search=document.createElement('script');
-  search.src='/assets/dashboard-search.js?v=20260819-1';
-  document.head.appendChild(search);
-
-  const style=document.createElement('link');
-  style.rel='stylesheet';
-  style.href='/assets/dashboard-v8.css?v=20260819-4';
-  document.head.appendChild(style);
-
-  const dash=document.createElement('script');
-  dash.src='/assets/dashboard-v8.js?v=20260819-3';
-  document.head.appendChild(dash);
-
+  const nav=document.createElement('script'); nav.src='/assets/location-registers.js?v=20260819-2'; document.head.appendChild(nav);
+  const search=document.createElement('script'); search.src='/assets/dashboard-search.js?v=20260819-1'; document.head.appendChild(search);
+  const style=document.createElement('link'); style.rel='stylesheet'; style.href='/assets/dashboard-v8.css?v=20260819-4'; document.head.appendChild(style);
+  const dash=document.createElement('script'); dash.src='/assets/dashboard-v8.js?v=20260819-3'; document.head.appendChild(dash);
   if(/^\/(?:index\.html)?$/i.test(location.pathname)){
-    const sopActions=document.createElement('script');
-    sopActions.src='/assets/sop-actions-stable.js?v=20260829-1';
-    document.head.appendChild(sopActions);
-
-    const documentCentre=document.createElement('script');
-    documentCentre.src='/assets/document-centre-v2.js?v=20260829-3';
-    document.head.appendChild(documentCentre);
-
-    const reviewLayout=document.createElement('script');
-    reviewLayout.src='/assets/review-layout-fix.js?v=20260829-1';
-    document.head.appendChild(reviewLayout);
+    const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260829-1'; document.head.appendChild(sopActions);
+    const documentCentre=document.createElement('script'); documentCentre.src='/assets/document-centre-v2.js?v=20260829-3'; document.head.appendChild(documentCentre);
+    const reviewLayout=document.createElement('script'); reviewLayout.src='/assets/review-layout-fix.js?v=20260829-1'; document.head.appendChild(reviewLayout);
   }
-
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
-    const maintenanceAssetPicker=document.createElement('script');
-    maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1';
-    document.head.appendChild(maintenanceAssetPicker);
+    const maintenanceAssetPicker=document.createElement('script'); maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1'; document.head.appendChild(maintenanceAssetPicker);
   }
-
   if(/\/photo-inbox\.html$/i.test(location.pathname)){
-    const photoBatch=document.createElement('script');
-    photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-1';
-    document.head.appendChild(photoBatch);
+    const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-2'; document.head.appendChild(photoBatch);
   }
 })();

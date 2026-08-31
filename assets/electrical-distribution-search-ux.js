@@ -6,7 +6,7 @@
 
     search.placeholder='Search asset, room, circuit or equipment…';
     search.setAttribute('autocomplete','off');
-    search.setAttribute('aria-label','Search electrical assets and circuits');
+    search.setAttribute('aria-label','Search electrical assets and circuits');\n\n    // SMART_SEARCH_URL_PREFILL_20260831\n    const requestedSearch=new URLSearchParams(location.search).get('search')||new URLSearchParams(location.search).get('asset')||'';\n    if(requestedSearch&&!search.value)search.value=requestedSearch;
 
     const normalise=value=>String(value||'')
       .toLowerCase()

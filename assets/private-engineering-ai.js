@@ -20,6 +20,12 @@
   function addButtons(){if(!authorised)return;buildPanel();const open=()=>document.getElementById('engineeringAiModal')?.classList.add('open');const nav=document.getElementById('drawerNav');if(nav&&!document.getElementById('engineeringAiNavBtn')){const b=document.createElement('button');b.id='engineeringAiNavBtn';b.type='button';b.textContent='🤖 Engineering AI';b.onclick=open;nav.prepend(b)}const quick=document.querySelector('#dashboardView .quickGrid');if(quick&&!document.getElementById('engineeringAiQuickBtn')){const b=document.createElement('button');b.id='engineeringAiQuickBtn';b.type='button';b.innerHTML='<span>🤖</span><b>Engineering AI</b><small>Private estate assistant</small>';b.onclick=open;quick.prepend(b)}}
   function removeButtons(){document.getElementById('engineeringAiNavBtn')?.remove();document.getElementById('engineeringAiQuickBtn')?.remove();document.getElementById('engineeringAiModal')?.remove()}
   async function syncAccess(){const {data}=await aiClient.auth.getSession();authorised=(data?.session?.user?.id||'')===AUTHORIZED_USER_ID;if(authorised)addButtons();else removeButtons()}
-  function start(){syncAccess();aiClient.auth.onAuthStateChange(()=>setTimeout(syncAccess,0));new MutationObserver(()=>{if(authorised)addButtons()}).observe(document.body,{subtree:true,childList:true})}
+  function start(){
+    syncAccess();
+    aiClient.auth.onAuthStateChange(()=>setTimeout(syncAccess,0));
+    window.addEventListener('focus',()=>{if(authorised)addButtons()},{passive:true});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&authorised)addButtons()},{passive:true});
+    window.addEventListener('limewood:engineering-ai:changed',()=>{if(authorised)addButtons()});
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

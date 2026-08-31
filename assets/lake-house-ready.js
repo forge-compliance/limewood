@@ -1,10 +1,18 @@
-/* Lake House readiness layer.
-   Makes Lake House Plant Room visible in the UI before Supabase creation is available.
-   Once the real plant-room row exists, the normal live data will take over. */
+/* Lake House live-status layer.
+   Lake House now exists in Supabase, so this helper keeps its dashboard tile
+   current instead of showing the old hard-coded "Pending sync" placeholder. */
 (() => {
   'use strict';
 
   const ROOM='Lake House Plant Room';
+  const BUILDING='Lake House';
+  const REFRESH_MS=30000;
+  const cfg=window.LIMEWOOD_CONFIG||{};
+  const liveClient=(window.supabase&&cfg.supabaseUrl&&cfg.supabasePublishableKey)
+    ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})
+    : null;
+  let live={ready:false,assets:0};
+  let refreshing=false;
 
   function addRoomSelect(){
     const select=document.getElementById('room');
@@ -30,21 +38,27 @@
   function addDirectoryRoom(){
     const grid=document.querySelector('.plantHubGrid.directoryGrid');
     if(!grid) return;
-    if([...grid.querySelectorAll('[data-select-plant-room]')].some(b=>String(b.dataset.selectPlantRoom||'').toLowerCase()===ROOM.toLowerCase())) return;
-    const b=document.createElement('button');
-    b.dataset.selectPlantRoom=ROOM;
-    b.innerHTML='<span>🏭</span><b>Lake House</b><small>0 assets · 0 valves</small>';
-    grid.appendChild(b);
+    let b=[...grid.querySelectorAll('[data-select-plant-room]')].find(x=>String(x.dataset.selectPlantRoom||'').toLowerCase()===ROOM.toLowerCase());
+    if(!b){
+      b=document.createElement('button');
+      b.dataset.selectPlantRoom=ROOM;
+      grid.appendChild(b);
+    }
+    b.innerHTML=`<span>🏭</span><b>Lake House</b><small>${live.assets} assets</small>`;
   }
 
   function addEstateTile(){
     const grid=document.querySelector('#dashboardView .estateGrid');
     if(!grid) return;
-    if([...grid.querySelectorAll('[data-estate-room]')].some(b=>String(b.dataset.estateRoom||'').toLowerCase()===ROOM.toLowerCase())) return;
-    const b=document.createElement('button');
-    b.dataset.estateRoom=ROOM;
-    b.innerHTML='<div><b>Lake House</b><span>Plant room ready</span></div><strong class="amber">Pending sync</strong>';
-    grid.appendChild(b);
+    let b=[...grid.querySelectorAll('[data-estate-room]')].find(x=>String(x.dataset.estateRoom||'').toLowerCase()===ROOM.toLowerCase());
+    if(!b){
+      b=document.createElement('button');
+      b.dataset.estateRoom=ROOM;
+      grid.appendChild(b);
+    }
+    b.innerHTML=live.ready
+      ? `<div><b>Lake House</b><span>${live.assets} asset${live.assets===1?'':'s'}</span></div><strong>Live</strong>`
+      : '<div><b>Lake House</b><span>Checking database…</span></div><strong class="amber">Checking</strong>';
   }
 
   function fixCount(){
@@ -53,19 +67,39 @@
       const v=String(o.value||'').trim();
       if(/\bplant\s*room$/i.test(v)) rooms.add(v.toLowerCase());
     });
-    if(!rooms.has(ROOM.toLowerCase())) rooms.add(ROOM.toLowerCase());
+    if(live.ready) rooms.add(ROOM.toLowerCase());
     const metric=document.getElementById('metricPlantRoomCount');
     const quality=document.getElementById('roomsCount');
     if(metric) metric.textContent=String(rooms.size);
     if(quality) quality.textContent=String(rooms.size);
   }
 
-  function run(){
+  function render(){
     addRoomSelect();
     addNavRoom();
     addDirectoryRoom();
     addEstateTile();
     fixCount();
+  }
+
+  async function refreshLive(){
+    if(!liveClient||refreshing) return;
+    refreshing=true;
+    try{
+      const {data:building,error:bErr}=await liveClient.from('buildings').select('id,name').ilike('name',BUILDING).limit(1).maybeSingle();
+      if(bErr) throw bErr;
+      if(!building){ live={ready:false,assets:0}; render(); return; }
+      const {data:room,error:rErr}=await liveClient.from('plant_rooms').select('id,name').eq('building_id',building.id).ilike('name',ROOM).limit(1).maybeSingle();
+      if(rErr) throw rErr;
+      if(!room){ live={ready:false,assets:0}; render(); return; }
+      const {count,error:aErr}=await liveClient.from('assets').select('id',{count:'exact',head:true}).eq('plant_room_id',room.id);
+      if(aErr) throw aErr;
+      live={ready:true,assets:Number(count||0)};
+      render();
+    } catch(err){
+      console.warn('Lake House live refresh failed:',err);
+      render();
+    } finally { refreshing=false; }
   }
 
   document.addEventListener('click',e=>{
@@ -78,13 +112,15 @@
     else location.href='/?plantRoom='+encodeURIComponent(ROOM);
   },true);
 
-  const observer=new MutationObserver(()=>requestAnimationFrame(run));
   function start(){
-    run();
+    render();
+    refreshLive();
+    setInterval(refreshLive,REFRESH_MS);
+    window.addEventListener('focus',refreshLive);
+    window.addEventListener('online',refreshLive);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshLive(); });
+    const observer=new MutationObserver(()=>requestAnimationFrame(render));
     observer.observe(document.body,{subtree:true,childList:true});
-    setTimeout(run,250);
-    setTimeout(run,1000);
-    setTimeout(run,2500);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 })();

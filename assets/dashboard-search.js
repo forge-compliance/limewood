@@ -215,3 +215,149 @@
   window.addEventListener('load',()=>{makeFriendlier();setTimeout(warm,500);});
   if(document.readyState!=='loading'){makeFriendlier();setTimeout(warm,200);}
 })();
+
+
+/* ELECTRICAL_SMART_SEARCH_20260831 */
+(() => {
+  'use strict';
+
+  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+  let electrical=null, db=null;
+
+  function roomNumber(raw){
+    const s=norm(raw);
+    let m=s.match(/\b(?:room|bedroom)\s*0*(\d{1,3})\b/);
+    if(m)return String(Number(m[1]));
+    m=s.match(/^mh\s*0*(\d{1,3})$/);
+    return m?String(Number(m[1])):'';
+  }
+
+  function client(){
+    if(db)return db;
+    const cfg=window.LIMEWOOD_CONFIG||{};
+    if(!window.supabase||!cfg.supabaseUrl||!cfg.supabasePublishableKey)return null;
+    db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    return db;
+  }
+
+  async function loadElectrical(){
+    if(electrical)return electrical;
+    const c=client(); if(!c)return null;
+    const [ar,cr]=await Promise.all([
+      c.from('electrical_assets').select('id,asset_code,asset_name,plant_room,category,system_duty,manufacturer,model,status,criticality,notes'),
+      c.from('electrical_circuits').select('board_asset_code,circuit_number,circuit_description,destination,phase,protective_device,device_rating,status,notes')
+    ]);
+    if(ar.error||cr.error)throw ar.error||cr.error;
+    electrical={assets:ar.data||[],circuits:cr.data||[]};
+    return electrical;
+  }
+
+  function isGroupAsset(a,n){
+    if(!n)return false;
+    const code=String(a.asset_code||'').trim().toUpperCase();
+    const rx=new RegExp('^MH-(?:DB|DIM)-0*'+n+'(?:[A-Z])?$','i');
+    const text=norm([a.asset_name,a.system_duty,a.notes].join(' '));
+    return rx.test(code) || text.includes('room '+n) || text.includes('bedroom '+n) || text.includes('dimmer '+n) || text.includes('mh'+n);
+  }
+
+  function circuitRoomHit(c,n){
+    if(!n)return false;
+    const text=norm([c.circuit_description,c.destination,c.notes].join(' '));
+    return new RegExp('\\b(?:room|bedroom)\\s*0*'+n+'\\b','i').test(text);
+  }
+
+  function assetForCircuit(c,data){
+    const key=norm(c.board_asset_code);
+    return data.assets.find(a=>norm(a.asset_code)===key || norm(a.asset_name)===key) || null;
+  }
+
+  function searchElectrical(raw,data){
+    const q=norm(raw), n=roomNumber(raw), map=new Map();
+    const add=(a,reason,circuit)=>{
+      if(!a)return;
+      const row=map.get(a.id)||{asset:a,reasons:[],circuits:[]};
+      if(reason&&!row.reasons.includes(reason))row.reasons.push(reason);
+      if(circuit&&!row.circuits.includes(circuit))row.circuits.push(circuit);
+      map.set(a.id,row);
+    };
+
+    data.assets.forEach(a=>{
+      const direct=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.manufacturer,a.model,a.status,a.notes].join(' ')).includes(q);
+      if(direct)add(a,'Direct match');
+      if(n&&isGroupAsset(a,n))add(a,'Room '+n+' electrical group');
+    });
+
+    data.circuits.forEach(c=>{
+      const direct=norm([c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes].join(' ')).includes(q);
+      const roomHit=n&&circuitRoomHit(c,n);
+      const a=assetForCircuit(c,data);
+      if((direct||roomHit)&&a)add(a,roomHit?'Supplies Room '+n:'Circuit match',c);
+      if(n&&a&&isGroupAsset(a,n))add(a,'Room '+n+' electrical group',c);
+    });
+
+    return [...map.values()].sort((x,y)=>{
+      const rank=r=>r.reasons.some(v=>v.startsWith('Supplies'))?0:r.reasons.includes('Direct match')?1:r.reasons.some(v=>v.includes('group'))?2:3;
+      return rank(x)-rank(y) || String(x.asset.asset_name||'').localeCompare(String(y.asset.asset_name||''),undefined,{numeric:true});
+    }).slice(0,24);
+  }
+
+  function host(){
+    const view=document.getElementById('placeholderView');
+    const card=view?.querySelector('.placeholderCard');
+    if(!view||!card)return null;
+    document.querySelectorAll('main > section').forEach(s=>s.hidden=true);
+    view.hidden=false;
+    document.getElementById('drawer')?.classList.remove('open');
+    document.getElementById('drawerBackdrop')?.classList.remove('open');
+    card.classList.add('friendlySearchCard');
+    return card;
+  }
+
+  function render(raw,rows){
+    const card=host(); if(!card)return;
+    card.innerHTML=`
+      <span>SMART ESTATE SEARCH</span>
+      <h2>Electrical results for “${esc(raw)}”</h2>
+      <p>Verified boards, lighting controls and circuits linked to this search.</p>
+      <div class="fsSection"><h3>⚡ Electrical</h3><div class="fsResults">
+      ${rows.map(({asset:a,reasons,circuits})=>{
+        const reason=reasons.find(r=>r.startsWith('Supplies'))||reasons.find(r=>r.includes('group'))||'Electrical match';
+        const useful=circuits.filter(c=>norm(c.circuit_description||c.destination)!=='spare');
+        const preview=useful.slice(0,3).map(c=>`<small>↳ ${esc([c.circuit_number,c.circuit_description||c.destination].filter(Boolean).join(' · '))}</small>`).join('');
+        return `<button class="friendlySearchResult" data-smart-electrical="${esc(a.asset_code)}" data-smart-query="${esc(raw)}"><span class="fsIcon">⚡</span><span><b>${esc(a.asset_name||a.asset_code)}</b><small>${esc(a.plant_room||'Location to confirm')} · ${esc(a.category||'Electrical')}</small><small style="color:#8b6c1e">${esc(reason)}</small>${preview}${useful.length>3?`<small>+ ${useful.length-3} more related circuit${useful.length-3===1?'':'s'}</small>`:''}</span><strong>Open →</strong></button>`;
+      }).join('')}
+      </div></div>
+      <button class="fsBack" data-fs-back>← Dashboard</button>`;
+  }
+
+  async function intercept(e){
+    const input=document.getElementById('globalSearch');
+    const raw=input?.value.trim(); if(!raw)return;
+    try{
+      const data=await loadElectrical(); if(!data)return;
+      const rows=searchElectrical(raw,data);
+      if(!rows.length)return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      render(raw,rows);
+    }catch(err){console.warn('Electrical smart search unavailable',err);}
+  }
+
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#globalSearchBtn'))intercept(e);
+    const b=e.target.closest('[data-smart-electrical]');
+    if(b){
+      e.preventDefault(); e.stopImmediatePropagation();
+      const u=new URL('/electrical-distribution.html',location.origin);
+      u.searchParams.set('asset',b.dataset.smartElectrical);
+      u.searchParams.set('search',b.dataset.smartQuery||b.dataset.smartElectrical);
+      location.href=u.toString();
+    }
+  },true);
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&e.target?.id==='globalSearch')intercept(e);
+  },true);
+
+  window.addEventListener('load',()=>setTimeout(()=>loadElectrical().catch(()=>{}),700));
+})();

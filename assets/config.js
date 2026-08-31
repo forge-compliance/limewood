@@ -12,7 +12,7 @@ window.LIMEWOOD_BMS = {
 // Location-aware navigation + friendly search + dashboard v8 skin.
 (() => {
   const nav=document.createElement('script'); nav.src='/assets/location-registers.js?v=20260819-2'; document.head.appendChild(nav);
-  const search=document.createElement('script'); search.src='/assets/dashboard-search.js?v=20260819-1'; document.head.appendChild(search);
+  const search=document.createElement('script'); search.src='/assets/dashboard-search.js?v=20260831-1'; document.head.appendChild(search);
   const style=document.createElement('link'); style.rel='stylesheet'; style.href='/assets/dashboard-v8.css?v=20260830-5'; document.head.appendChild(style);
   const dash=document.createElement('script'); dash.src='/assets/dashboard-v8.js?v=20260819-3'; document.head.appendChild(dash);
   const staffElectricalRoute=document.createElement('script'); staffElectricalRoute.src='/assets/staff-house-electrical-route.js?v=20260830-1'; document.head.appendChild(staffElectricalRoute);

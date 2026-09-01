@@ -30,6 +30,7 @@ window.LIMEWOOD_BMS = {
   if(/\/photo-inbox\.html$/i.test(location.pathname)){
     const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260830-3'; document.head.appendChild(photoBatch);
     const photoInboxRedesign=document.createElement('link'); photoInboxRedesign.rel='stylesheet'; photoInboxRedesign.href='/assets/photo-inbox-redesign.css?v=20260901-2'; document.head.appendChild(photoInboxRedesign);
+    const stanHeader=document.createElement('script'); stanHeader.src='/assets/photo-inbox-stan.js?v=20260901-1'; document.head.appendChild(stanHeader);
   }
   if(/\/electrical-distribution\.html$/i.test(location.pathname)){
     const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-3'; document.head.appendChild(electricalLayout);

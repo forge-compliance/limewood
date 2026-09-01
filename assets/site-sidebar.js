@@ -8,7 +8,7 @@
     const links = [
       ['🏠','Dashboard','/'],
       ['⚡','Electrical Distribution','/electrical-distribution.html'],
-      ['🗺','Forest Cottages Electrical Map','/forest-cottages-electrical-schematic.html'],
+      ['🗺','Electrical Maps','/electrical-schematic-map.html'],
       ['🏭','Main House Electrical','/main-house-electrical.html'],
       ['🏠','Staff House Electrical','/staff-house-electrical.html'],
       ['🧰','Maintenance Centre','/maintenance-dashboard.html'],
@@ -39,19 +39,9 @@
       body:not(.lwSiteNavOpen) #lwSiteNavToggle{position:absolute;right:7px;top:13px;visibility:visible!important;pointer-events:auto!important}
       #lwSiteNavBackdrop{display:none}
       @media(min-width:901px){
-        body.lwSiteNavBody>header,body.lwSiteNavBody>main,.lwSiteNavBody .top,.lwSiteNavBody .page,.lwSiteNavBody .photoInboxShell{
-          transition:max-width .22s ease,width .22s ease,margin-left .22s ease,margin-right .22s ease;
-        }
-        body.lwSiteNavBody>main{
-          width:100%!important;
-          max-width:none!important;
-          margin-left:0!important;
-          margin-right:0!important;
-        }
-        body.lwSiteNavBody .topInner{
-          width:100%!important;
-          max-width:none!important;
-        }
+        body.lwSiteNavBody>header,body.lwSiteNavBody>main,.lwSiteNavBody .top,.lwSiteNavBody .page,.lwSiteNavBody .photoInboxShell{transition:max-width .22s ease,width .22s ease,margin-left .22s ease,margin-right .22s ease}
+        body.lwSiteNavBody>main{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important}
+        body.lwSiteNavBody .topInner{width:100%!important;max-width:none!important}
       }
       @media(max-width:900px){
         body.lwSiteNavBody,body.lwSiteNavBody.lwSiteNavOpen{padding-left:0!important}

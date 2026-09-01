@@ -8,6 +8,7 @@
     const links = [
       ['🏠','Dashboard','/'],
       ['⚡','Electrical Distribution','/electrical-distribution.html'],
+      ['🗺','Forest Cottages Electrical Map','/forest-cottages-electrical-schematic.html'],
       ['🏭','Main House Electrical','/main-house-electrical.html'],
       ['🏠','Staff House Electrical','/staff-house-electrical.html'],
       ['🧰','Maintenance Centre','/maintenance-dashboard.html'],

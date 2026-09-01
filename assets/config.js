@@ -19,8 +19,6 @@ window.LIMEWOOD_BMS = {
     return v.startsWith('/')&&!v.startsWith('//')?v:'';
   };
 
-  // Remember why the user was sent to sign in. Photo Inbox itself still owns
-  // the auth gate; this only preserves the destination across that redirect.
   if(isPhotoInbox){
     try{sessionStorage.setItem(returnKey,location.pathname+location.search+location.hash);}catch(_){}
     queueMicrotask(async()=>{
@@ -37,9 +35,6 @@ window.LIMEWOOD_BMS = {
     });
   }
 
-  // If sign-in was opened because of a direct Photo Inbox shortcut, return to
-  // that page as soon as a valid session exists instead of dumping the user on
-  // the dashboard.
   if(isHome){
     let pending='';
     try{pending=safeReturnPath(sessionStorage.getItem(returnKey));}catch(_){}
@@ -84,6 +79,9 @@ window.LIMEWOOD_BMS = {
     const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260829-1'; document.head.appendChild(sopActions);
     const documentCentre=document.createElement('script'); documentCentre.src='/assets/document-centre-v2.js?v=20260829-3'; document.head.appendChild(documentCentre);
     const reviewLayout=document.createElement('script'); reviewLayout.src='/assets/review-layout-fix.js?v=20260829-1'; document.head.appendChild(reviewLayout);
+  }
+  if(/\/systems\.html$/i.test(location.pathname)){
+    const systemsLocationFix=document.createElement('script'); systemsLocationFix.src='/assets/systems-location-default.js?v=20260901-1'; document.head.appendChild(systemsLocationFix);
   }
   if(/\/maintenance-dashboard\.html$/i.test(location.pathname)){
     const maintenanceAssetPicker=document.createElement('script'); maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1'; document.head.appendChild(maintenanceAssetPicker);

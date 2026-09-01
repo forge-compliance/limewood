@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forest Cottages & Cabin Electrical Schematic</title>
+<link rel="stylesheet" href="/assets/style.css?v=601">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/config.js?v=20260901-auth2"></script>
+<script defer src="/assets/site-sidebar.js"></script>
+<style>
+:root{--bg:#171918;--panel:#232725;--panel2:#2b302d;--line:#6f8f7e;--text:#eff6f1;--muted:#a8b5ad;--accent:#c9e9dc;--warn:#e2bf65}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}.page{max-width:1180px;margin:0 auto;padding:24px}.head{background:#17372c;border:1px solid #3f6654;border-radius:20px;padding:22px;margin-bottom:18px}.head h1{margin:4px 0 6px;font:700 30px Georgia,serif}.head p{margin:0;color:#cbd9d1}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.toolbar button,.toolbar a{border:0;border-radius:10px;padding:10px 13px;background:#315746;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.legend{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px;color:var(--muted);font-size:12px}.pill{padding:6px 9px;border:1px solid #46534c;border-radius:999px;background:#202421}.flow{display:grid;gap:0;align-items:start}.node{background:var(--panel);border:1px solid #55635b;border-radius:15px;padding:14px 16px;box-shadow:0 8px 24px #0003}.node strong{display:block;font-size:16px}.node small{display:block;color:var(--muted);margin-top:5px;line-height:1.35}.node.primary{border-color:#82ae96;background:#203229}.node.board{border-color:#84a997;background:#26362f}.node.load{background:#2a2d2b}.node.spare{opacity:.62}.node.unmapped{border-style:dashed}.wire{width:3px;height:30px;background:var(--line);margin:0 auto}.branches{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;padding-top:26px}.branches:before{content:"";position:absolute;left:4%;right:4%;top:12px;height:3px;background:var(--line)}.branch{position:relative}.branch:before{content:"";position:absolute;left:50%;top:-14px;width:3px;height:14px;background:var(--line)}.circuit{font-size:11px;color:#d4e6dc;font-weight:700;margin-bottom:6px}.section{margin-top:22px}.section h2{font:700 22px Georgia,serif;margin:0 0 12px}.boardBlock{margin-top:18px;padding:16px;border:1px solid #435149;border-radius:16px;background:#1d211f}.circuits{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px}.status{padding:14px;border:1px solid #46534c;border-radius:12px;background:#202421;color:var(--muted)}.warn{color:var(--warn)}@media(max-width:600px){.page{padding:14px}.head h1{font-size:24px}.branches{grid-template-columns:1fr 1fr}.circuits{grid-template-columns:1fr}.node{padding:12px}.toolbar{display:grid;grid-template-columns:1fr 1fr}.toolbar a,.toolbar button{text-align:center}}
+</style>
+</head>
+<body>
+<main class="page">
+<section class="head"><small>ELECTRICAL SCHEMATIC · LIVE REGISTER</small><h1>Forest Cottages & Cabin</h1><p>Supply path and distribution map built from the electrical register. Unknown relationships stay unknown rather than being invented, because apparently standards are useful.</p><div class="toolbar"><button id="refresh">Refresh map</button><a href="/electrical-distribution.html">Electrical register</a><a href="/">Dashboard</a></div></section>
+<div class="legend"><span class="pill">Solid = registered relationship</span><span class="pill">Dashed = asset known, feed not yet mapped</span><span class="pill">Circuit reference shown on each outgoing</span></div>
+<div id="status" class="status">Loading electrical register…</div>
+<div id="map" hidden></div>
+</main>
+<script>
+(async()=>{
+ const cfg=window.LIMEWOOD_CONFIG||{}; const sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+ const status=document.getElementById('status'),map=document.getElementById('map');
+ async function load(){status.hidden=false;map.hidden=true;status.textContent='Loading electrical register…';
+  const {data:assets,error:ae}=await sb.from('electrical_assets').select('asset_code,asset_name,plant_room,category,notes,verification_status').eq('plant_room','Forest Cottages & Cabin Plant Room').order('asset_code');
+  if(ae){status.textContent='Could not load electrical assets: '+ae.message;return}
+  const {data:circuits,error:ce}=await sb.from('electrical_circuits').select('board_asset_code,circuit_number,circuit_description,phase,protective_device,device_rating,destination,verification_status,notes').in('board_asset_code',['Mains Panel','DB-MAINSROOM']).order('board_asset_code').order('circuit_number');
+  if(ce){status.textContent='Could not load circuits: '+ce.message;return}
+  const a=code=>(assets||[]).find(x=>x.asset_code===code)||{};
+  const main=(circuits||[]).filter(x=>x.board_asset_code==='Mains Panel'); const db=(circuits||[]).filter(x=>x.board_asset_code==='DB-MAINSROOM');
+  const node=(title,sub='',cls='load')=>`<div class="node ${cls}"><strong>${esc(title)}</strong>${sub?`<small>${esc(sub)}</small>`:''}</div>`;
+  const branch=c=>`<div class="branch"><div class="circuit">${esc(c.circuit_number||'No ref')}${c.phase?' · '+esc(c.phase):''}${c.device_rating?' · '+esc(c.device_rating):''}</div>${node(c.circuit_description||'Unnamed outgoing',c.protective_device||c.verification_status||'',String(c.circuit_description||'').toLowerCase()==='spare'?'spare':'load')}</div>`;
+  const mappedAssets=new Set(['FCL-E-019','FCL-E-020','FCL-E-021']);
+  const local=(assets||[]).filter(x=>!mappedAssets.has(x.asset_code)&&!/^FCL-C-/.test(x.asset_code));
+  map.innerHTML=`
+   <div class="flow">
+    ${node('FCL-E-021 · Incoming electricity meter and supply intake','Incoming supply intake','primary')}
+    <div class="wire"></div>
+    ${node('FCL-E-020 · Mains Panel','5-way TP&N · main distribution','board')}
+    <div class="branches">${main.map(branch).join('')}</div>
+   </div>
+   <section class="section boardBlock"><h2>DB-MAINSROOM</h2>${node('FCL-E-019 · DB-MAINSROOM','12-way TP&N · fed from Mains Panel circuit 2L2','board')}<div class="circuits">${db.map(c=>`<div><div class="circuit">${esc(c.circuit_number||'No ref')}${c.phase?' · '+esc(c.phase):''}${c.device_rating?' · '+esc(c.device_rating):''}</div>${node(c.circuit_description||'Unnamed circuit',[c.protective_device,c.device_rating].filter(Boolean).join(' · '),String(c.circuit_description||'').toLowerCase()==='spare'?'spare':'load')}</div>`).join('')}</div></section>
+   <section class="section"><h2>Local electrical assets still to map</h2><p class="status">These assets are registered in the plant room but their upstream circuit relationship is not yet recorded. They are deliberately not connected on the schematic until evidence exists.</p><div class="circuits">${local.map(x=>node(`${x.asset_code} · ${x.asset_name}`,x.category||'Electrical asset','unmapped')).join('')}</div></section>`;
+  status.hidden=true;map.hidden=false;
+ }
+ document.getElementById('refresh').addEventListener('click',load); await load();
+})();
+</script>
+</body></html>

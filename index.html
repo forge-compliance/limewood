@@ -318,12 +318,32 @@
 <label>Document type<select id="dType"><option value="sop">SOP</option><option value="rams">RAMS</option><option value="manual">Manual</option><option value="isolation_procedure">Isolation procedure</option><option value="schematic">Schematic</option><option value="drawing">Drawing</option><option value="certificate">Certificate</option><option value="report">Report</option><option value="other">Other</option></select></label>
 <label>Document number<input id="dNumber" placeholder="e.g. SOP-001"></label><label>Title<input id="dTitle" placeholder="e.g. Lap Pool Filter Backwash"></label><label>Category<input id="dCategory" placeholder="e.g. Pool & Spa"></label><label>Revision<input id="dRevision" value="1"></label><label>Status<select id="dStatus"><option value="draft">Draft</option><option value="under_review">Under review</option><option value="approved">Approved</option><option value="withdrawn">Withdrawn</option></select></label><label>Author<input id="dAuthor"></label><label>Approved by<input id="dApprovedBy"></label><label>Issue date<input id="dIssueDate" type="date"></label><label>Review date<input id="dReviewDate" type="date"></label><label>Building<select id="dBuilding"><option value="">No building selected</option></select></label><label>Plant room<select id="dPlantRoom"><option value="">No plant room selected</option></select></label><label>Related asset<select id="dAsset"><option value="">No asset selected</option></select></label><label class="fullWidth">Description<textarea id="dDescription"></textarea></label><label class="fullWidth">Revision / change summary<textarea id="dChangeSummary"></textarea></label><label class="fullWidth">Select file<input id="dFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,video/*"></label></div><button id="saveDocumentBtn" class="primary fullButton">Upload to Document Centre</button><p id="documentUploadMessage" class="uploadMessage"></p></div></div></div>
 <footer><b>Limewood Engineering</b> · Engineering Control Centre · Version 7.4.0<br><span>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> · Built and managed by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> Ltd.</span></footer>
+
+<div id="ppmModal" class="modal ppmDetailModal" aria-hidden="true">
+  <div class="modalCard opsModalCard ppmDetailCard">
+    <button class="closeOps" id="closePpmModal" type="button" aria-label="Close PPM">×</button>
+    <span class="eyebrow">PPM SCHEDULE</span>
+    <h2 id="ppmModalTitle">Maintenance schedule</h2>
+    <section id="ppmRichDetail" class="ppmRichDetail"></section>
+    <div class="ppmEditorLabel">Service record</div>
+    <div class="opsForm">
+      <label>Asset<input id="ppmAsset" readonly></label>
+      <label>Frequency<input id="ppmFrequency"></label>
+      <label>Last completed<input id="ppmLast" type="date"></label>
+      <label>Next due<input id="ppmNext" type="date"></label>
+      <label>Assigned to<input id="ppmAssigned" placeholder="Engineer or contractor"></label>
+      <label>Completion status<select id="ppmCompletion"><option>Scheduled</option><option>Complete</option><option>Deferred</option><option>Not applicable</option></select></label>
+      <label class="full">Task / scope<textarea id="ppmTask" placeholder="Maintenance task or scope of works"></textarea></label>
+      <label class="full">Notes<textarea id="ppmNotes"></textarea></label>
+    </div>
+    <div class="modalActions"><button id="savePpm" class="primary">Save schedule</button></div>
+  </div>
+</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/config.js?v=20260831-2"></script>
 <script src="assets/data.js?v=20260805-51"></script>
 
-<div id="ppmModal" class="modal" aria-hidden="true"><div class="modalCard opsModalCard"><button class="closeOps" id="closePpmModal">×</button><span class="eyebrow">PPM SCHEDULE</span><h2 id="ppmModalTitle">Update maintenance schedule</h2><div class="opsForm"><label>Asset<input id="ppmAsset" readonly></label><label>Frequency<input id="ppmFrequency"></label><label>Last completed<input id="ppmLast" type="date"></label><label>Next due<input id="ppmNext" type="date"></label><label>Assigned to<input id="ppmAssigned" placeholder="Engineer or contractor"></label><label>Completion status<select id="ppmCompletion"><option>Scheduled</option><option>Complete</option><option>Deferred</option><option>Not applicable</option></select></label><label class="full">Task / scope<textarea id="ppmTask" placeholder="Maintenance task or scope of works"></textarea></label><label class="full">Notes<textarea id="ppmNotes"></textarea></label></div><div class="modalActions"><button id="savePpm" class="primary">Save schedule</button></div></div></div>
 <div id="valveImportModal" class="modal" aria-hidden="true"><div class="modalCard opsModalCard importModalCard"><button class="closeOps" id="closeValveImport">×</button><span class="eyebrow">BULK VALVE IMPORT</span><h2>Import valve register</h2><p class="muted">Choose a CSV or Excel workbook, assign its plant room, review the preview, then import. Existing tags can be skipped or updated.</p><div class="opsForm"><label class="full">CSV or Excel file<input id="valveImportFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><label>Plant room<select id="valveImportRoom"></select><button type="button" id="addImportPlantRoom" class="secondary inlineAddRoom">+ Add plant room</button></label><label>Duplicates<select id="valveImportDuplicates"><option value="skip">Skip existing tags</option><option value="update">Update existing tags</option></select></label></div><div id="valveImportSummary" class="importSummary">No file selected.</div><div class="tableWrap importPreviewWrap"><table class="opsTable"><thead><tr><th>Tag</th><th>Description / duty</th><th>Type</th><th>Size</th><th>Position</th></tr></thead><tbody id="valveImportPreview"><tr><td colspan="5" class="emptyState">Select a CSV or XLSX file to preview it.</td></tr></tbody></table></div><p id="valveImportMessage" class="authMessage"></p><div class="modalActions"><button id="cancelValveImport">Cancel</button><button id="confirmValveImport" class="primary" disabled>Import valves</button></div></div></div>
 
 <div id="valveDetailModal" class="modal" aria-hidden="true"><div class="modalCard valveDetailCard"><button class="closeOps" id="closeValveDetail">×</button><span class="eyebrow">VALVE RECORD</span><h2 id="valveDetailTitle">Valve</h2><p id="valveDetailRoom" class="muted"></p><div id="valveDetailBody" class="valveDetailBody"></div><div id="valveDetailQr" class="valveDetailQr" hidden><div id="valveQrCode"></div><small>Scan to open this valve record.</small></div><div class="valveDetailActions"><button id="previousValve">← Previous</button><button id="valveQrButton">Generate QR</button><button id="editValveFromDetail" class="primary">Edit valve</button><button id="nextValve">Next →</button></div></div></div>
@@ -331,7 +351,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=20260830-authrestore-1"></script>
+<script src="app.js?v=20260902-ppm-structure-1"></script>
 <button id="installAppButton" class="secondary installAppButton" hidden>Install Limewood Engineering</button>
 <div id="installAppHelp" class="installAppHelp" hidden>
   <b>Install on this device</b>

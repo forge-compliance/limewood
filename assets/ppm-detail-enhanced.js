@@ -83,14 +83,7 @@ async function enhance(){
   if(!asset)return false;
   installStyles();
   let rich=$('ppmRichDetail');
-  if(!rich){
-    rich=document.createElement('section');
-    rich.id='ppmRichDetail';
-    rich.className='ppmRichDetail';
-    const form=modal.querySelector('.opsForm');
-    form?.parentNode?.insertBefore(rich,form);
-    if(form){const lab=document.createElement('div');lab.className='ppmEditorLabel';lab.textContent='Service record';form.parentNode.insertBefore(lab,form);}
-  }
+  if(!rich)return false;
   const contractor=ppm?.assigned_to||'Not linked yet';
   const task=ppm?.task||'Maintenance scope not yet confirmed.';
   const docs=[asset.manufacturer_url?`<a href="${esc(asset.manufacturer_url)}" target="_blank" rel="noopener">Manufacturer page ↗</a>`:'',asset.manual_url?`<a href="${esc(asset.manual_url)}" target="_blank" rel="noopener">Service manual ↗</a>`:''].join('');

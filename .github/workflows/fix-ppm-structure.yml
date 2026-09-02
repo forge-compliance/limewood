@@ -1,0 +1,84 @@
+name: One-time PPM structure repair
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-ppm-structure.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebuild PPM modal placement and loader
+        shell: python
+        run: |
+          from pathlib import Path
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+
+          old = '''<div id="ppmModal" class="modal" aria-hidden="true"><div class="modalCard opsModalCard"><button class="closeOps" id="closePpmModal">×</button><span class="eyebrow">PPM SCHEDULE</span><h2 id="ppmModalTitle">Update maintenance schedule</h2><div class="opsForm"><label>Asset<input id="ppmAsset" readonly></label><label>Frequency<input id="ppmFrequency"></label><label>Last completed<input id="ppmLast" type="date"></label><label>Next due<input id="ppmNext" type="date"></label><label>Assigned to<input id="ppmAssigned" placeholder="Engineer or contractor"></label><label>Completion status<select id="ppmCompletion"><option>Scheduled</option><option>Complete</option><option>Deferred</option><option>Not applicable</option></select></label><label class="full">Task / scope<textarea id="ppmTask" placeholder="Maintenance task or scope of works"></textarea></label><label class="full">Notes<textarea id="ppmNotes"></textarea></label></div><div class="modalActions"><button id="savePpm" class="primary">Save schedule</button></div></div></div>'''
+
+          if old not in text:
+              raise SystemExit('Expected old PPM modal not found; refusing unsafe patch')
+
+          text = text.replace(old + '\n', '', 1)
+
+          new = '''
+<div id="ppmModal" class="modal ppmDetailModal" aria-hidden="true">
+  <div class="modalCard opsModalCard ppmDetailCard">
+    <button class="closeOps" id="closePpmModal" type="button" aria-label="Close PPM">×</button>
+    <span class="eyebrow">PPM SCHEDULE</span>
+    <h2 id="ppmModalTitle">Maintenance schedule</h2>
+    <section id="ppmRichDetail" class="ppmRichDetail"></section>
+    <div class="ppmEditorLabel">Service record</div>
+    <div class="opsForm">
+      <label>Asset<input id="ppmAsset" readonly></label>
+      <label>Frequency<input id="ppmFrequency"></label>
+      <label>Last completed<input id="ppmLast" type="date"></label>
+      <label>Next due<input id="ppmNext" type="date"></label>
+      <label>Assigned to<input id="ppmAssigned" placeholder="Engineer or contractor"></label>
+      <label>Completion status<select id="ppmCompletion"><option>Scheduled</option><option>Complete</option><option>Deferred</option><option>Not applicable</option></select></label>
+      <label class="full">Task / scope<textarea id="ppmTask" placeholder="Maintenance task or scope of works"></textarea></label>
+      <label class="full">Notes<textarea id="ppmNotes"></textarea></label>
+    </div>
+    <div class="modalActions"><button id="savePpm" class="primary">Save schedule</button></div>
+  </div>
+</div>
+'''
+
+          anchor = '''<footer><b>Limewood Engineering</b> · Engineering Control Centre · Version 7.4.0<br><span>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> · Built and managed by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> Ltd.</span></footer>\n</div>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'''
+          replacement = '''<footer><b>Limewood Engineering</b> · Engineering Control Centre · Version 7.4.0<br><span>Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> · Built and managed by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a> Ltd.</span></footer>\n''' + new + '''</div>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'''
+
+          if anchor not in text:
+              raise SystemExit('App shell closing anchor not found; refusing unsafe patch')
+          text = text.replace(anchor, replacement, 1)
+
+          text = text.replace('app.js?v=20260830-authrestore-1', 'app.js?v=20260902-ppm-structure-1')
+          index.write_text(text, encoding='utf-8')
+
+          app = Path('app.js')
+          loader = app.read_text(encoding='utf-8')
+          loader = loader.replace('<script src="/assets/ppm-detail-enhanced.js?v=20260902-3"><\\/script><script src="/assets/ppm-modal-scroll-fix.js?v=20260902-1"><\\/script>', '<script src="/assets/ppm-detail-enhanced.js?v=20260902-4"><\\/script>')
+          app.write_text(loader, encoding='utf-8')
+
+          detail = Path('assets/ppm-detail-enhanced.js')
+          d = detail.read_text(encoding='utf-8')
+          d = d.replace("if(!rich){\n    rich=document.createElement('section');\n    rich.id='ppmRichDetail';\n    rich.className='ppmRichDetail';\n    const form=modal.querySelector('.opsForm');\n    form?.parentNode?.insertBefore(rich,form);\n    if(form){const lab=document.createElement('div');lab.className='ppmEditorLabel';lab.textContent='Service record';form.parentNode.insertBefore(lab,form);}\n  }", "if(!rich)return false;")
+          detail.write_text(d, encoding='utf-8')
+
+          print('PPM modal moved inside authenticated appShell; old outside modal removed; stale scroll-fix loader removed; app loader cache-busted.')
+      - name: Commit repair
+        run: |
+          git config user.name "forge-compliance"
+          git config user.email "gphewett@gmail.com"
+          git add index.html app.js assets/ppm-detail-enhanced.js
+          git diff --cached --quiet && exit 0
+          git commit -m "[ppm-fix] rebuild PPM modal inside authenticated app shell"
+          git push

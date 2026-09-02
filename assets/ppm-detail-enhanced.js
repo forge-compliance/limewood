@@ -4,6 +4,8 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 let client;
+let enhanceTimer=null;
+let lastEnhancedCode='';
 
 function ensureClient(){
   if(client)return client;
@@ -69,16 +71,16 @@ function installStyles(){
 
 async function enhance(){
   const modal=$('ppmModal');
-  if(!modal||modal.getAttribute('aria-hidden')==='true')return;
+  if(!modal||modal.getAttribute('aria-hidden')==='true')return false;
   const code=$('ppmAsset')?.value?.trim();
-  if(!code)return;
+  if(!code)return false;
   const db=ensureClient();
-  if(!db)return;
+  if(!db)return false;
   const [{data:asset},{data:ppm}]=await Promise.all([
     db.from('assets').select('asset_code,asset_name,manufacturer,model,serial_number,manufacturer_url,manual_url,ppm_frequency,last_service_date,next_service_date').eq('asset_code',code).maybeSingle(),
     db.from('ppm_schedules').select('asset_code,frequency,last_completed,next_due,assigned_to,task,notes,completion_status').eq('asset_code',code).maybeSingle()
   ]);
-  if(!asset)return;
+  if(!asset)return false;
   installStyles();
   let rich=$('ppmRichDetail');
   if(!rich){
@@ -109,14 +111,45 @@ async function enhance(){
       <article class="ppmInfoCard" style="grid-column:1/-1"><small>Manufacturer-backed service scope</small><h4>${esc(asset.manufacturer||'Manufacturer')} recommendations</h4><p>${esc(task)}</p></article>
     </section>`;
   const title=$('ppmModalTitle');if(title)title.textContent=`${asset.asset_code} · ${asset.asset_name}`;
+  lastEnhancedCode=code;
+  return true;
+}
+
+function scheduleEnhance(){
+  clearTimeout(enhanceTimer);
+  let attempts=0;
+  const tryEnhance=()=>{
+    const modal=$('ppmModal');
+    if(!modal||modal.getAttribute('aria-hidden')==='true')return;
+    const code=$('ppmAsset')?.value?.trim();
+    if(code&&code!==lastEnhancedCode){
+      enhance().catch(console.warn);
+      return;
+    }
+    if(code&&lastEnhancedCode===code){
+      enhance().catch(console.warn);
+      return;
+    }
+    attempts++;
+    if(attempts<30)enhanceTimer=setTimeout(tryEnhance,100);
+  };
+  tryEnhance();
 }
 
 function init(){
   const modal=$('ppmModal');
   if(!modal)return setTimeout(init,300);
-  const obs=new MutationObserver(()=>{if(modal.getAttribute('aria-hidden')!=='true')setTimeout(()=>enhance().catch(console.warn),30);});
+  const assetInput=$('ppmAsset');
+  const obs=new MutationObserver(()=>{if(modal.getAttribute('aria-hidden')!=='true')scheduleEnhance();});
   obs.observe(modal,{attributes:true,attributeFilter:['aria-hidden','class','style']});
-  modal.addEventListener('click',()=>setTimeout(()=>enhance().catch(console.warn),0));
+  if(assetInput){
+    const valueObserver=new MutationObserver(scheduleEnhance);
+    valueObserver.observe(assetInput,{attributes:true,attributeFilter:['value']});
+    assetInput.addEventListener('input',scheduleEnhance);
+    assetInput.addEventListener('change',scheduleEnhance);
+  }
+  modal.addEventListener('click',scheduleEnhance);
+  document.addEventListener('click',e=>{if(e.target.closest('[data-ppm]'))setTimeout(scheduleEnhance,0);},true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

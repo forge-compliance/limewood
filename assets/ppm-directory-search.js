@@ -16,7 +16,6 @@ let schedules=[];
 let sourceRooms=[];
 let selectedBuilding='';
 let searchText='';
-let rebuilding=false;
 
 function roomNameFromAsset(a){
   const pr=plantRooms.find(p=>p.id===a.plant_room_id);
@@ -115,14 +114,20 @@ function installShell(){
   return true;
 }
 
-function captureRooms(){
+function isOurRender(host){
+  return !!host.querySelector('[data-ppm-building],[data-ppm-building-back],.ppmSearchResultInfo,.ppmNoResults');
+}
+
+function captureOriginalRooms(){
   const host=$('ppmRoomButtons');
-  if(!host||rebuilding)return;
+  if(!host||isOurRender(host))return false;
   const rows=[...host.querySelectorAll('[data-ppm-room]')].map(b=>({
     room:b.dataset.ppmRoom||'',
     html:b.innerHTML
   })).filter(x=>x.room);
-  if(rows.length)sourceRooms=rows;
+  if(!rows.length)return false;
+  sourceRooms=rows;
+  return true;
 }
 
 function roomDetail(room){
@@ -144,8 +149,6 @@ function buildingCounts(){
 function renderSmartDirectory(){
   const host=$('ppmRoomButtons');
   if(!host||!sourceRooms.length)return;
-  rebuilding=true;
-  host.className='ppmBuildingGrid';
 
   if(searchText){
     const q=norm(searchText);
@@ -154,7 +157,7 @@ function renderSmartDirectory(){
     host.innerHTML=`<div class="ppmSearchResultInfo">${matches.length} matching location${matches.length===1?'':'s'}</div>`+
       (matches.length?matches.map(x=>`<button type="button" data-ppm-room="${esc(x.room)}"><span>🛠</span><div><b>${esc(x.room.replace(/ Plant Room$/i,''))}</b><small>${esc(roomDetail(x.room))}</small></div></button>`).join(''):`<div class="ppmNoResults">No PPMs match “${esc(searchText)}”.</div>`);
     const hint=$('ppmSearchHint');if(hint)hint.textContent='Search results update as you type. Tap a location to open its PPM schedule.';
-    rebuilding=false;return;
+    return;
   }
 
   if(selectedBuilding){
@@ -164,14 +167,14 @@ function renderSmartDirectory(){
     host.innerHTML=`<button type="button" class="ppmBrowserBack" data-ppm-building-back="1"><span>←</span><div><b>All buildings</b><small>${esc(b?.name||'Building')}</small></div></button>`+
       (rooms.length?rooms.map(x=>`<button type="button" data-ppm-room="${esc(x.room)}"><span>🛠</span><div><b>${esc(x.room.replace(/ Plant Room$/i,''))}</b><small>${esc(roomDetail(x.room))}</small></div></button>`).join(''):`<div class="ppmNoResults">No PPM locations are currently linked to this building.</div>`);
     const hint=$('ppmSearchHint');if(hint)hint.textContent=`Browsing ${b?.name||'building'} PPMs.`;
-    rebuilding=false;return;
+    return;
   }
 
   const counts=buildingCounts();
   const ordered=[...buildings].sort((a,b)=>a.name.localeCompare(b.name));
+  host.className='ppmBuildingGrid';
   host.innerHTML=ordered.map(b=>`<button type="button" data-ppm-building="${esc(b.id)}"><span>🏨</span><div><b>${esc(b.name)}</b><small>${counts.get(b.id)||0} PPM location${(counts.get(b.id)||0)===1?'':'s'}</small></div></button>`).join('');
   const hint=$('ppmSearchHint');if(hint)hint.textContent='Search the whole PPM register, or choose a building below.';
-  rebuilding=false;
 }
 
 async function loadReferenceData(){
@@ -187,18 +190,20 @@ async function loadReferenceData(){
     client.from('ppm_schedules').select('asset_code,task,frequency,completion_status,notes')
   ]);
   buildings=b.data||[];plantRooms=p.data||[];areas=a.data||[];subAreas=sa.data||[];assets=as.data||[];schedules=pp.data||[];
-  renderSmartDirectory();
+  if(captureOriginalRooms())renderSmartDirectory();
 }
 
 function init(){
   if(!installShell())return setTimeout(init,300);
   const host=$('ppmRoomButtons');
   if(!host)return;
-  captureRooms();
+
+  // The core app renders the PPM room list when the PPM view opens. Observe only
+  // that original render. Never respond to mutations produced by this enhancement,
+  // otherwise the observer can recursively redraw the same DOM until the tab dies.
   const observer=new MutationObserver(()=>{
-    if(rebuilding)return;
-    captureRooms();
-    if(sourceRooms.length)renderSmartDirectory();
+    if(isOurRender(host))return;
+    if(captureOriginalRooms())renderSmartDirectory();
   });
   observer.observe(host,{childList:true,subtree:false});
 
@@ -209,6 +214,7 @@ function init(){
     if(back){e.preventDefault();e.stopImmediatePropagation();selectedBuilding='';renderSmartDirectory();}
   },true);
 
+  if(captureOriginalRooms())renderSmartDirectory();
   loadReferenceData().catch(err=>console.warn('PPM smart directory reference data:',err));
 }
 

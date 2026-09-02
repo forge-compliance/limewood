@@ -19,7 +19,7 @@ function installStyles(){
   s.id='ppmRichDetailStyles';
   s.textContent=`
   #ppmModal .modalCard{max-width:760px!important;padding:20px!important}
-  #ppmModal .ppmRichDetail{display:grid;gap:12px;margin:8px 0 18px}
+  #ppmModal .ppmRichDetail{display:grid;gap:12px;margin:8px 0 16px}
   #ppmModal .ppmIdentity{background:linear-gradient(135deg,#17372c,#214d3f);border:1px solid #315f50;border-radius:16px;padding:15px;color:#fff}
   #ppmModal .ppmIdentityCode{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c5dacf;font-weight:800}
   #ppmModal .ppmIdentity h3{margin:5px 0 12px;font-size:24px;line-height:1.1;color:#fff}
@@ -35,18 +35,34 @@ function installStyles(){
   #ppmModal .ppmInfoCard p{margin:0;font-size:12px;line-height:1.45;color:#c2cbc6}
   #ppmModal .ppmContractorRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   #ppmModal .ppmContractorRow a{font-size:11px;color:#cfe9dd;font-weight:800}
-  #ppmModal .ppmEditorLabel{margin:2px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#aebcb5}
-  #ppmModal .opsForm{gap:10px!important}
-  #ppmModal .opsForm label{font-size:12px!important}
-  #ppmModal .opsForm input,#ppmModal .opsForm select,#ppmModal .opsForm textarea{min-height:42px!important;padding:9px 10px!important;font-size:13px!important}
-  #ppmModal .opsForm textarea{min-height:88px!important}
+
+  #ppmModal .ppmEditorLabel{margin:3px 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;color:#8f9d96}
+  #ppmModal .opsForm{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin:0!important}
+  #ppmModal .opsForm label{font-size:10px!important;line-height:1.1!important;color:#aebcb5!important;font-weight:800!important;margin:0!important;min-width:0!important}
+  #ppmModal .opsForm label:has(#ppmAsset),#ppmModal .opsForm label:has(#ppmFrequency){display:none!important}
+  #ppmModal .opsForm label:has(#ppmTask),#ppmModal .opsForm label:has(#ppmNotes){grid-column:1/-1!important}
+  #ppmModal .opsForm input,#ppmModal .opsForm select,#ppmModal .opsForm textarea{width:100%!important;min-width:0!important;min-height:38px!important;padding:8px 10px!important;margin-top:5px!important;border-radius:10px!important;font-size:12px!important;line-height:1.25!important}
+  #ppmModal .opsForm textarea{min-height:74px!important;resize:vertical!important}
+  #ppmModal .modalActions{margin-top:10px!important}
+  #ppmModal #savePpm{min-height:42px!important;padding:9px 14px!important}
+
   @media(max-width:700px){
-    #ppmModal .modalCard{padding:15px 13px!important}
+    #ppmModal .modalCard{padding:14px 12px!important}
     #ppmModal .ppmIdentity h3{font-size:20px}
     #ppmModal .ppmSpecGrid{grid-template-columns:1fr 1fr}
     #ppmModal .ppmSpecGrid div:last-child{grid-column:1/-1}
     #ppmModal .ppmInfoGrid{grid-template-columns:1fr}
-    #ppmModal .ppmRichDetail{gap:9px;margin-bottom:12px}
+    #ppmModal .ppmRichDetail{gap:9px;margin-bottom:11px}
+    #ppmModal .ppmEditorLabel{margin-top:0;margin-bottom:7px}
+    #ppmModal .opsForm{grid-template-columns:1fr 1fr!important;gap:8px!important}
+    #ppmModal .opsForm label:has(#ppmAssigned){grid-column:1/-1!important}
+    #ppmModal .opsForm input,#ppmModal .opsForm select{min-height:36px!important;padding:7px 9px!important;font-size:11px!important}
+    #ppmModal .opsForm textarea{min-height:66px!important;font-size:11px!important}
+  }
+  @media(max-width:390px){
+    #ppmModal .opsForm{grid-template-columns:1fr 1fr!important}
+    #ppmModal .opsForm label{font-size:9px!important}
+    #ppmModal .opsForm input,#ppmModal .opsForm select{font-size:10px!important;padding:7px 8px!important}
   }`;
   document.head.appendChild(s);
 }
@@ -71,7 +87,7 @@ async function enhance(){
     rich.className='ppmRichDetail';
     const form=modal.querySelector('.opsForm');
     form?.parentNode?.insertBefore(rich,form);
-    if(form){const lab=document.createElement('div');lab.className='ppmEditorLabel';lab.textContent='Schedule & service record';form.parentNode.insertBefore(lab,form);}
+    if(form){const lab=document.createElement('div');lab.className='ppmEditorLabel';lab.textContent='Service record';form.parentNode.insertBefore(lab,form);}
   }
   const contractor=ppm?.assigned_to||'Not linked yet';
   const task=ppm?.task||'Maintenance scope not yet confirmed.';

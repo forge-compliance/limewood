@@ -1,4 +1,4 @@
-/* Keep the PPM detail modal fully scrollable on mobile, including browser chrome/safe-area space. */
+/* Keep the PPM detail modal fully scrollable on mobile without forcing it visible. */
 (()=>{
 'use strict';
 if(document.getElementById('ppmModalScrollFix'))return;
@@ -21,8 +21,14 @@ s.textContent=`
   margin-bottom:max(32px,calc(env(safe-area-inset-bottom) + 24px))!important;
 }
 @media(max-width:700px){
-  #ppmModal{
+  #ppmModal.open,
+  #ppmModal[aria-hidden="false"]{
     display:block!important;
+  }
+  #ppmModal:not(.open)[aria-hidden="true"]{
+    display:none!important;
+  }
+  #ppmModal{
     padding-left:0!important;
     padding-right:0!important;
     padding-bottom:max(56px,calc(env(safe-area-inset-bottom) + 44px))!important;

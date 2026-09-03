@@ -190,7 +190,8 @@ async function loadReferenceData(){
     client.from('ppm_schedules').select('asset_code,task,frequency,completion_status,notes')
   ]);
   buildings=b.data||[];plantRooms=p.data||[];areas=a.data||[];subAreas=sa.data||[];assets=as.data||[];schedules=pp.data||[];
-  if(captureOriginalRooms())renderSmartDirectory();
+  if(!sourceRooms.length)captureOriginalRooms();
+  if(sourceRooms.length)renderSmartDirectory();
 }
 
 function init(){

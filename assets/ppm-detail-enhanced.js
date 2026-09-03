@@ -38,15 +38,9 @@ function installStyles(){
   #ppmModal .ppmContractorRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   #ppmModal .ppmContractorRow a{font-size:11px;color:#cfe9dd;font-weight:800}
 
-  #ppmModal .ppmEditorLabel{margin:3px 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;color:#8f9d96}
-  #ppmModal .opsForm{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin:0!important}
-  #ppmModal .opsForm label{font-size:10px!important;line-height:1.1!important;color:#aebcb5!important;font-weight:800!important;margin:0!important;min-width:0!important}
-  #ppmModal .opsForm label:has(#ppmAsset),#ppmModal .opsForm label:has(#ppmFrequency){display:none!important}
-  #ppmModal .opsForm label:has(#ppmTask),#ppmModal .opsForm label:has(#ppmNotes){grid-column:1/-1!important}
-  #ppmModal .opsForm input,#ppmModal .opsForm select,#ppmModal .opsForm textarea{width:100%!important;min-width:0!important;min-height:38px!important;padding:8px 10px!important;margin-top:5px!important;border-radius:10px!important;font-size:12px!important;line-height:1.25!important}
-  #ppmModal .opsForm textarea{min-height:74px!important;resize:vertical!important}
+  /* The editable service-record form is intentionally backstage. Normal users only need the task details and Complete PPM workflow. */
+  #ppmModal .ppmEditorLabel,#ppmModal .opsForm,#ppmModal #savePpm{display:none!important}
   #ppmModal .modalActions{margin-top:10px!important}
-  #ppmModal #savePpm{min-height:42px!important;padding:9px 14px!important}
 
   @media(max-width:700px){
     #ppmModal .modalCard{padding:14px 12px!important}
@@ -55,16 +49,6 @@ function installStyles(){
     #ppmModal .ppmSpecGrid div:last-child{grid-column:1/-1}
     #ppmModal .ppmInfoGrid{grid-template-columns:1fr}
     #ppmModal .ppmRichDetail{gap:9px;margin-bottom:11px}
-    #ppmModal .ppmEditorLabel{margin-top:0;margin-bottom:7px}
-    #ppmModal .opsForm{grid-template-columns:1fr 1fr!important;gap:8px!important}
-    #ppmModal .opsForm label:has(#ppmAssigned){grid-column:1/-1!important}
-    #ppmModal .opsForm input,#ppmModal .opsForm select{min-height:36px!important;padding:7px 9px!important;font-size:11px!important}
-    #ppmModal .opsForm textarea{min-height:66px!important;font-size:11px!important}
-  }
-  @media(max-width:390px){
-    #ppmModal .opsForm{grid-template-columns:1fr 1fr!important}
-    #ppmModal .opsForm label{font-size:9px!important}
-    #ppmModal .opsForm input,#ppmModal .opsForm select{font-size:10px!important;padding:7px 8px!important}
   }`;
   document.head.appendChild(s);
 }
@@ -76,14 +60,16 @@ async function enhance(){
   if(!code)return false;
   const db=ensureClient();
   if(!db)return false;
-  const [{data:asset},{data:ppm}]=await Promise.all([
+  const [{data:asset},{data:ppms}]=await Promise.all([
     db.from('assets').select('asset_code,asset_name,manufacturer,model,serial_number,manufacturer_url,manual_url,ppm_frequency,last_service_date,next_service_date').eq('asset_code',code).maybeSingle(),
-    db.from('ppm_schedules').select('asset_code,frequency,last_completed,next_due,assigned_to,task,notes,completion_status').eq('asset_code',code).maybeSingle()
+    db.from('ppm_schedules').select('id,asset_code,frequency,last_completed,next_due,assigned_to,task,notes,completion_status').eq('asset_code',code)
   ]);
   if(!asset)return false;
   installStyles();
   let rich=$('ppmRichDetail');
   if(!rich)return false;
+  const modalScheduleId=modal.dataset.ppmScheduleId||'';
+  const ppm=(ppms||[]).find(x=>x.id===modalScheduleId)||(ppms||[])[0]||null;
   const contractor=ppm?.assigned_to||'Not linked yet';
   const task=ppm?.task||'Maintenance scope not yet confirmed.';
   const docs=[asset.manufacturer_url?`<a href="${esc(asset.manufacturer_url)}" target="_blank" rel="noopener">Manufacturer page ↗</a>`:'',asset.manual_url?`<a href="${esc(asset.manual_url)}" target="_blank" rel="noopener">Service manual ↗</a>`:''].join('');
@@ -101,7 +87,7 @@ async function enhance(){
     <section class="ppmInfoGrid">
       <article class="ppmInfoCard"><small>Service schedule</small><h4>${esc(ppm?.frequency||asset.ppm_frequency||'Not set')}</h4><p>Last completed: ${esc(ppm?.last_completed||asset.last_service_date||'Not recorded')}<br>Next due: ${esc(ppm?.next_due||asset.next_service_date||'Date required')}</p></article>
       <article class="ppmInfoCard"><small>Contractor</small><div class="ppmContractorRow"><h4>${esc(contractor)}</h4><a href="/contractor-dashboard.html">Contractors & Quotes →</a></div><p>Link the regular service contractor here once their record is added.</p></article>
-      <article class="ppmInfoCard" style="grid-column:1/-1"><small>Manufacturer-backed service scope</small><h4>${esc(asset.manufacturer||'Manufacturer')} recommendations</h4><p>${esc(task)}</p></article>
+      <article class="ppmInfoCard" style="grid-column:1/-1"><small>Maintenance scope</small><h4>${esc(asset.manufacturer||'Asset')} service requirements</h4><p>${esc(task)}</p></article>
     </section>`;
   const title=$('ppmModalTitle');if(title)title.textContent=`${asset.asset_code} · ${asset.asset_name}`;
   lastEnhancedCode=code;
@@ -115,14 +101,7 @@ function scheduleEnhance(){
     const modal=$('ppmModal');
     if(!modal||modal.getAttribute('aria-hidden')==='true')return;
     const code=$('ppmAsset')?.value?.trim();
-    if(code&&code!==lastEnhancedCode){
-      enhance().catch(console.warn);
-      return;
-    }
-    if(code&&lastEnhancedCode===code){
-      enhance().catch(console.warn);
-      return;
-    }
+    if(code){enhance().catch(console.warn);return;}
     attempts++;
     if(attempts<30)enhanceTimer=setTimeout(tryEnhance,100);
   };
@@ -132,9 +111,10 @@ function scheduleEnhance(){
 function init(){
   const modal=$('ppmModal');
   if(!modal)return setTimeout(init,300);
+  installStyles();
   const assetInput=$('ppmAsset');
   const obs=new MutationObserver(()=>{if(modal.getAttribute('aria-hidden')!=='true')scheduleEnhance();});
-  obs.observe(modal,{attributes:true,attributeFilter:['aria-hidden','class','style']});
+  obs.observe(modal,{attributes:true,attributeFilter:['aria-hidden','class','style','data-ppm-schedule-id']});
   if(assetInput){
     const valueObserver=new MutationObserver(scheduleEnhance);
     valueObserver.observe(assetInput,{attributes:true,attributeFilter:['value']});

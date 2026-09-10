@@ -9,6 +9,7 @@
   const cfg = window.LIMEWOOD_CONFIG || {};
   let genuineRooms = new Set();
   let genuineCanonical = new Map();
+  let observing = false;
 
   function canonicalRoom(value){
     const raw = normalise(value);
@@ -31,11 +32,6 @@
     return canonicalRoom(value).toLowerCase();
   }
 
-  function isGenuinePlantRoom(value){
-    const key = roomKey(value);
-    return Boolean(key && genuineRooms.has(key));
-  }
-
   function roomNameFromButton(button){
     return button?.dataset?.selectPlantRoom ||
       button?.dataset?.hubRoom ||
@@ -43,8 +39,10 @@
       '';
   }
 
-  function discoveredRooms(){
-    return [...genuineCanonical.values()].sort((a,b)=>a.localeCompare(b));
+  function setDatasetIfChanged(button, key, value){
+    if(button.dataset[key] !== undefined && button.dataset[key] !== value){
+      button.dataset[key] = value;
+    }
   }
 
   function cleanPlantRoomButtons(){
@@ -57,13 +55,14 @@
         return;
       }
 
-      const canonical = genuineCanonical.get(key);
-      if(button.dataset.selectPlantRoom) button.dataset.selectPlantRoom = canonical;
-      if(button.dataset.hubRoom) button.dataset.hubRoom = canonical;
-      if('room' in button.dataset) button.dataset.room = canonical;
+      const canonical = genuineCanonical.get(key) || canonicalRoom(name);
+      if(button.dataset.selectPlantRoom !== undefined) setDatasetIfChanged(button, 'selectPlantRoom', canonical);
+      if(button.dataset.hubRoom !== undefined) setDatasetIfChanged(button, 'hubRoom', canonical);
+      if(button.dataset.room !== undefined) setDatasetIfChanged(button, 'room', canonical);
 
       const label = button.querySelector('b');
-      if(label) label.textContent = canonical.replace(/ Plant Room$/i,'');
+      const wantedLabel = canonical.replace(/ Plant Room$/i,'');
+      if(label && label.textContent !== wantedLabel) label.textContent = wantedLabel;
     });
   }
 
@@ -78,9 +77,9 @@
         option.remove();
         return;
       }
-      const canonical = genuineCanonical.get(key);
-      option.value = canonical;
-      option.textContent = canonical;
+      const canonical = genuineCanonical.get(key) || canonicalRoom(option.value);
+      if(option.value !== canonical) option.value = canonical;
+      if(option.textContent !== canonical) option.textContent = canonical;
     });
 
     const seen = new Set();
@@ -105,32 +104,56 @@
       [...select.options].forEach(option => {
         if(!option.value) return;
         const key = roomKey(option.value);
-        if(!genuineRooms.has(key)) option.remove();
-        else {
-          const canonical = genuineCanonical.get(key);
-          option.value = canonical;
-          option.textContent = canonical;
+        if(!genuineRooms.has(key)) {
+          option.remove();
+        } else {
+          const canonical = genuineCanonical.get(key) || canonicalRoom(option.value);
+          if(option.value !== canonical) option.value = canonical;
+          if(option.textContent !== canonical) option.textContent = canonical;
         }
       });
     });
   }
 
+  function authoritativeCount(){
+    return new Set([...genuineCanonical.values()].map(canonicalRoom).filter(Boolean)).size;
+  }
+
   function fixCounts(){
-    const count = genuineRooms.size;
+    const count = authoritativeCount();
     if(!count) return;
 
     const metric = document.getElementById('metricPlantRoomCount');
     const quality = document.getElementById('roomsCount');
-    if(metric) metric.textContent = String(count);
-    if(quality) quality.textContent = String(count);
+    const text = String(count);
+    if(metric && metric.textContent !== text) metric.textContent = text;
+    if(quality && quality.textContent !== text) quality.textContent = text;
+  }
+
+  function observe(){
+    if(observing || !document.body) return;
+    observer.observe(document.body, {subtree:true, childList:true, characterData:true});
+    observing = true;
   }
 
   function enforce(){
     if(!genuineRooms.size) return;
-    cleanRoomSelect();
-    cleanOtherPlantRoomSelectors();
-    cleanPlantRoomButtons();
-    fixCounts();
+
+    // The guard itself edits text/options. Disconnect while enforcing so those
+    // edits do not trigger an endless MutationObserver feedback loop.
+    if(observing){
+      observer.disconnect();
+      observing = false;
+    }
+
+    try {
+      cleanRoomSelect();
+      cleanOtherPlantRoomSelectors();
+      cleanPlantRoomButtons();
+      fixCounts();
+    } finally {
+      observe();
+    }
   }
 
   let queued = false;
@@ -194,7 +217,7 @@
   }
 
   function start(){
-    observer.observe(document.body, {subtree:true, childList:true, characterData:true});
+    observe();
     loadAuthoritativeRooms();
     setTimeout(enforce, 500);
     setTimeout(enforce, 1500);

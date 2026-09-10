@@ -1,3 +1,12 @@
+(()=>{
+  if(/\/electrical-schematic-map\.html$/i.test(location.pathname) && (new URLSearchParams(location.search).get('building')||'Main House')==='Main House'){
+    const s=document.createElement('script');
+    s.src='/assets/main-house-electrical-groups.js?v=20260910-1';
+    s.defer=true;
+    document.head.appendChild(s);
+  }
+})();
+
 (() => {
   'use strict';
 

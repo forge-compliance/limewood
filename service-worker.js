@@ -1,47 +1,51 @@
-const CACHE = 'limewood-cache-v2';
+const CACHE = 'limewood-static-v3';
 
-const SHELL = [
-  '/',
-  '/index.html',
-  '/assets/style.css',
+// Limewood operational data is cloud-only. The service worker must never
+// present a stale HTML/JS application shell that can look like a live system.
+// Only harmless static install assets are cached.
+const STATIC = [
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(SHELL))
+    caches.open(CACHE).then(cache => cache.addAll(STATIC)).catch(() => undefined)
   );
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE)
-          .map(key => caches.delete(key))
-      )
-    )
+    Promise.all([
+      caches.keys().then(keys =>
+        Promise.all(
+          keys
+            .filter(key => key !== CACHE)
+            .map(key => caches.delete(key))
+        )
+      ),
+      self.clients.claim()
+    ])
   );
 });
 
 self.addEventListener('fetch', event => {
   const req = event.request;
-
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
 
-  // Never cache Supabase requests
+  // Supabase is always live network-only.
   if (url.hostname.endsWith('supabase.co')) {
-    event.respondWith(fetch(req));
+    event.respondWith(fetch(req, { cache: 'no-store' }));
     return;
   }
 
-  // HTML / JS / CSS should prefer the network
-  const isCore =
+  // The application shell is also network-only. If Cloudflare is unavailable,
+  // show a real network error rather than an old UI with misleading zero counts.
+  if (
     req.mode === 'navigate' ||
     (
       url.origin === self.location.origin &&
@@ -51,58 +55,25 @@ self.addEventListener('fetch', event => {
         url.pathname.endsWith('.js') ||
         url.pathname.endsWith('.css')
       )
-    );
-
-  if (isCore) {
-    event.respondWith(
-      fetch(req, { cache: 'no-store' })
-        .then(res => {
-          if (!res || !res.ok) return res;
-
-          const cacheCopy = res.clone();
-
-          event.waitUntil(
-            caches.open(CACHE).then(cache => {
-              const key = req.mode === 'navigate'
-                ? '/index.html'
-                : req;
-
-              return cache.put(key, cacheCopy);
-            })
-          );
-
-          return res;
-        })
-        .catch(() => {
-          return req.mode === 'navigate'
-            ? caches.match('/index.html')
-            : caches.match(req);
-        })
-    );
-
+    )
+  ) {
+    event.respondWith(fetch(req, { cache: 'no-store' }));
     return;
   }
 
-  // Other same-origin resources: cache first
+  // Cache only harmless same-origin static assets such as icons.
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then(cached => {
-        if (cached) return cached;
-
-        return fetch(req).then(res => {
+      caches.match(req).then(cached =>
+        cached || fetch(req).then(res => {
           if (!res || !res.ok) return res;
-
-          const cacheCopy = res.clone();
-
+          const copy = res.clone();
           event.waitUntil(
-            caches.open(CACHE).then(cache =>
-              cache.put(req, cacheCopy)
-            )
+            caches.open(CACHE).then(cache => cache.put(req, copy))
           );
-
           return res;
-        });
-      })
+        })
+      )
     );
   }
 });

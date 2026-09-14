@@ -32,7 +32,14 @@
     .removeReviewBtn{padding:9px 10px;font-size:12px}
     .deleteReviewPhotoBtn{width:100%;padding:11px 13px;margin-top:10px}
     .removeReviewBtn:disabled,.deleteReviewPhotoBtn:disabled{opacity:.55;cursor:default}
-    @media(max-width:600px){.queueItemActions{flex-direction:column;align-items:stretch}.removeReviewBtn{padding:8px 10px}}
+    .stanCircuitPanel{margin-top:12px;padding:12px;border:1px solid #d8e3dc;background:#fff;border-radius:12px}
+    .stanCircuitHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+    .stanCircuitHead b{color:#17372c;font-size:13px}.stanCircuitHead small{color:#6c7771;font-size:10px}
+    .stanCircuitList{display:grid;gap:6px;max-height:260px;overflow:auto}
+    .stanCircuitBtn{display:grid;grid-template-columns:72px minmax(0,1fr);gap:9px;text-align:left;width:100%;border:1px solid #dde4df;background:#f8faf8;border-radius:9px;padding:9px 10px;cursor:pointer;color:#1d2823}
+    .stanCircuitBtn:hover{border-color:#9fb8aa;background:#eef5f0}.stanCircuitBtn strong{color:#17372c}.stanCircuitBtn span{font-size:12px}.stanCircuitMeta{grid-column:2;font-size:10px;color:#77817c;margin-top:-4px}
+    .stanCircuitEmpty{font-size:12px;color:#7b847f;padding:4px 0}
+    @media(max-width:600px){.queueItemActions{flex-direction:column;align-items:stretch}.removeReviewBtn{padding:8px 10px}.stanCircuitBtn{grid-template-columns:58px minmax(0,1fr)}}
   `;
   document.head.appendChild(style);
 
@@ -129,9 +136,56 @@
     actions.appendChild(del);
   };
 
-  const apply=()=>{applyIdentity();enhanceQueue();enhanceModal();};
+  let lastCircuitBoard='';
+  const boardCodeFromReview=()=>{
+    const draft=document.getElementById('draftFields')?.innerText||'';
+    const chat=[...document.querySelectorAll('#chatLog .chatBubble')].map(x=>x.innerText||'').join('\n');
+    const meta=document.getElementById('reviewMeta')?.innerText||'';
+    const text=[draft,chat,meta].join('\n');
+    const patterns=[
+      /\b((?:MH|SH|CH|SPA|FCL|GB|PAV\d*|CRE)-DB-[A-Z0-9-]+)\b/i,
+      /\b((?:MH|SH|CH|SPA|FCL|GB|PAV\d*|CRE)-(?:MCP|CU)-[A-Z0-9-]+)\b/i,
+      /\b((?:MH|SH|CH|SPA|FCL|GB|PAV\d*|CRE)-E-\d{3})\b/i
+    ];
+    for(const p of patterns){const m=text.match(p);if(m)return m[1].toUpperCase();}
+    return '';
+  };
+
+  const circuitSort=(a,b)=>String(a.circuit_number||'').localeCompare(String(b.circuit_number||''),undefined,{numeric:true,sensitivity:'base'});
+
+  const renderCircuitPanel=async()=>{
+    if(!client)return;
+    const box=document.querySelector('.reviewAssistant');
+    const composer=box?.querySelector('.chatComposer');
+    if(!box||!composer)return;
+    const board=boardCodeFromReview();
+    let panel=box.querySelector('.stanCircuitPanel');
+    if(!board){if(panel)panel.remove();lastCircuitBoard='';return;}
+    if(board===lastCircuitBoard&&panel)return;
+    lastCircuitBoard=board;
+    if(!panel){panel=document.createElement('div');panel.className='stanCircuitPanel';composer.parentNode.insertBefore(panel,composer);}
+    panel.innerHTML=`<div class="stanCircuitHead"><div><b>${board} circuit schedule</b><br><small>Loading live register…</small></div></div>`;
+    try{
+      const {data,error}=await client.from('electrical_circuits').select('circuit_number,circuit_description,destination,phase,protective_device,device_rating,verification_status').eq('board_asset_code',board);
+      if(error)throw error;
+      const rows=(data||[]).sort(circuitSort);
+      if(!rows.length){panel.innerHTML=`<div class="stanCircuitHead"><div><b>${board} circuit schedule</b><br><small>Live electrical register</small></div></div><div class="stanCircuitEmpty">No outgoing circuits are recorded for this board yet.</div>`;return;}
+      panel.innerHTML=`<div class="stanCircuitHead"><div><b>${board} circuit schedule</b><br><small>${rows.length} live circuit${rows.length===1?'':'s'} · click one to confirm it to Stan</small></div></div><div class="stanCircuitList">${rows.map((r,i)=>`<button type="button" class="stanCircuitBtn" data-stan-circuit="${i}"><strong>${String(r.circuit_number||'?').replace(/[&<>"']/g,'')}</strong><span>${String(r.circuit_description||r.destination||'Unnamed circuit').replace(/[&<>]/g,'')}</span><div class="stanCircuitMeta">${[r.phase,r.protective_device,r.device_rating,r.verification_status].filter(Boolean).join(' · ')}</div></button>`).join('')}</div>`;
+      panel.querySelectorAll('[data-stan-circuit]').forEach(btn=>btn.addEventListener('click',()=>{
+        const r=rows[Number(btn.dataset.stanCircuit)];
+        if(!r)return;
+        const input=document.getElementById('chatInput'),send=document.getElementById('chatSend');
+        if(!input||!send)return;
+        const description=r.circuit_description||r.destination||'Unnamed circuit';
+        input.value=`Confirmed: ${board} circuit ${r.circuit_number} - ${description}. Use this circuit for the asset electrical supply.`;
+        send.click();
+      }));
+    }catch(e){panel.innerHTML=`<div class="stanCircuitHead"><div><b>${board} circuit schedule</b></div></div><div class="stanCircuitEmpty">Could not load the live circuit register: ${String(e?.message||e)}</div>`;}
+  };
+
+  const apply=()=>{applyIdentity();enhanceQueue();enhanceModal();renderCircuitPanel();};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});
   else apply();
   const observer=new MutationObserver(apply);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
+  observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
 })();

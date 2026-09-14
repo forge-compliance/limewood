@@ -14,23 +14,26 @@ const building=(br.data||[]).find(b=>b.name===requested)||(br.data||[])[0];
 if(!building){status.textContent='No building found.';return}
 document.getElementById('pageTitle').textContent=building.name+' Electrical';
 const roomNames=(pr.data||[]).filter(r=>String(r.building_id)===String(building.id)).map(r=>r.name);
+const roomNorms=new Set(roomNames.map(norm));
+const buildingNorm=norm(building.name);
 const [ar,cr]=await Promise.all([
-  sb.from('electrical_assets').select('asset_code,asset_name,plant_room,category,system_duty,distribution_board,upstream_supply,circuit_reference,verification_status').in('plant_room',roomNames).order('asset_code'),
+  sb.from('electrical_assets').select('asset_code,asset_name,plant_room,category,system_duty,distribution_board,upstream_supply,circuit_reference,verification_status').order('asset_code'),
   sb.from('electrical_circuits').select('board_asset_code,circuit_number,circuit_description,destination,phase,protective_device,device_rating,notes')
 ]);
 if(ar.error){status.textContent='Could not load electrical assets.';return}
-const all=ar.data||[],circuits=cr.error?[]:(cr.data||[]);
-const structure=a=>/incoming|incomer|intake|meter|main switch|switchboard|feeder|mcp|motor control|control panel|distribution board|consumer unit|\bcu\b|\bdb\b|dimmer|lighting control panel|ilight|unit mh/i.test((a.category||'')+' '+(a.asset_name||'')+' '+(a.system_duty||''));
+const all=(ar.data||[]).filter(a=>{const p=norm(a.plant_room);return roomNorms.has(p)||(buildingNorm&&p.includes(buildingNorm))});
+const circuits=cr.error?[]:(cr.data||[]);
+const structure=a=>/incoming|incomer|intake|meter|mains panel|main switch|switchboard|feeder|mcp|motor control|control panel|distribution board|consumer unit|\bcu\b|\bdb\b|dimmer|lighting control panel|ilight|unit mh/i.test((a.category||'')+' '+(a.asset_name||'')+' '+(a.system_duty||''));
 const isFeederRecord=a=>/main switchboard feeder/i.test(a.category||'')||/^[A-Z]+-F-/i.test(a.asset_code||'');
 const assets=all.filter(a=>structure(a)&&!isFeederRecord(a));
 const circuitsFor=a=>{const keys=[a.asset_code,a.asset_name].filter(Boolean).map(norm);return circuits.filter(c=>keys.includes(norm(c.board_asset_code)))};
-const incoming=assets.find(a=>/incoming|incomer|intake|meter|main switchboard/.test(norm((a.category||'')+' '+(a.asset_name||''))))||null;
+const incoming=assets.find(a=>/incoming|incomer|intake|meter|mains panel|main switchboard/.test(norm((a.category||'')+' '+(a.asset_name||''))))||null;
 const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
 const isConsumer=a=>/consumer unit|\bcu\b/.test(txt(a));
 const isDimmerRack=a=>/dimmer rack|lighting rack|dimmer board/.test(txt(a));
 const isILight=a=>/\bilight\b/.test(txt(a))&&!isDimmerRack(a);
 const isDB=a=>/distribution board|\bdb\b/.test(txt(a))&&!isConsumer(a);
-const isMain=a=>/switchboard|main switch/.test(txt(a));
+const isMain=a=>/switchboard|main switch|mains panel/.test(txt(a));
 function itemCard(a){const ac=circuitsFor(a),n=ac.length,verified=/verified|human reviewed/.test(norm(a.verification_status)),href=a.asset_code?`/electrical-board-circuits.html?board=${encodeURIComponent(a.asset_code)}`:'#';const tag=n?n+' circuit'+(n===1?'':'s'):(verified?'Verified':'Recorded');const searchText=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.distribution_board,a.upstream_supply,...ac.flatMap(c=>[c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.notes])].join(' '));return `<a class="node mapItem${n?' hasCircuits':''}" data-search="${esc(searchText)}" href="${href}"><div class="code">${esc(a.asset_code||'')}</div><h3>${esc(a.asset_name||'Electrical asset')}</h3><p>${esc(a.plant_room||'Location not recorded')}</p><span class="pill">${esc(tag)}</span></a>`}
 function groupCard(key,title,items){return `<div class="branchCell"><button class="groupBtn" type="button" data-group="${key}"><div class="code">${items.length} ITEMS</div><h3>${esc(title)}</h3><p>From main incomer</p><span class="pill">Open</span></button></div>`}
 const remainder=assets.filter(a=>a!==incoming),used=new Set();

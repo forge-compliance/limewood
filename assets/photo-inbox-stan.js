@@ -1,5 +1,26 @@
 (()=>{
   const cfg=window.LIMEWOOD_CONFIG||{};
+
+  // Stan smart-review bridge. Supabase Functions uses window.fetch, so enrich only
+  // photo-review-assistant requests without changing the rest of the site.
+  if(!window.__limewoodStanSmartFetch){
+    window.__limewoodStanSmartFetch=true;
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      try{
+        const url=typeof input==='string'?input:(input&&input.url)||'';
+        if(/\/functions\/v1\/photo-review-assistant(?:\?|$)/.test(url)&&init?.body){
+          const body=JSON.parse(String(init.body));
+          const original=String(body?.message||'').trim();
+          const instruction="STAN SMART REVIEW MODE. Work this asset out yourself before asking Gary for information. Use the photo, nameplate, current draft, location hint, electrical register and circuit register supplied by the review system. For electrical details, search for the strongest likely upstream board or MCP, circuit reference, protective device, device rating, phase, isolation relationship and equipment served. Never ask Gary to investigate information that exists in those registers. If evidence is conclusive, fill the fields. If one match is plausible but not certain, do not save uncertain values yet: state the exact proposed register values and ask Gary only to confirm or correct them. If Gary answers yes, confirmed or correct, apply the proposal from the previous chat message. Only ask an open-ended question when the photo and registers contain no credible candidate. Do the same for location. Never invent electrical data. Do not mark the asset ready while a proposed match is awaiting confirmation.";
+          body.message=instruction+(original?"\n\nGary's message: "+original:"\n\nContinue the review now. Resolve everything you can and propose the strongest exact match for anything uncertain.");
+          init={...init,body:JSON.stringify(body)};
+        }
+      }catch(e){console.warn('Stan smart-review bridge skipped',e);}
+      return nativeFetch(input,init);
+    };
+  }
+
   const client=window.supabase&&cfg.supabaseUrl&&cfg.supabasePublishableKey
     ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}})
     : null;

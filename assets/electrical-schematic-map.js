@@ -21,16 +21,17 @@ const [ar,cr]=await Promise.all([
 if(ar.error){status.textContent='Could not load electrical assets.';return}
 const all=ar.data||[],circuits=cr.error?[]:(cr.data||[]);
 const structure=a=>/incoming|incomer|intake|meter|main switch|switchboard|feeder|mcp|motor control|control panel|distribution board|consumer unit|\bcu\b|\bdb\b|dimmer|lighting control panel|ilight|unit mh/i.test((a.category||'')+' '+(a.asset_name||'')+' '+(a.system_duty||''));
-const assets=all.filter(structure);
+const isFeederRecord=a=>/main switchboard feeder/i.test(a.category||'')||/^[A-Z]+-F-/i.test(a.asset_code||'');
+const assets=all.filter(a=>structure(a)&&!isFeederRecord(a));
 const circuitsFor=a=>{const keys=[a.asset_code,a.asset_name].filter(Boolean).map(norm);return circuits.filter(c=>keys.includes(norm(c.board_asset_code)))};
-const incoming=assets.find(a=>/incoming|incomer|intake|meter/.test(norm((a.category||'')+' '+(a.asset_name||''))))||null;
+const incoming=assets.find(a=>/incoming|incomer|intake|meter|main switchboard/.test(norm((a.category||'')+' '+(a.asset_name||''))))||null;
 const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
 const isConsumer=a=>/consumer unit|\bcu\b/.test(txt(a));
 const isDimmerRack=a=>/dimmer rack|lighting rack|dimmer board/.test(txt(a));
 const isILight=a=>/\bilight\b/.test(txt(a))&&!isDimmerRack(a);
 const isDB=a=>/distribution board|\bdb\b/.test(txt(a))&&!isConsumer(a);
-const isMain=a=>/switchboard|main switch|feeder/.test(txt(a));
-function itemCard(a){const ac=circuitsFor(a),n=ac.length,verified=/verified|human reviewed/.test(norm(a.verification_status)),href=a.asset_code?`/electrical-board-circuits.html?board=${encodeURIComponent(a.asset_code)}`:'#';const tag=n?n+' circuit'+(n===1?'':'s'):(verified?'Verified':'Recorded');const searchText=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.distribution_board,...ac.flatMap(c=>[c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.notes])].join(' '));return `<a class="node mapItem${n?' hasCircuits':''}" data-search="${esc(searchText)}" href="${href}"><div class="code">${esc(a.asset_code||'')}</div><h3>${esc(a.asset_name||'Electrical asset')}</h3><p>${esc(a.plant_room||'Location not recorded')}</p><span class="pill">${esc(tag)}</span></a>`}
+const isMain=a=>/switchboard|main switch/.test(txt(a));
+function itemCard(a){const ac=circuitsFor(a),n=ac.length,verified=/verified|human reviewed/.test(norm(a.verification_status)),href=a.asset_code?`/electrical-board-circuits.html?board=${encodeURIComponent(a.asset_code)}`:'#';const tag=n?n+' circuit'+(n===1?'':'s'):(verified?'Verified':'Recorded');const searchText=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.distribution_board,a.upstream_supply,...ac.flatMap(c=>[c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.notes])].join(' '));return `<a class="node mapItem${n?' hasCircuits':''}" data-search="${esc(searchText)}" href="${href}"><div class="code">${esc(a.asset_code||'')}</div><h3>${esc(a.asset_name||'Electrical asset')}</h3><p>${esc(a.plant_room||'Location not recorded')}</p><span class="pill">${esc(tag)}</span></a>`}
 function groupCard(key,title,items){return `<div class="branchCell"><button class="groupBtn" type="button" data-group="${key}"><div class="code">${items.length} ITEMS</div><h3>${esc(title)}</h3><p>From main incomer</p><span class="pill">Open</span></button></div>`}
 const remainder=assets.filter(a=>a!==incoming),used=new Set();
 const take=(key,title,test)=>{const items=remainder.filter(a=>!used.has(a)&&test(a)).sort(natural);items.forEach(a=>used.add(a));return {key,title,items}};
@@ -39,7 +40,7 @@ const groups=[
   take('cu','Consumer Units',a=>isConsumer(a)),
   take('ilight','iLight Units',a=>isILight(a)),
   take('dimmers','Dimmer Racks',a=>isDimmerRack(a)),
-  take('main','Switchboard & Feeders',a=>isMain(a)),
+  take('main','Main Switchboards',a=>isMain(a)),
   take('other','Other Controls',a=>true)
 ].filter(g=>g.items.length);
 const sourceTitle=incoming?incoming.asset_name:'Mains incoming',sourceCode=incoming?(incoming.asset_code||building.name.toUpperCase()):building.name.toUpperCase(),sourceSub=incoming?(incoming.plant_room||'Incoming electrical distribution'):'Incoming electrical distribution';

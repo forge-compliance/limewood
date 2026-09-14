@@ -17,6 +17,9 @@ const [ar,cr]=await Promise.all([sb.from('electrical_assets').select('asset_code
 if(ar.error){status.textContent='Could not load electrical assets.';return}
 const all=(ar.data||[]).filter(a=>{const p=norm(a.plant_room);return roomNorms.has(p)||(buildingNorm&&p.includes(buildingNorm))}),circuits=cr.error?[]:(cr.data||[]);
 const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
+const cat=a=>norm(a.category||'');
+const name=a=>norm(a.asset_name||'');
+const code=a=>norm(a.asset_code||'');
 const isFeederRecord=a=>/main switchboard feeder/i.test(a.category||'')||/^[A-Z]+-F-/i.test(a.asset_code||'');
 const isConsumer=a=>/consumer unit|\bcu\b/.test(txt(a));
 const isDimmerRack=a=>/dimmer|lighting control/.test(txt(a));
@@ -25,10 +28,9 @@ const isMCP=a=>/\bmcp\b|motor control panel/.test(txt(a));
 const isEmergency=a=>/emergency lighting/.test(txt(a));
 const isFire=a=>/fire damper|fsd damper/.test(txt(a));
 const isControl=a=>/control panel/.test(txt(a))&&!isMCP(a)&&!isFire(a);
-const isDB=a=>/distribution board|\bdb\b/.test(txt(a))&&!isConsumer(a)&&!isDimmerRack(a)&&!isMCP(a)&&!isFire(a)&&!isControl(a);
+// DB detection must come from the equipment record itself, not merely because a final-circuit description contains the letters DB.
+const isDB=a=>(/distribution board|electrical distribution/.test(cat(a))||/(^| )db( |$)/.test(name(a))||/(^| )db( |$)/.test(code(a))||/-db-/.test(String(a.asset_code||'').toLowerCase()))&&!/electrical circuit/.test(cat(a))&&!isConsumer(a)&&!isDimmerRack(a)&&!isMCP(a)&&!isFire(a)&&!isControl(a);
 const isMain=a=>/switchboard|main switch|mains panel/.test(txt(a));
-// Only actual electrical panels/boards belong on the schematic. Circuit-level asset records such as lights,
-// A/C units, immersion heaters, sockets and individual final circuits are destinations, not distribution nodes.
 const structure=a=>isConsumer(a)||isDimmerRack(a)||isILight(a)||isMCP(a)||isEmergency(a)||isFire(a)||isControl(a)||isDB(a)||isMain(a)||/incoming|incomer|intake|meter/.test(txt(a));
 const assets=all.filter(a=>structure(a)&&!isFeederRecord(a));
 const circuitsFor=a=>{const keys=[a.asset_code,a.asset_name].filter(Boolean).map(norm);return circuits.filter(c=>keys.includes(norm(c.board_asset_code)))};

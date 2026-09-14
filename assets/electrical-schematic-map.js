@@ -4,7 +4,7 @@ if(requested==='Barn'){location.replace('/barn-electrical.html?v=20260901-2');re
 if(requested==='Crescent'){location.replace('/crescent-electrical.html?v=20260901-1');return}
 const cfg=window.LIMEWOOD_CONFIG||{};
 const sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const natural=(a,b)=>String(a.asset_name||a.asset_code||'').localeCompare(String(b.asset_name||b.asset_code||''),undefined,{numeric:true,sensitivity:'base'});
 const status=document.getElementById('status'),canvas=document.getElementById('canvas');
@@ -16,12 +16,23 @@ const roomNames=(pr.data||[]).filter(r=>String(r.building_id)===String(building.
 const [ar,cr]=await Promise.all([sb.from('electrical_assets').select('asset_code,asset_name,plant_room,category,system_duty,distribution_board,upstream_supply,circuit_reference,verification_status').order('asset_code'),sb.from('electrical_circuits').select('board_asset_code,circuit_number,circuit_description,destination,phase,protective_device,device_rating,notes')]);
 if(ar.error){status.textContent='Could not load electrical assets.';return}
 const all=(ar.data||[]).filter(a=>{const p=norm(a.plant_room);return roomNorms.has(p)||(buildingNorm&&p.includes(buildingNorm))}),circuits=cr.error?[]:(cr.data||[]);
-const structure=a=>/incoming|incomer|intake|meter|mains panel|main switch|switchboard|feeder|mcp|motor control|control panel|distribution board|consumer unit|\bcu\b|\bdb\b|dimmer|lighting control|emergency lighting|fire damper|ilight|unit mh/i.test((a.category||'')+' '+(a.asset_name||'')+' '+(a.system_duty||''));
-const isFeederRecord=a=>/main switchboard feeder/i.test(a.category||'')||/^[A-Z]+-F-/i.test(a.asset_code||''),assets=all.filter(a=>structure(a)&&!isFeederRecord(a));
+const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
+const isFeederRecord=a=>/main switchboard feeder/i.test(a.category||'')||/^[A-Z]+-F-/i.test(a.asset_code||'');
+const isConsumer=a=>/consumer unit|\bcu\b/.test(txt(a));
+const isDimmerRack=a=>/dimmer|lighting control/.test(txt(a));
+const isILight=a=>/\bilight\b/.test(txt(a))&&!isDimmerRack(a);
+const isMCP=a=>/\bmcp\b|motor control panel/.test(txt(a));
+const isEmergency=a=>/emergency lighting/.test(txt(a));
+const isFire=a=>/fire damper|fsd damper/.test(txt(a));
+const isControl=a=>/control panel/.test(txt(a))&&!isMCP(a)&&!isFire(a);
+const isDB=a=>/distribution board|\bdb\b/.test(txt(a))&&!isConsumer(a)&&!isDimmerRack(a)&&!isMCP(a)&&!isFire(a)&&!isControl(a);
+const isMain=a=>/switchboard|main switch|mains panel/.test(txt(a));
+// Only actual electrical panels/boards belong on the schematic. Circuit-level asset records such as lights,
+// A/C units, immersion heaters, sockets and individual final circuits are destinations, not distribution nodes.
+const structure=a=>isConsumer(a)||isDimmerRack(a)||isILight(a)||isMCP(a)||isEmergency(a)||isFire(a)||isControl(a)||isDB(a)||isMain(a)||/incoming|incomer|intake|meter/.test(txt(a));
+const assets=all.filter(a=>structure(a)&&!isFeederRecord(a));
 const circuitsFor=a=>{const keys=[a.asset_code,a.asset_name].filter(Boolean).map(norm);return circuits.filter(c=>keys.includes(norm(c.board_asset_code)))};
 const incoming=assets.find(a=>/incoming|incomer|intake|meter|mains panel|main switchboard/.test(norm((a.category||'')+' '+(a.asset_name||''))))||null;
-const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
-const isConsumer=a=>/consumer unit|\bcu\b/.test(txt(a)),isDimmerRack=a=>/dimmer|lighting control/.test(txt(a)),isILight=a=>/\bilight\b/.test(txt(a))&&!isDimmerRack(a),isMCP=a=>/\bmcp\b|motor control panel/.test(txt(a)),isEmergency=a=>/emergency lighting/.test(txt(a)),isFire=a=>/fire damper|fsd damper/.test(txt(a)),isControl=a=>/control panel/.test(txt(a))&&!isMCP(a)&&!isFire(a),isDB=a=>/distribution board|\bdb\b/.test(txt(a))&&!isConsumer(a)&&!isDimmerRack(a)&&!isMCP(a)&&!isFire(a)&&!isControl(a),isMain=a=>/switchboard|main switch|mains panel/.test(txt(a));
 function itemCard(a,branch=false){const ac=circuitsFor(a),n=ac.length,verified=/verified|human reviewed/.test(norm(a.verification_status)),href=a.asset_code?`/electrical-board-circuits.html?board=${encodeURIComponent(a.asset_code)}`:'#',tag=n?n+' circuit'+(n===1?'':'s'):(verified?'Verified':'Recorded'),searchText=norm([a.asset_code,a.asset_name,a.plant_room,a.category,a.system_duty,a.distribution_board,a.upstream_supply,...ac.flatMap(c=>[c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.notes])].join(' '));return `<div class="${branch?'branchCell directBranch':''}"><a class="node mapItem${n?' hasCircuits':''}" data-search="${esc(searchText)}" href="${href}"><div class="code">${esc(a.asset_code||'')}</div><h3>${esc(a.asset_name||'Electrical asset')}</h3><p>${esc(a.plant_room||'Location not recorded')}</p><span class="pill">${esc(tag)}</span></a></div>`}
 function groupCard(g){return `<div class="branchCell"><button class="groupBtn" type="button" data-group="${g.key}"><div class="code">${g.items.length} ITEMS</div><h3>${esc(g.title)}</h3><p>From main incomer</p><span class="pill">Open</span></button></div>`}
 const remainder=assets.filter(a=>a!==incoming),used=new Set(),take=(key,title,test)=>{const items=remainder.filter(a=>!used.has(a)&&test(a)).sort(natural);items.forEach(a=>used.add(a));return {key,title,items}};

@@ -1,7 +1,6 @@
 (async()=>{'use strict';
 const requested=new URLSearchParams(location.search).get('building')||'Main House';
 if(requested==='Barn'){location.replace('/barn-electrical.html?v=20260901-2');return}
-if(requested==='Crescent'){location.replace('/crescent-electrical.html?v=20260901-1');return}
 const cfg=window.LIMEWOOD_CONFIG||{};
 const sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));

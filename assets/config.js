@@ -76,7 +76,7 @@ window.LIMEWOOD_BMS = {
     const siteSidebar=document.createElement('script'); siteSidebar.src='/assets/site-sidebar.js?v=20260830-2'; document.head.appendChild(siteSidebar);
   }
   if(isHome){
-    const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260829-1'; document.head.appendChild(sopActions);
+    const sopActions=document.createElement('script'); sopActions.src='/assets/sop-actions-stable.js?v=20260917-2'; document.head.appendChild(sopActions);
     const documentCentre=document.createElement('script'); documentCentre.src='/assets/document-centre-v2.js?v=20260829-3'; document.head.appendChild(documentCentre);
     const reviewLayout=document.createElement('script'); reviewLayout.src='/assets/review-layout-fix.js?v=20260829-1'; document.head.appendChild(reviewLayout);
   }

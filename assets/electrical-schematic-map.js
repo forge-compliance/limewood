@@ -14,7 +14,12 @@ document.getElementById('pageTitle').textContent=building.name+' Electrical';
 const roomNames=(pr.data||[]).filter(r=>String(r.building_id)===String(building.id)).map(r=>r.name),roomNorms=new Set(roomNames.map(norm)),buildingNorm=norm(building.name);
 const [ar,cr]=await Promise.all([sb.from('electrical_assets').select('asset_code,asset_name,plant_room,category,system_duty,distribution_board,upstream_supply,circuit_reference,verification_status').order('asset_code'),sb.from('electrical_circuits').select('board_asset_code,circuit_number,circuit_description,destination,phase,protective_device,device_rating,notes')]);
 if(ar.error){status.textContent='Could not load electrical assets.';return}
-const all=(ar.data||[]).filter(a=>{const p=norm(a.plant_room);return roomNorms.has(p)||(buildingNorm&&p.includes(buildingNorm))}),circuits=cr.error?[]:(cr.data||[]);
+// Verified assets sometimes use a concise location such as "Kitchen" before
+// that location has been added to plant_rooms. The asset prefix still gives us
+// a reliable building association.
+const buildingPrefixes={'main house':'MH-','staff house':'SH-','chalet':'CH-','spa':'SPA-','falcon':'FCL-','garden building':'GB-'};
+const buildingPrefix=buildingPrefixes[buildingNorm]||'';
+const all=(ar.data||[]).filter(a=>{const p=norm(a.plant_room),assetCode=String(a.asset_code||'').toUpperCase();return roomNorms.has(p)||(buildingNorm&&p.includes(buildingNorm))||(buildingPrefix&&assetCode.startsWith(buildingPrefix))}),circuits=cr.error?[]:(cr.data||[]);
 const txt=a=>norm((a.asset_name||'')+' '+(a.category||'')+' '+(a.system_duty||'')+' '+(a.asset_code||''));
 const cat=a=>norm(a.category||'');
 const name=a=>norm(a.asset_name||'');

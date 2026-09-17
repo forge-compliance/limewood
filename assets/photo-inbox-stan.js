@@ -104,7 +104,7 @@
   const enhanceQueue=()=>{
     document.querySelectorAll('#queueList .queueItem').forEach(item=>{
       const review=item.querySelector('[data-review]');
-      if(!review||item.querySelector('.removeReviewBtn'))return;
+      if(!review||item.querySelector('.removeReviewBtn,[data-delete-review]'))return;
       const id=review.dataset.review;
       const wrap=document.createElement('div');
       wrap.className='queueItemActions';
@@ -122,7 +122,7 @@
   const enhanceModal=()=>{
     const actions=document.querySelector('.reviewActions');
     const approve=document.getElementById('approveExisting');
-    if(!actions||!approve||actions.querySelector('.deleteReviewPhotoBtn'))return;
+    if(!actions||!approve||actions.querySelector('.deleteReviewPhotoBtn,.directDeleteBtn,#deleteActiveReview'))return;
     const row=document.createElement('div');
     row.className='reviewPrimaryActions';
     approve.parentNode.insertBefore(row,approve);

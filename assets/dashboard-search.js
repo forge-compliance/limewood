@@ -217,18 +217,25 @@
   function roomOverview(bundle){
     if(!bundle?.room)return '';
     const room=bundle.room,assets=bundle.assets||[],electrical=bundle.electrical||[],plants=bundle.related_plant||[],docs=bundle.documents||[],jobs=bundle.jobs||[];
-    const assetHtml=assets.map(a=>button(a.category==='Television'?'📺':a.category==='Room Safe'?'🔐':'⚙️',a.asset_name||a.asset_code,[a.category,a.exact_location].filter(Boolean).join(' · '),[a.asset_code,a.manufacturer,a.model,a.status].filter(Boolean).join(' · '),`data-us-asset="${esc(a.asset_code)}"`)).join('');
+    const plumbingIntent=/(^|\s)(leak|leaking|burst|drip|dripping|flood|flooding|tap|pipe|plumbing|water|hws|hwr|cws)(\s|$)/.test(norm(bundle.query||''));
+    const electricalCodes=new Set(electrical.map(a=>norm(a.asset_code)).filter(Boolean));
+    const roomAssets=assets.filter(a=>!electricalCodes.has(norm(a.asset_code)));
+    const assetHtml=roomAssets.map(a=>button(a.category==='Television'?'📺':a.category==='Room Safe'?'🔐':'⚙️',a.asset_name||a.asset_code,[a.category,a.exact_location].filter(Boolean).join(' · '),[a.asset_code,a.manufacturer,a.model,a.status].filter(Boolean).join(' · '),`data-us-asset="${esc(a.asset_code)}"`)).join('');
     const electricalHtml=electrical.map(a=>button(a.category==='Lighting Control'?'💡':'⚡',a.asset_name||a.asset_code,[a.category,a.plant_room].filter(Boolean).join(' · '),[a.circuit_reference,a.upstream_supply,a.verification_status].filter(Boolean).join(' · '),`data-us-electrical="${esc(a.asset_code)}" data-us-query="${esc(room.name)}"`,a.verification_status==='confirmed'?'Verified':'Open →')).join('');
     const plantHtml=plants.map(p=>button('🏭',p.plant_room_name||'Related plant room',`${p.valve_count||0} valves · ${p.confirmed_valve_count||0} with recorded positions`,p.relationship_notes||p.description||'',`data-us-room-plant="${esc(p.plant_room_name)}"`,p.verification_status==='confirmed'?'Confirmed':'Relationship TBC')).join('');
     const docHtml=docs.map(x=>button('📄',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',`data-us-document="${esc(x.title||'')}"`)).join('');
     const jobHtml=jobs.map(x=>button('🧰',x.issue||x.job_number,[x.job_number,x.status,x.reported_at?new Date(x.reported_at).toLocaleDateString():null].filter(Boolean).join(' · '),x.location||'',`data-us-maintenance="${esc(room.name)}"`)).join('');
+    const assetSection=section('🛏️ Items in this room',assetHtml,roomAssets.length);
+    const electricalSection=section('⚡ Electrical & lighting controls',electricalHtml,electrical.length);
+    const plantSection=section('🏭 Plant, valves & isolations',plantHtml,plants.length);
+    const documentSection=section(plumbingIntent?'🚨 Relevant isolation procedure':'📚 Room documents',docHtml,docs.length);
+    const jobSection=section('🧰 Previous maintenance jobs',jobHtml,jobs.length);
+    const orderedSections=plumbingIntent
+      ? documentSection+plantSection+assetSection+electricalSection+jobSection
+      : assetSection+electricalSection+plantSection+documentSection+jobSection;
     return `<section class="roomIntelligence">
-      <div class="roomIntelligenceHead"><span>ROOM INTELLIGENCE</span><h2>${esc(room.name)}</h2><p>Everything currently linked to this room in one place.</p><div class="roomStats"><b>${assets.length}<small>Room assets</small></b><b>${electrical.length}<small>Electrical records</small></b><b>${plants.length}<small>Related plant rooms</small></b><b>${jobs.length}<small>Previous jobs</small></b></div></div>
-      ${section('🛏️ Items in this room',assetHtml,assets.length)}
-      ${section('⚡ Electrical & lighting controls',electricalHtml,electrical.length)}
-      ${section('🏭 Plant, valves & isolations',plantHtml,plants.length)}
-      ${section('📚 Room documents',docHtml,docs.length)}
-      ${section('🧰 Previous maintenance jobs',jobHtml,jobs.length)}
+      <div class="roomIntelligenceHead"><span>ROOM INTELLIGENCE</span><h2>${esc(room.name)}</h2><p>Everything currently linked to this room in one place.</p><div class="roomStats"><b>${roomAssets.length}<small>Room assets</small></b><b>${electrical.length}<small>Electrical records</small></b><b>${plants.length}<small>Related plant rooms</small></b><b>${jobs.length}<small>Previous jobs</small></b></div></div>
+      ${orderedSections}
     </section>`;
   }
 

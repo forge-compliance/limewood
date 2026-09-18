@@ -4,7 +4,8 @@
 
   const cfg=window.LIMEWOOD_CONFIG||{};
   const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
-  const norm=v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+  const numberWords={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',thirteen:'13',fourteen:'14',fifteen:'15',sixteen:'16',seventeen:'17',eighteen:'18',nineteen:'19',twenty:'20'};
+  const norm=v=>String(v||'').toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g,w=>numberWords[w]).replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
   let db=null,data=null,busy=false;
 
   const aliases={
@@ -62,6 +63,13 @@
     const r=await c.from(table).select(columns);
     if(r.error){console.warn('Universal search skipped '+table,r.error.message);return [];}
     return r.data||[];
+  }
+
+  async function roomIntelligence(raw){
+    const c=client();if(!c)return null;
+    const r=await c.rpc('search_room_intelligence',{p_query:raw});
+    if(r.error){console.warn('Room intelligence search skipped',r.error.message);return null;}
+    return r.data?.room?r.data:null;
   }
 
   async function load(){
@@ -206,7 +214,25 @@
 
   function section(title,html,count){return count?`<div class="fsSection"><h3>${title}<span class="fsCount">${count}</span></h3><div class="fsResults">${html}</div></div>`:'';}
 
-  function render(raw,d){
+  function roomOverview(bundle){
+    if(!bundle?.room)return '';
+    const room=bundle.room,assets=bundle.assets||[],electrical=bundle.electrical||[],plants=bundle.related_plant||[],docs=bundle.documents||[],jobs=bundle.jobs||[];
+    const assetHtml=assets.map(a=>button(a.category==='Television'?'📺':a.category==='Room Safe'?'🔐':'⚙️',a.asset_name||a.asset_code,[a.category,a.exact_location].filter(Boolean).join(' · '),[a.asset_code,a.manufacturer,a.model,a.status].filter(Boolean).join(' · '),`data-us-asset="${esc(a.asset_code)}"`)).join('');
+    const electricalHtml=electrical.map(a=>button(a.category==='Lighting Control'?'💡':'⚡',a.asset_name||a.asset_code,[a.category,a.plant_room].filter(Boolean).join(' · '),[a.circuit_reference,a.upstream_supply,a.verification_status].filter(Boolean).join(' · '),`data-us-electrical="${esc(a.asset_code)}" data-us-query="${esc(room.name)}"`,a.verification_status==='confirmed'?'Verified':'Open →')).join('');
+    const plantHtml=plants.map(p=>button('🏭',p.plant_room_name||'Related plant room',`${p.valve_count||0} valves · ${p.confirmed_valve_count||0} with recorded positions`,p.relationship_notes||p.description||'',`data-us-room-plant="${esc(p.plant_room_name)}"`,p.verification_status==='confirmed'?'Confirmed':'Relationship TBC')).join('');
+    const docHtml=docs.map(x=>button('📄',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',`data-us-document="${esc(x.title||'')}"`)).join('');
+    const jobHtml=jobs.map(x=>button('🧰',x.issue||x.job_number,[x.job_number,x.status,x.reported_at?new Date(x.reported_at).toLocaleDateString():null].filter(Boolean).join(' · '),x.location||'',`data-us-maintenance="${esc(room.name)}"`)).join('');
+    return `<section class="roomIntelligence">
+      <div class="roomIntelligenceHead"><span>ROOM INTELLIGENCE</span><h2>${esc(room.name)}</h2><p>Everything currently linked to this room in one place.</p><div class="roomStats"><b>${assets.length}<small>Room assets</small></b><b>${electrical.length}<small>Electrical records</small></b><b>${plants.length}<small>Related plant rooms</small></b><b>${jobs.length}<small>Previous jobs</small></b></div></div>
+      ${section('🛏️ Items in this room',assetHtml,assets.length)}
+      ${section('⚡ Electrical & lighting controls',electricalHtml,electrical.length)}
+      ${section('🏭 Plant, valves & isolations',plantHtml,plants.length)}
+      ${section('📚 Room documents',docHtml,docs.length)}
+      ${section('🧰 Previous maintenance jobs',jobHtml,jobs.length)}
+    </section>`;
+  }
+
+  function render(raw,d,roomBundle=null){
     const ts=terms(raw),locs=locationRows(raw,d,ts),assets=assetRows(raw,d,ts,locs),valves=valveRows(raw,d,ts,locs),electrical=electricalRows(raw,d,ts),docs=documentRows(raw,d,ts,locs),ppm=ppmRows(raw,d,ts),maint=maintenanceRows(raw,d,ts),logs=logRows(raw,d,ts);
     const total=locs.length+assets.length+valves.length+electrical.length+docs.length+ppm.length+maint.length+logs.length;
     const card=host();if(!card)return;
@@ -223,7 +249,8 @@
     card.innerHTML=`
       <span>UNIVERSAL ESTATE SEARCH</span>
       <h2>Results for “${esc(raw)}”</h2>
-      <p>${total} direct result${total===1?'':'s'} across the engineering database.</p>
+      <p>${roomBundle?.room?'Room record found · ':''}${total} additional direct result${total===1?'':'s'} across the engineering database.</p>
+      ${roomOverview(roomBundle)}
       ${section('📍 Places',locHtml,locs.length)}
       ${section('⚙️ Assets · Heating · Plumbing · Plant',assetHtml,assets.length)}
       ${section('🚰 Valves & isolations',valveHtml,valves.length)}
@@ -249,7 +276,9 @@
       .friendlySearchResult:hover{background:#edf3ee!important}.friendlySearchResult .fsIcon{font-size:22px;letter-spacing:0!important;color:inherit!important}.friendlySearchResult span:nth-child(2){letter-spacing:0!important;font-size:initial!important;color:inherit!important}
       .friendlySearchResult b{display:block;font-size:15px}.friendlySearchResult small{display:block;color:#69746d;margin-top:3px;font-weight:400;line-height:1.35}.friendlySearchResult .fsDetail{color:#8b6c1e}.friendlySearchResult strong{font-size:11px;white-space:nowrap;color:#8b6c1e;max-width:110px;overflow:hidden;text-overflow:ellipsis}
       .fsEmpty{padding:24px;border-radius:12px;background:#f3f1eb;text-align:center;color:#68736c}.fsEmpty b,.fsEmpty span{display:block}.fsEmpty span{margin-top:5px;letter-spacing:0!important;color:#68736c!important;font-size:13px!important}.fsBack{display:block;margin:22px auto 0}.dashboardSearch input{min-width:0}
+      .roomIntelligence{margin:22px 0 30px;padding:20px;border:2px solid #b8cc19;border-radius:18px;background:#fbfcf7}.roomIntelligenceHead{text-align:center}.roomIntelligenceHead>span{font:800 10px Arial;letter-spacing:.14em;color:#7c8d13}.roomIntelligenceHead h2{margin:5px 0;font:700 30px Georgia;color:#17372c}.roomIntelligenceHead p{margin:0;color:#68736c}.roomStats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:17px 0 3px}.roomStats b{background:#fff;border:1px solid #dfe5df;border-radius:12px;padding:12px;font-size:22px;color:#17372c}.roomStats small{display:block;margin-top:3px;color:#68736c;font:700 10px Arial}.roomIntelligence .fsSection:last-child{margin-bottom:0}
       @media(max-width:600px){.friendlySearchResult{grid-template-columns:34px 1fr;padding:12px!important}.friendlySearchResult strong{grid-column:2;font-size:9px}.friendlySearchCard{padding:18px!important}.dashboardSearch>div{display:grid!important;grid-template-columns:1fr auto}.dashboardSearch input{width:100%}}
+      @media(max-width:600px){.roomIntelligence{padding:14px}.roomStats{grid-template-columns:1fr 1fr}.roomIntelligenceHead h2{font-size:25px}}
     `;document.head.appendChild(style);
   }
 
@@ -266,7 +295,7 @@
     const input=document.getElementById('globalSearch'),raw=input?.value.trim()||'';if(!raw)return;
     if(e){e.preventDefault();e.stopImmediatePropagation();}
     if(busy)return;busy=true;
-    try{render(raw,await load());}
+    try{const [d,room]=await Promise.all([load(),roomIntelligence(raw)]);render(raw,d,room);}
     catch(err){console.warn('Universal search failed',err);const c=host();if(c)c.innerHTML='<span>SEARCH</span><h2>Search unavailable</h2><p>The database could not be read. Nothing has been changed.</p><button class="fsBack" data-us-back>← Dashboard</button>';}
     finally{busy=false;}
   }
@@ -277,6 +306,7 @@
     const v=e.target.closest('[data-us-valve]');if(v&&data){e.preventDefault();e.stopImmediatePropagation();const row=data.valves.find(x=>String(x.id)===String(v.dataset.usValve));if(row)openValve(row);return;}
     const el=e.target.closest('[data-us-electrical]');if(el){e.preventDefault();e.stopImmediatePropagation();openElectrical(el.dataset.usElectrical,el.dataset.usQuery);return;}
     const loc=e.target.closest('[data-us-location]');if(loc){e.preventDefault();e.stopImmediatePropagation();if(loc.dataset.usLocation==='plant')openPlant(loc.dataset.usName);else{const i=document.getElementById('globalSearch');if(i){i.value=loc.dataset.usName;run();}}return;}
+    const roomPlant=e.target.closest('[data-us-room-plant]');if(roomPlant){e.preventDefault();e.stopImmediatePropagation();openPlant(roomPlant.dataset.usRoomPlant);return;}
     const doc=e.target.closest('[data-us-document]');if(doc){e.preventDefault();e.stopImmediatePropagation();if(doc.dataset.usUrl)location.href=doc.dataset.usUrl;else openDocumentSearch(doc.dataset.usDocument);return;}
     const p=e.target.closest('[data-us-ppm]');if(p){e.preventDefault();e.stopImmediatePropagation();openPpmSearch(p.dataset.usPpm);return;}
     const m=e.target.closest('[data-us-maintenance]');if(m){e.preventDefault();e.stopImmediatePropagation();location.href='/maintenance-dashboard.html';return;}

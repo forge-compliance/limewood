@@ -87,7 +87,7 @@ window.LIMEWOOD_BMS = {
     const maintenanceAssetPicker=document.createElement('script'); maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1'; document.head.appendChild(maintenanceAssetPicker);
   }
   if(isPhotoInbox){
-    const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260921-zip1'; document.head.appendChild(photoBatch);
+    const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260921-zip2'; document.head.appendChild(photoBatch);
     const photoInboxRedesign=document.createElement('link'); photoInboxRedesign.rel='stylesheet'; photoInboxRedesign.href='/assets/photo-inbox-redesign.css?v=20260901-4'; document.head.appendChild(photoInboxRedesign);
     const stanChat=document.createElement('link'); stanChat.rel='stylesheet'; stanChat.href='/assets/stan-chat.css?v=20260901-3'; document.head.appendChild(stanChat);
     const stanHeader=document.createElement('script'); stanHeader.src='/assets/photo-inbox-stan.js?v=20260917-1'; document.head.appendChild(stanHeader);

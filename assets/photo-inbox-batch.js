@@ -16,7 +16,8 @@
 
     input.multiple = true;
     input.removeAttribute('capture');
-    input.accept = 'image/*,.zip,application/zip,application/x-zip-compressed';
+    /* Keep the normal picker image-only on Android. A separate ZIP picker below avoids Android routing this control to Photos. */
+    input.accept = 'image/*';
 
     const cfg = window.LIMEWOOD_CONFIG || {};
     const client = window.supabase?.createClient?.(cfg.supabaseUrl, cfg.supabasePublishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -25,15 +26,16 @@
     wrap.style.cssText = 'margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap';
     const count = document.createElement('strong'); count.style.cssText = 'font-size:13px;color:#17372c';
     const addMore = document.createElement('button'); addMore.type='button'; addMore.textContent='Take / add another photo'; addMore.style.cssText='border:1px solid #17372c;background:#17372c;color:#fff;padding:8px 11px;border-radius:9px;font-weight:800';
+    const importZip = document.createElement('button'); importZip.type='button'; importZip.textContent='Import ZIP'; importZip.style.cssText='border:1px solid #17372c;background:#fff;color:#17372c;padding:8px 11px;border-radius:9px;font-weight:800';
+    const zipInput = document.createElement('input'); zipInput.type='file'; zipInput.accept='.zip,application/zip,application/x-zip-compressed'; zipInput.style.display='none';
     const clear = document.createElement('button'); clear.type='button'; clear.textContent='Clear photos'; clear.style.cssText='display:none;border:1px solid #b9c7bf;background:#fff;color:#17372c;padding:7px 10px;border-radius:9px;font-weight:700';
-    const zipNote = document.createElement('div'); zipNote.style.cssText='flex-basis:100%;font-size:11px;color:#6b746f;text-align:center'; zipNote.textContent='Photos or ZIP files supported. ZIP limit 50 MB; images inside are unpacked before upload.';
-    wrap.append(count,addMore,clear,zipNote); input.insertAdjacentElement('afterend',wrap);
+    const zipNote = document.createElement('div'); zipNote.style.cssText='flex-basis:100%;font-size:11px;color:#6b746f;text-align:center'; zipNote.textContent='ZIP import supports up to 50 MB and 250 images. Images are unpacked on your device before upload.';
+    wrap.append(count,addMore,importZip,clear,zipNote,zipInput); input.insertAdjacentElement('afterend',wrap);
 
     const key=file=>[file.name,file.size,file.lastModified].join('|');
     function addPending(file){const k=key(file);if(!seen.has(k)){seen.add(k);pending.push(file);}}
-    function sync(){const dt=new DataTransfer();pending.forEach(file=>dt.items.add(file));input.files=dt.files;count.textContent=zipBusy?'Unpacking ZIP…':pending.length?`${pending.length} photo${pending.length===1?'':'s'} ready.`:'No photos selected yet.';clear.style.display=pending.length?'inline-block':'none';}
+    function sync(){const dt=new DataTransfer();pending.forEach(file=>dt.items.add(file));input.files=dt.files;count.textContent=zipBusy?'Unpacking ZIP…':pending.length?`${pending.length} photo${pending.length===1?'':'s'} ready.`:'No photos selected yet.';clear.style.display=pending.length?'inline-block':'none';importZip.disabled=zipBusy;addMore.disabled=zipBusy;}
     function imageMime(name){const ext=String(name).split('.').pop().toLowerCase();return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',heic:'image/heic',heif:'image/heif'})[ext]||'';}
-    function isZip(file){return /\.zip$/i.test(file.name)||/^(application\/zip|application\/x-zip-compressed)$/i.test(file.type||'');}
     function isImageName(name){return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(name);}
     function safeZipName(name){return String(name||'photo').replace(/^\/+|\/+$/g,'').replace(/[\\/]+/g,'__').replace(/[^a-zA-Z0-9._-]+/g,'_');}
     async function ensureJSZip(){
@@ -58,22 +60,21 @@
       return entries.length;
     }
 
-    input.addEventListener('change',async()=>{
-      const chosen=Array.from(input.files||[]);
-      if(!chosen.length)return;
-      zipBusy=true;sync();
-      let zipImages=0;
-      try{
-        for(const file of chosen){
-          if(isZip(file))zipImages+=await unpackZip(file);
-          else if((file.type||'').startsWith('image/')||isImageName(file.name))addPending(file);
-        }
-        if(zipImages){const status=document.getElementById('uploadStatus');if(status){status.className='status success';status.textContent=`Unpacked ${zipImages} photo${zipImages===1?'':'s'} from ZIP. Ready to upload.`;}}
-      }catch(err){const status=document.getElementById('uploadStatus');if(status){status.className='status error';status.textContent=err?.message||String(err);}}
-      finally{zipBusy=false;sync();}
-    });
+    input.addEventListener('change',()=>{Array.from(input.files||[]).forEach(file=>{if((file.type||'').startsWith('image/')||isImageName(file.name))addPending(file);});sync();});
     addMore.addEventListener('click',()=>{if(!zipBusy)input.click();});
-    clear.addEventListener('click',()=>{pending.length=0;seen.clear();input.value='';sync();});
+    importZip.addEventListener('click',()=>{if(!zipBusy){zipInput.value='';zipInput.click();}});
+    zipInput.addEventListener('change',async()=>{
+      const file=zipInput.files?.[0]; if(!file)return;
+      zipBusy=true; sync();
+      const status=document.getElementById('uploadStatus');
+      try{
+        if(status){status.className='status';status.textContent=`Unpacking ${file.name}…`;}
+        const n=await unpackZip(file);
+        if(status){status.className='status success';status.textContent=`Unpacked ${n} photo${n===1?'':'s'} from ${file.name}. Ready to upload.`;}
+      }catch(err){if(status){status.className='status error';status.textContent=err?.message||String(err);}}
+      finally{zipBusy=false;sync();zipInput.value='';}
+    });
+    clear.addEventListener('click',()=>{pending.length=0;seen.clear();input.value='';zipInput.value='';sync();});
     document.getElementById('uploadBtn')?.addEventListener('click',event=>{if(zipBusy){event.preventDefault();event.stopImmediatePropagation();const status=document.getElementById('uploadStatus');if(status){status.className='status';status.textContent='Still unpacking the ZIP. Upload will be ready in a moment.';}return;}setTimeout(()=>{if(!input.files.length){pending.length=0;seen.clear();sync();}},250);},true);
 
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));

@@ -12,7 +12,7 @@ window.LIMEWOOD_BMS = {
 // Location-aware navigation + friendly search + dashboard v8 skin.
 (() => {
   const isHome=/^\/(?:index\.html)?$/i.test(location.pathname);
-  const isPhotoInbox=/\/photo-inbox(?:\.html)?\/?$/i.test(location.pathname);
+  const isPhotoInbox=/\/photo-inbox\.html$/i.test(location.pathname);
   const returnKey='lw-auth-return';
   const safeReturnPath=value=>{
     const v=String(value||'');

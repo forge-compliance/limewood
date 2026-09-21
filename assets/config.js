@@ -36,9 +36,9 @@ window.LIMEWOOD_BMS = {
     zipInput.type='file';
     zipInput.accept='.zip,application/zip,application/x-zip-compressed';
     zipInput.style.display='none';
+    photoInput.closest('.dropZone')?.insertAdjacentElement('afterend',btn);
     btn.insertAdjacentElement('afterend',note);
     note.insertAdjacentElement('afterend',zipInput);
-    photoInput.closest('.dropZone')?.insertAdjacentElement('afterend',btn);
 
     const status=document.getElementById('uploadStatus');
     async function getJSZip(){
@@ -67,6 +67,7 @@ window.LIMEWOOD_BMS = {
         const entries=Object.values(zip.files).filter(e=>!e.dir&&/\.(jpe?g|png|webp|gif|heic|heif)$/i.test(e.name));
         if(!entries.length)throw new Error('No supported images found in the ZIP.');
         if(entries.length>250)throw new Error(`ZIP contains ${entries.length} images. Limit is 250.`);
+        if(typeof DataTransfer==='undefined')throw new Error('This browser cannot unpack a ZIP into the photo picker. Use the regular browser version for this import.');
         const dt=new DataTransfer();
         const mime=n=>/\.png$/i.test(n)?'image/png':/\.webp$/i.test(n)?'image/webp':/\.gif$/i.test(n)?'image/gif':/\.hei[cf]$/i.test(n)?'image/heic':'image/jpeg';
         for(const entry of entries){
@@ -75,7 +76,6 @@ window.LIMEWOOD_BMS = {
           dt.items.add(new File([blob],safe,{type:mime(entry.name),lastModified:file.lastModified||Date.now()}));
         }
         photoInput.files=dt.files;
-        photoInput.dispatchEvent(new Event('change',{bubbles:true}));
         if(status){status.className='status success';status.textContent=`Unpacked ${entries.length} photos from ${file.name}. Ready to upload.`;}
       }catch(e){
         if(status){status.className='status error';status.textContent=e?.message||String(e);}
@@ -156,7 +156,8 @@ window.LIMEWOOD_BMS = {
     const maintenanceAssetPicker=document.createElement('script'); maintenanceAssetPicker.src='/assets/maintenance-asset-picker.js?v=20260828-1'; document.head.appendChild(maintenanceAssetPicker);
   }
   if(isPhotoInbox){
-    const photoBatch=document.createElement('script'); photoBatch.src='/assets/photo-inbox-batch.js?v=20260921-zip3'; document.head.appendChild(photoBatch);
+    // Keep Photo Inbox lightweight. The ZIP importer above is standalone;
+    // the old batch helper caused instability on some Android browsers.
     const photoInboxRedesign=document.createElement('link'); photoInboxRedesign.rel='stylesheet'; photoInboxRedesign.href='/assets/photo-inbox-redesign.css?v=20260901-4'; document.head.appendChild(photoInboxRedesign);
     const stanChat=document.createElement('link'); stanChat.rel='stylesheet'; stanChat.href='/assets/stan-chat.css?v=20260901-3'; document.head.appendChild(stanChat);
     const stanHeader=document.createElement('script'); stanHeader.src='/assets/photo-inbox-stan.js?v=20260917-1'; document.head.appendChild(stanHeader);

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17372c">
+<title>Limewood ZIP Photo Importer</title>
+<style>
+body{margin:0;background:#f4f3ef;color:#1d2823;font-family:Arial,Helvetica,sans-serif}.shell{max-width:680px;margin:auto;padding:18px 14px 60px}.card{background:#fff;border:1px solid #e4e5df;border-radius:16px;padding:18px;box-shadow:0 6px 20px #17372c0d}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.head h1{margin:0;font-size:23px;color:#17372c}.back{color:#fff;background:#17372c;text-decoration:none;padding:9px 12px;border-radius:9px;font-weight:700}.label{display:block;font-size:12px;font-weight:800;color:#455149;margin:13px 0 5px}input[type=text],textarea,input[type=file]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d6dad6;border-radius:10px;background:#fbfcfa;color:#1d2823}.zipbox{margin-top:14px;border:2px dashed #b9c7bf;border-radius:14px;padding:18px;background:#f8faf8}.note{font-size:12px;color:#6b746f;line-height:1.45}.status{margin-top:14px;font-size:13px;white-space:pre-line}.ok{color:#1c6a43}.err{color:#a12a2a}.progress{height:12px;background:#edf0ed;border-radius:99px;overflow:hidden;margin-top:12px}.bar{height:100%;width:0;background:#17372c;transition:.15s}.go{width:100%;margin-top:14px;border:0;background:#17372c;color:#fff;padding:13px 14px;border-radius:10px;font-weight:800;font-size:15px}.go:disabled{opacity:.55}.stats{margin-top:10px;font-size:12px;color:#5e6963}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="head"><div><small>LIMEWOOD ENGINEERING</small><h1>ZIP Photo Importer</h1></div><a class="back" href="/photo-inbox.html">Photo Inbox</a></header>
+  <section class="card">
+    <p class="note">Standalone importer for large photo batches. It unpacks and uploads one image at a time so the normal Photo Inbox stays untouched.</p>
+    <label class="label" for="locationHint">Location / batch hint</label>
+    <input id="locationHint" type="text" placeholder="e.g. Main House attic survey">
+    <label class="label" for="batchNotes">Notes</label>
+    <textarea id="batchNotes" rows="2" placeholder="Optional notes for this batch"></textarea>
+    <div class="zipbox">
+      <label class="label" for="zipFile">Choose ZIP</label>
+      <input id="zipFile" type="file" accept=".zip,application/zip,application/x-zip-compressed">
+      <div class="note" style="margin-top:8px">Maximum ZIP size 50 MB. Up to 250 supported images: JPG, JPEG, PNG, WebP, GIF, HEIC and HEIF.</div>
+    </div>
+    <button id="startBtn" class="go" type="button">Import ZIP to Photo Inbox</button>
+    <div class="progress"><div id="bar" class="bar"></div></div>
+    <div id="stats" class="stats"></div>
+    <div id="status" class="status"></div>
+  </section>
+</main>
+<script>
+(async()=>{
+  const SUPABASE_URL='https://sswedojvkqvoqmwhfmkj.supabase.co';
+  const SUPABASE_KEY='sb_publishable_BoOHg11kfg6FB3xhQHW-dw_yal1q1Yu';
+  const BUCKET='asset-files';
+  const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  const fileEl=document.getElementById('zipFile'),btn=document.getElementById('startBtn'),status=document.getElementById('status'),bar=document.getElementById('bar'),stats=document.getElementById('stats'),hint=document.getElementById('locationHint'),notes=document.getElementById('batchNotes');
+  const imageRe=/\.(jpe?g|png|webp|gif|heic|heif)$/i;
+  const safeName=n=>String(n||'photo').replace(/^\/+|\/+$/g,'').replace(/[\\/]+/g,'__').replace(/[^a-zA-Z0-9._-]+/g,'_');
+  const mime=n=>/\.png$/i.test(n)?'image/png':/\.webp$/i.test(n)?'image/webp':/\.gif$/i.test(n)?'image/gif':/\.hei[cf]$/i.test(n)?'image/heic':'image/jpeg';
+  async function session(){const {data,error}=await client.auth.getSession();if(error)throw error;if(!data.session){location.href='/';throw new Error('Sign in required.');}return data.session;}
+  async function jszip(){if(window.JSZip)return window.JSZip;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Could not load ZIP support.'));document.head.appendChild(s);});return window.JSZip;}
+  btn.addEventListener('click',async()=>{
+    const zipFile=fileEl.files?.[0];
+    if(!zipFile){status.className='status err';status.textContent='Choose the ZIP first.';return;}
+    if(zipFile.size>50*1024*1024){status.className='status err';status.textContent='That ZIP is over the 50 MB limit.';return;}
+    btn.disabled=true;fileEl.disabled=true;bar.style.width='0%';stats.textContent='';status.className='status';status.textContent='Opening ZIP…';
+    try{
+      const s=await session();
+      const JSZip=await jszip();
+      const zip=await JSZip.loadAsync(zipFile);
+      const entries=Object.values(zip.files).filter(e=>!e.dir&&imageRe.test(e.name));
+      if(!entries.length)throw new Error('No supported images were found in the ZIP.');
+      if(entries.length>250)throw new Error(`ZIP contains ${entries.length} images. Maximum is 250.`);
+      let done=0,failed=0;
+      for(let i=0;i<entries.length;i++){
+        const entry=entries[i];
+        stats.textContent=`Processing ${i+1} of ${entries.length}: ${entry.name}`;
+        try{
+          const blob=await entry.async('blob');
+          const name=safeName(entry.name);
+          const path=`photo-inbox/${s.user.id}/${Date.now()}-${crypto.randomUUID()}-${name}`;
+          const up=await client.storage.from(BUCKET).upload(path,blob,{contentType:mime(entry.name),upsert:false});
+          if(up.error)throw up.error;
+          const ins=await client.from('photo_inbox').insert({storage_path:path,original_filename:name,mime_type:mime(entry.name),file_size:blob.size||null,location_hint:hint.value.trim()||null,notes:notes.value.trim()||null,uploaded_by:s.user.id}).select('id').single();
+          if(ins.error){await client.storage.from(BUCKET).remove([path]);throw ins.error;}
+          done++;
+        }catch(err){failed++;console.warn('ZIP image failed',entry.name,err);}
+        bar.style.width=Math.round(((i+1)/entries.length)*100)+'%';
+        await new Promise(r=>setTimeout(r,0));
+      }
+      status.className='status '+(failed?'err':'ok');
+      status.textContent=`Import finished. ${done} uploaded${failed?`, ${failed} failed`:''}. The photos are now in Photo Inbox.`;
+      stats.textContent=`${done+failed} images processed.`;
+      if(done)fileEl.value='';
+    }catch(err){status.className='status err';status.textContent=err?.message||String(err);}
+    finally{btn.disabled=false;fileEl.disabled=false;}
+  });
+  try{await session();status.textContent='Ready.';}catch(_){ }
+})();
+</script>
+</body>
+</html>

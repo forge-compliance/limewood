@@ -34,9 +34,18 @@
     return [...out].filter(Boolean);
   }
 
+  function termMatch(h,t){
+    if(!t)return false;
+    if(/\d/.test(t)){
+      const safe=t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      return new RegExp('(?:^|\\s)'+safe+'(?:$|\\s)').test(h);
+    }
+    return h.includes(t);
+  }
+
   function hit(values,ts){
     const h=norm(values.filter(v=>v!==null&&v!==undefined).join(' '));
-    return ts.some(t=>h.includes(t));
+    return ts.some(t=>termMatch(h,t));
   }
 
   function rank(values,raw){
@@ -312,7 +321,7 @@
     const a=e.target.closest('[data-us-asset]');if(a){e.preventDefault();e.stopImmediatePropagation();openAsset(a.dataset.usAsset);return;}
     const v=e.target.closest('[data-us-valve]');if(v&&data){e.preventDefault();e.stopImmediatePropagation();const row=data.valves.find(x=>String(x.id)===String(v.dataset.usValve));if(row)openValve(row);return;}
     const el=e.target.closest('[data-us-electrical]');if(el){e.preventDefault();e.stopImmediatePropagation();openElectrical(el.dataset.usElectrical,el.dataset.usQuery);return;}
-    const loc=e.target.closest('[data-us-location]');if(loc){e.preventDefault();e.stopImmediatePropagation();if(loc.dataset.usLocation==='plant')openPlant(loc.dataset.usName);else{const i=document.getElementById('globalSearch');if(i){i.value=loc.dataset.usName;run();}}return;}
+    const loc=e.target.closest('[data-us-location]');if(loc){e.preventDefault();e.stopImmediatePropagation();if(loc.dataset.usLocation==='plant')openPlant(loc.dataset.usName);else{const i=document.getElementById('globalSearch');if(i){i.value=loc.dataset.usName;run().then(()=>{const target=document.querySelector('.roomIntelligence')||document.querySelector('.universalSearchCard');target?.scrollIntoView({behavior:'smooth',block:'start'});});}}return;}
     const roomPlant=e.target.closest('[data-us-room-plant]');if(roomPlant){e.preventDefault();e.stopImmediatePropagation();openPlant(roomPlant.dataset.usRoomPlant);return;}
     const sop=e.target.closest('[data-us-sop]');if(sop){e.preventDefault();e.stopImmediatePropagation();location.href='/sop-view.html?number='+encodeURIComponent(sop.dataset.usSop);return;}
     const doc=e.target.closest('[data-us-document]');if(doc){e.preventDefault();e.stopImmediatePropagation();if(doc.dataset.usUrl)location.href=doc.dataset.usUrl;else openDocumentSearch(doc.dataset.usDocument);return;}

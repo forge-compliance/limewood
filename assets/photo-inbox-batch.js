@@ -1,4 +1,4 @@
-/* Keep repeated camera captures in one pending Photo Inbox batch and stop duplicate asset creation. */
+/* Keep repeated camera captures in one pending Photo Inbox batch, support ZIP imports, and stop duplicate asset creation. */
 (() => {
   'use strict';
 
@@ -12,9 +12,11 @@
     const seen = new Set();
     let currentReviewId = null;
     let bypassDuplicateCheck = false;
+    let zipBusy = false;
 
     input.multiple = true;
     input.removeAttribute('capture');
+    input.accept = 'image/*,.zip,application/zip,application/x-zip-compressed';
 
     const cfg = window.LIMEWOOD_CONFIG || {};
     const client = window.supabase?.createClient?.(cfg.supabaseUrl, cfg.supabasePublishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -24,13 +26,55 @@
     const count = document.createElement('strong'); count.style.cssText = 'font-size:13px;color:#17372c';
     const addMore = document.createElement('button'); addMore.type='button'; addMore.textContent='Take / add another photo'; addMore.style.cssText='border:1px solid #17372c;background:#17372c;color:#fff;padding:8px 11px;border-radius:9px;font-weight:800';
     const clear = document.createElement('button'); clear.type='button'; clear.textContent='Clear photos'; clear.style.cssText='display:none;border:1px solid #b9c7bf;background:#fff;color:#17372c;padding:7px 10px;border-radius:9px;font-weight:700';
-    wrap.append(count,addMore,clear); input.insertAdjacentElement('afterend',wrap);
+    const zipNote = document.createElement('div'); zipNote.style.cssText='flex-basis:100%;font-size:11px;color:#6b746f;text-align:center'; zipNote.textContent='Photos or ZIP files supported. ZIP limit 50 MB; images inside are unpacked before upload.';
+    wrap.append(count,addMore,clear,zipNote); input.insertAdjacentElement('afterend',wrap);
+
     const key=file=>[file.name,file.size,file.lastModified].join('|');
-    function sync(){const dt=new DataTransfer();pending.forEach(file=>dt.items.add(file));input.files=dt.files;count.textContent=pending.length?`${pending.length} photo${pending.length===1?'':'s'} ready.`:'No photos selected yet.';clear.style.display=pending.length?'inline-block':'none';}
-    input.addEventListener('change',()=>{Array.from(input.files||[]).forEach(file=>{const k=key(file);if(!seen.has(k)){seen.add(k);pending.push(file);}});sync();});
-    addMore.addEventListener('click',()=>input.click());
+    function addPending(file){const k=key(file);if(!seen.has(k)){seen.add(k);pending.push(file);}}
+    function sync(){const dt=new DataTransfer();pending.forEach(file=>dt.items.add(file));input.files=dt.files;count.textContent=zipBusy?'Unpacking ZIP…':pending.length?`${pending.length} photo${pending.length===1?'':'s'} ready.`:'No photos selected yet.';clear.style.display=pending.length?'inline-block':'none';}
+    function imageMime(name){const ext=String(name).split('.').pop().toLowerCase();return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',heic:'image/heic',heif:'image/heif'})[ext]||'';}
+    function isZip(file){return /\.zip$/i.test(file.name)||/^(application\/zip|application\/x-zip-compressed)$/i.test(file.type||'');}
+    function isImageName(name){return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(name);}
+    function safeZipName(name){return String(name||'photo').replace(/^\/+|\/+$/g,'').replace(/[\\/]+/g,'__').replace(/[^a-zA-Z0-9._-]+/g,'_');}
+    async function ensureJSZip(){
+      if(window.JSZip)return window.JSZip;
+      await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Could not load ZIP support. Check the network and try again.'));document.head.appendChild(s);});
+      if(!window.JSZip)throw new Error('ZIP support did not initialise.');
+      return window.JSZip;
+    }
+    async function unpackZip(file){
+      if(file.size>50*1024*1024)throw new Error(`${file.name} is over the 50 MB ZIP limit.`);
+      const JSZip=await ensureJSZip();
+      const zip=await JSZip.loadAsync(file);
+      const entries=Object.values(zip.files).filter(e=>!e.dir&&isImageName(e.name));
+      if(!entries.length)throw new Error(`${file.name} contains no supported images.`);
+      if(entries.length>250)throw new Error(`${file.name} contains ${entries.length} images. The ZIP limit is 250 images per batch.`);
+      for(const entry of entries){
+        const blob=await entry.async('blob');
+        const name=safeZipName(entry.name);
+        const f=new File([blob],name,{type:imageMime(entry.name)||blob.type||'application/octet-stream',lastModified:file.lastModified||Date.now()});
+        addPending(f);
+      }
+      return entries.length;
+    }
+
+    input.addEventListener('change',async()=>{
+      const chosen=Array.from(input.files||[]);
+      if(!chosen.length)return;
+      zipBusy=true;sync();
+      let zipImages=0;
+      try{
+        for(const file of chosen){
+          if(isZip(file))zipImages+=await unpackZip(file);
+          else if((file.type||'').startsWith('image/')||isImageName(file.name))addPending(file);
+        }
+        if(zipImages){const status=document.getElementById('uploadStatus');if(status){status.className='status success';status.textContent=`Unpacked ${zipImages} photo${zipImages===1?'':'s'} from ZIP. Ready to upload.`;}}
+      }catch(err){const status=document.getElementById('uploadStatus');if(status){status.className='status error';status.textContent=err?.message||String(err);}}
+      finally{zipBusy=false;sync();}
+    });
+    addMore.addEventListener('click',()=>{if(!zipBusy)input.click();});
     clear.addEventListener('click',()=>{pending.length=0;seen.clear();input.value='';sync();});
-    document.getElementById('uploadBtn')?.addEventListener('click',()=>setTimeout(()=>{if(!input.files.length){pending.length=0;seen.clear();sync();}},250));
+    document.getElementById('uploadBtn')?.addEventListener('click',event=>{if(zipBusy){event.preventDefault();event.stopImmediatePropagation();const status=document.getElementById('uploadStatus');if(status){status.className='status';status.textContent='Still unpacking the ZIP. Upload will be ready in a moment.';}return;}setTimeout(()=>{if(!input.files.length){pending.length=0;seen.clear();sync();}},250);},true);
 
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     function reviewReason(row){
@@ -64,7 +108,6 @@
       if(review?.dataset?.review){currentReviewId=review.dataset.review;setTimeout(()=>showReviewReason(currentReviewId),0);}
     },true);
 
-    /* Capture the review-list response without changing the main page. */
     if(client){
       const originalInvoke=client.functions.invoke.bind(client.functions);
       client.functions.invoke=async(name,opts)=>{

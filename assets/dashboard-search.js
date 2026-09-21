@@ -222,6 +222,10 @@
   }
 
   function section(title,html,count){return count?`<div class="fsSection"><h3>${title}<span class="fsCount">${count}</span></h3><div class="fsResults">${html}</div></div>`:'';}
+  function compactGroup(icon,title,count,summary,html,open=false){
+    if(!count)return '';
+    return `<details class="roomCompactGroup" ${open?'open':''}><summary><span class="roomCompactIcon">${icon}</span><span><b>${esc(title)}</b><small>${esc(summary||'')}</small></span><strong>${count}</strong></summary><div class="roomCompactBody">${html}</div></details>`;
+  }
 
   function roomOverview(bundle){
     if(!bundle?.room)return '';
@@ -229,22 +233,30 @@
     const plumbingIntent=/(^|\s)(leak|leaking|burst|drip|dripping|flood|flooding|tap|pipe|plumbing|water|hws|hwr|cws)(\s|$)/.test(norm(bundle.query||''));
     const electricalCodes=new Set(electrical.map(a=>norm(a.asset_code)).filter(Boolean));
     const roomAssets=assets.filter(a=>!electricalCodes.has(norm(a.asset_code)));
-    const assetHtml=roomAssets.map(a=>button(a.category==='Television'?'📺':a.category==='Room Safe'?'🔐':'⚙️',a.asset_name||a.asset_code,[a.category,a.exact_location].filter(Boolean).join(' · '),[a.asset_code,a.manufacturer,a.model,a.status].filter(Boolean).join(' · '),`data-us-asset="${esc(a.asset_code)}"`)).join('');
+
+    const isolationDocs=docs.filter(x=>/(plumb|water|isolat|heating|hws|cws|valve)/i.test([x.title,x.document_type,x.description].filter(Boolean).join(' ')));
+    const otherDocs=docs.filter(x=>!isolationDocs.includes(x));
+    const isolationHtml=isolationDocs.map(x=>button('📄',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',x.document_type==='SOP'?`data-us-sop="${esc(x.document_number||'')}"`:`data-us-document="${esc(x.title||'')}"`)).join('');
+    const plantHtml=plants.map(p=>button('🏭',p.plant_room_name||'Related plant room',`${p.valve_count||0} valves · ${p.confirmed_valve_count||0} with recorded positions`,p.relationship_notes||p.description||'',`data-us-room-plant="${esc(p.plant_room_name)}"`,p.verification_status==='confirmed'?'Confirmed':'Open →')).join('');
+    const waterHtml=isolationHtml+plantHtml;
+    const waterCount=isolationDocs.length+plants.length;
+
     const electricalHtml=electrical.map(a=>button(a.category==='Lighting Control'?'💡':'⚡',a.asset_name||a.asset_code,[a.category,a.plant_room].filter(Boolean).join(' · '),[a.circuit_reference,a.upstream_supply,a.verification_status].filter(Boolean).join(' · '),`data-us-electrical="${esc(a.asset_code)}" data-us-query="${esc(room.name)}"`,a.verification_status==='confirmed'?'Verified':'Open →')).join('');
-    const plantHtml=plants.map(p=>button('🏭',p.plant_room_name||'Related plant room',`${p.valve_count||0} valves · ${p.confirmed_valve_count||0} with recorded positions`,p.relationship_notes||p.description||'',`data-us-room-plant="${esc(p.plant_room_name)}"`,p.verification_status==='confirmed'?'Confirmed':'Relationship TBC')).join('');
-    const docHtml=docs.map(x=>button('📄',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',x.document_type==='SOP'?`data-us-sop="${esc(x.document_number||'')}"`:`data-us-document="${esc(x.title||'')}"`)).join('');
+    const assetHtml=roomAssets.map(a=>button(a.category==='Television'?'📺':a.category==='Room Safe'?'🔐':'⚙️',a.asset_name||a.asset_code,[a.category,a.exact_location].filter(Boolean).join(' · '),[a.asset_code,a.manufacturer,a.model,a.status].filter(Boolean).join(' · '),`data-us-asset="${esc(a.asset_code)}"`)).join('');
     const jobHtml=jobs.map(x=>button('🧰',x.issue||x.job_number,[x.job_number,x.status,x.reported_at?new Date(x.reported_at).toLocaleDateString():null].filter(Boolean).join(' · '),x.location||'',`data-us-maintenance="${esc(room.name)}"`)).join('');
-    const assetSection=section('🛏️ Items in this room',assetHtml,roomAssets.length);
-    const electricalSection=section('⚡ Electrical & lighting controls',electricalHtml,electrical.length);
-    const plantSection=section('🏭 Plant, valves & isolations',plantHtml,plants.length);
-    const documentSection=section(plumbingIntent?'🚨 Relevant isolation procedure':'📚 Room documents',docHtml,docs.length);
-    const jobSection=section('🧰 Previous maintenance jobs',jobHtml,jobs.length);
-    const orderedSections=plumbingIntent
-      ? documentSection+plantSection+assetSection+electricalSection+jobSection
-      : assetSection+electricalSection+plantSection+documentSection+jobSection;
-    return `<section class="roomIntelligence">
-      <div class="roomIntelligenceHead"><span>ROOM INTELLIGENCE</span><h2>${esc(room.name)}</h2><p>Everything currently linked to this room in one place.</p><div class="roomStats"><b>${roomAssets.length}<small>Room assets</small></b><b>${electrical.length}<small>Electrical records</small></b><b>${plants.length}<small>Related plant rooms</small></b><b>${jobs.length}<small>Previous jobs</small></b></div></div>
-      ${orderedSections}
+    const otherDocHtml=otherDocs.map(x=>button('📚',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',x.document_type==='SOP'?`data-us-sop="${esc(x.document_number||'')}"`:`data-us-document="${esc(x.title||'')}"`)).join('');
+
+    const groups=[
+      compactGroup('🚰','Water & heating isolation',waterCount,waterCount?`${isolationDocs.length} procedure${isolationDocs.length===1?'':'s'} · ${plants.length} related plant area${plants.length===1?'':'s'}`:'No linked isolation information',waterHtml,plumbingIntent),
+      compactGroup('⚡','Electrical supply',electrical.length,electrical.length?`${electrical.length} linked electrical record${electrical.length===1?'':'s'}`:'No linked electrical records',electricalHtml,false),
+      compactGroup('🛏️','Items in this room',roomAssets.length,roomAssets.length?`${roomAssets.length} registered item${roomAssets.length===1?'':'s'}`:'No registered room items',assetHtml,false),
+      compactGroup('🧰','Previous maintenance jobs',jobs.length,jobs.length?`${jobs.length} previous job${jobs.length===1?'':'s'}`:'No previous jobs',jobHtml,false),
+      compactGroup('📚','More technical information',otherDocs.length,otherDocs.length?`${otherDocs.length} additional document${otherDocs.length===1?'':'s'}`:'No additional documents',otherDocHtml,false)
+    ].join('');
+
+    return `<section class="roomIntelligence compactRoomIntelligence">
+      <div class="roomIntelligenceHead"><span>ROOM INTELLIGENCE</span><h2>${esc(room.name)}</h2><p>Key information first. Open a section only when you need the detail.</p><div class="roomStats"><b>${roomAssets.length}<small>Room items</small></b><b>${electrical.length}<small>Electrical</small></b><b>${waterCount}<small>Water / heating</small></b><b>${jobs.length}<small>Previous jobs</small></b></div></div>
+      <div class="roomCompactGroups">${groups}</div>
     </section>`;
   }
 
@@ -262,11 +274,7 @@
     const maintHtml=maint.map(({record:r,asset:a})=>button('🧰',r.description||r.work_type||'Maintenance record',[a?.asset_name,a?.asset_code,r.work_type,r.work_date].filter(Boolean).join(' · '),[r.findings,r.actions_taken,r.follow_up_required?'Follow-up required':''].filter(Boolean).join(' · '),a?.asset_code?`data-us-asset="${esc(a.asset_code)}"`:`data-us-maintenance="${esc(raw)}"`,r.work_date||'Open →')).join('');
     const logHtml=logs.map(({log:l})=>button('📝',l.log_type||'Log entry',[l.plant_room,l.location,l.status].filter(Boolean).join(' · '),[l.logged_at?new Date(l.logged_at).toLocaleString():'',l.logged_by_email].filter(Boolean).join(' · '),`data-us-log="${esc(l.log_type||raw)}"`)).join('');
 
-    card.innerHTML=`
-      <span>UNIVERSAL ESTATE SEARCH</span>
-      <h2>Results for “${esc(raw)}”</h2>
-      <p>${roomBundle?.room?'Room record found · ':''}${total} additional direct result${total===1?'':'s'} across the engineering database.</p>
-      ${roomOverview(roomBundle)}
+    const genericResults=`
       ${section('📍 Places',locHtml,locs.length)}
       ${section('⚙️ Assets · Heating · Plumbing · Plant',assetHtml,assets.length)}
       ${section('🚰 Valves & isolations',valveHtml,valves.length)}
@@ -274,8 +282,19 @@
       ${section('📚 Documents & SOPs',docHtml,docs.length)}
       ${section('🛠️ PPM schedules',ppmHtml,ppm.length)}
       ${section('🧰 Maintenance history',maintHtml,maint.length)}
-      ${section('📝 Logs & checks',logHtml,logs.length)}
-      ${!total?'<div class="fsEmpty"><b>No verified database match found.</b><span>Try a room, asset, valve duty, model, serial, circuit, document title or system name.</span></div>':''}
+      ${section('📝 Logs & checks',logHtml,logs.length)}`;
+
+    const extraResults=roomBundle?.room
+      ? (total?`<details class="moreSearchResults"><summary>More search results <span>${total}</span></summary><div>${genericResults}</div></details>`:'')
+      : genericResults;
+
+    card.innerHTML=`
+      <span>UNIVERSAL ESTATE SEARCH</span>
+      <h2>Results for “${esc(raw)}”</h2>
+      <p>${roomBundle?.room?'Room record found. The useful stuff is up front.':`${total} direct result${total===1?'':'s'} across the engineering database.`}</p>
+      ${roomOverview(roomBundle)}
+      ${extraResults}
+      ${!total&&!roomBundle?.room?'<div class="fsEmpty"><b>No verified database match found.</b><span>Try a room, asset, valve duty, model, serial, circuit, document title or system name.</span></div>':''}
       <button class="fsBack" data-us-back>← Dashboard</button>`;
   }
 
@@ -292,9 +311,9 @@
       .friendlySearchResult:hover{background:#edf3ee!important}.friendlySearchResult .fsIcon{font-size:22px;letter-spacing:0!important;color:inherit!important}.friendlySearchResult span:nth-child(2){letter-spacing:0!important;font-size:initial!important;color:inherit!important}
       .friendlySearchResult b{display:block;font-size:15px}.friendlySearchResult small{display:block;color:#69746d;margin-top:3px;font-weight:400;line-height:1.35}.friendlySearchResult .fsDetail{color:#8b6c1e}.friendlySearchResult strong{font-size:11px;white-space:nowrap;color:#8b6c1e;max-width:110px;overflow:hidden;text-overflow:ellipsis}
       .fsEmpty{padding:24px;border-radius:12px;background:#f3f1eb;text-align:center;color:#68736c}.fsEmpty b,.fsEmpty span{display:block}.fsEmpty span{margin-top:5px;letter-spacing:0!important;color:#68736c!important;font-size:13px!important}.fsBack{display:block;margin:22px auto 0}.dashboardSearch input{min-width:0}
-      .roomIntelligence{margin:22px 0 30px;padding:20px;border:2px solid #b8cc19;border-radius:18px;background:#fbfcf7}.roomIntelligenceHead{text-align:center}.roomIntelligenceHead>span{font:800 10px Arial;letter-spacing:.14em;color:#7c8d13}.roomIntelligenceHead h2{margin:5px 0;font:700 30px Georgia;color:#17372c}.roomIntelligenceHead p{margin:0;color:#68736c}.roomStats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:17px 0 3px}.roomStats b{background:#fff;border:1px solid #dfe5df;border-radius:12px;padding:12px;font-size:22px;color:#17372c}.roomStats small{display:block;margin-top:3px;color:#68736c;font:700 10px Arial}.roomIntelligence .fsSection:last-child{margin-bottom:0}
-      @media(max-width:600px){.friendlySearchResult{grid-template-columns:34px 1fr;padding:12px!important}.friendlySearchResult strong{grid-column:2;font-size:9px}.friendlySearchCard{padding:18px!important}.dashboardSearch>div{display:grid!important;grid-template-columns:1fr auto}.dashboardSearch input{width:100%}}
-      @media(max-width:600px){.roomIntelligence{padding:14px}.roomStats{grid-template-columns:1fr 1fr}.roomIntelligenceHead h2{font-size:25px}}
+      .roomIntelligence{margin:22px 0 24px;padding:20px;border:2px solid #b8cc19;border-radius:18px;background:#fbfcf7}.roomIntelligenceHead{text-align:center}.roomIntelligenceHead>span{font:800 10px Arial;letter-spacing:.14em;color:#7c8d13}.roomIntelligenceHead h2{margin:5px 0;font:700 30px Georgia;color:#17372c}.roomIntelligenceHead p{margin:0;color:#68736c}.roomStats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:17px 0 3px}.roomStats b{background:#fff;border:1px solid #dfe5df;border-radius:12px;padding:12px;font-size:22px;color:#17372c}.roomStats small{display:block;margin-top:3px;color:#68736c;font:700 10px Arial}
+      .roomCompactGroups{display:grid;gap:9px;margin-top:16px}.roomCompactGroup{border:1px solid #dfe5df;border-radius:13px;background:#fff;overflow:hidden}.roomCompactGroup summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;padding:14px}.roomCompactGroup summary::-webkit-details-marker{display:none}.roomCompactGroup summary:after{content:'›';font-size:24px;color:#8b6c1e;grid-column:4}.roomCompactGroup[open] summary:after{transform:rotate(90deg)}.roomCompactIcon{font-size:22px}.roomCompactGroup summary b{display:block;color:#17372c}.roomCompactGroup summary small{display:block;color:#69746d;margin-top:2px}.roomCompactGroup summary strong{background:#edf1ee;color:#59655f;border-radius:999px;padding:5px 8px;font:700 11px Arial}.roomCompactBody{padding:0 10px 10px;display:grid;gap:8px}.roomCompactBody .friendlySearchResult{background:#fbfcf9!important}.moreSearchResults{margin:18px 0;border:1px solid #d8ded9;border-radius:14px;background:#f4f5f1}.moreSearchResults>summary{cursor:pointer;list-style:none;padding:15px 16px;font-weight:700;color:#17372c}.moreSearchResults>summary::-webkit-details-marker{display:none}.moreSearchResults>summary:after{content:'›';float:right;font-size:22px;color:#8b6c1e}.moreSearchResults[open]>summary:after{transform:rotate(90deg)}.moreSearchResults>summary span{margin-left:7px;background:#e5e9e5;border-radius:999px;padding:3px 7px;font-size:11px;color:#69746d}.moreSearchResults>div{padding:0 14px 14px}
+      @media(max-width:600px){.friendlySearchResult{grid-template-columns:34px 1fr;padding:12px!important}.friendlySearchResult strong{grid-column:2;font-size:9px}.friendlySearchCard{padding:18px!important}.dashboardSearch>div{display:grid!important;grid-template-columns:1fr auto}.dashboardSearch input{width:100%}.roomIntelligence{padding:14px}.roomStats{grid-template-columns:1fr 1fr}.roomIntelligenceHead h2{font-size:25px}.roomCompactGroup summary{grid-template-columns:32px 1fr auto;padding:12px}.roomCompactGroup summary:after{grid-column:3;grid-row:2;justify-self:end;font-size:18px}}
     `;document.head.appendChild(style);
   }
 

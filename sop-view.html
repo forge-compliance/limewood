@@ -7,24 +7,25 @@
   <title>SOP - Limewood Engineering</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root{--green:#17372c;--lime:#b8cc19;--cream:#f6f2e9;--ink:#23362f;--line:#d9e0db;--gold:#b98a2e}
+    :root{--green:#17372c;--lime:#b8cc19;--cream:#f6f2e9;--ink:#23362f;--line:#d9e0db;--muted:#6e7a74}
     *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
-    header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;background:var(--green);color:#fff}
-    header b{display:block;font-size:16px}header small{opacity:.72}button,a.action{border:0;border-radius:10px;padding:10px 13px;font-weight:800;text-decoration:none;cursor:pointer}
-    header button{background:#fff;color:var(--green)}main{max-width:900px;margin:auto;padding:12px}.sheet{background:#fff;border-radius:16px;box-shadow:0 8px 28px #0001;overflow:hidden}
-    .hero{padding:18px;border-bottom:3px solid var(--lime);background:linear-gradient(135deg,#fff,#f8faef)}.eyebrow{color:#73840e;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
-    h1{margin:5px 0 12px;color:var(--green);font:700 28px Georgia,serif;line-height:1.08}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.meta div{padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:#fff}.meta b,.meta span{display:block}.meta b{font-size:9px;color:#68756e;text-transform:uppercase}.meta span{font-size:12px}.approved{color:#547000;font-weight:900}
-    .content{padding:15px}.quickGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.quickCard{border:1px solid var(--line);border-radius:12px;padding:12px;background:#f9faf8}.quickCard b{display:block;color:var(--green);font-size:12px;text-transform:uppercase;letter-spacing:.05em}.quickCard span{display:block;margin-top:4px;font-weight:700;white-space:pre-line}.where{grid-column:1/-1;border:2px solid var(--lime);background:#f9fbe9}.where b{color:#6f800f}
-    .photoSection{margin:0 0 14px}.photoSection h2,.stepsTitle{margin:0 0 8px;color:var(--green);font:700 20px Georgia,serif}.photoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.photoCard{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#f9faf8;margin:0}.photoCard img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;background:#eef1ee}.photoCard figcaption{padding:8px 10px;font-weight:800;color:#45564f;font-size:12px}.photoCard figcaption small{display:none}
-    .serviceGrid{display:grid;gap:10px;margin:0 0 14px}.serviceCard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}.serviceHead{padding:10px 12px;color:#fff;background:var(--green)}.serviceHead b{display:block;font-size:17px}.serviceHead small{display:block;margin-top:2px;font-weight:700;font-size:12px}.serviceBody{padding:11px 12px}.serviceBody ol{margin:0;padding-left:20px}.serviceBody li{margin:0 0 7px}.serviceBody li:last-child{margin-bottom:0}.cold .serviceHead{background:#176ca4}.hot .serviceHead{background:#a8402a}.heating .serviceHead{background:#806019}.electrical .serviceHead{background:#765400}.gas .serviceHead{background:#7a342d}.pool .serviceHead{background:#087784}.proof,.restore,.warning{margin-top:9px;padding:9px 10px;border-radius:8px;font-weight:800;font-size:12px}.proof{background:#eef5ed;color:#254b35}.restore{background:#eef3f8;color:#24465f}.warning{background:#fff2df;color:#753d0a}
-    details.more{margin:10px 0;border:1px solid var(--line);border-radius:12px;background:#fbfcfa;overflow:hidden}details.more summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:900;color:var(--green)}details.more summary::-webkit-details-marker{display:none}details.more summary:after{content:'+';float:right}details.more[open] summary:after{content:'−'}details.more .detailBody{padding:0 14px 14px;white-space:pre-line}.notice{border-left:4px solid var(--gold);background:#fff8e8;padding:10px;border-radius:8px}
-    .actions{display:flex;gap:9px;flex-wrap:wrap;padding:0 15px 16px}.actions .pdf{background:var(--lime);color:var(--green)}.actions .back{background:var(--green);color:#fff}.error{padding:30px;text-align:center;color:#7c2d2d}
-    @media(max-width:620px){main{padding:8px}.sheet{border-radius:12px}.hero{padding:14px}h1{font-size:24px}.meta{grid-template-columns:1fr 1fr}.content{padding:12px}.quickGrid{grid-template-columns:1fr 1fr}.photoGrid{grid-template-columns:1fr}.actions{padding:0 12px 14px}.actions a{flex:1;text-align:center}}
+    header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--green);color:#fff}
+    header b{font-size:15px}header small{display:block;opacity:.7}header button{border:0;border-radius:9px;padding:9px 12px;background:#fff;color:var(--green);font-weight:800}
+    main{max-width:760px;margin:auto;padding:10px}.sheet{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 6px 22px #0001}
+    .hero{padding:15px 15px 13px;border-bottom:3px solid var(--lime)}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#7b8b13}
+    h1{margin:4px 0 7px;color:var(--green);font:700 25px/1.08 Georgia,serif}.docline{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}.docline b{color:#537000}
+    .content{padding:12px}.fieldCard{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fafbf9}.fieldCard.where{border:2px solid var(--lime);background:#f9fbe9}.fieldCard h2{margin:0 0 5px;color:var(--green);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.fieldCard p{margin:0;font-weight:700;white-space:pre-line}
+    .services{display:flex;flex-wrap:wrap;gap:7px}.serviceTag{padding:7px 9px;border-radius:999px;background:#eef3ef;border:1px solid #d7e0d9;font-size:12px;font-weight:800;color:#355347}
+    .photos{margin:12px 0}.photos h2,.steps h2{margin:0 0 8px;color:var(--green);font:700 20px Georgia,serif}.photoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.photoCard{margin:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#f7f8f6}.photoCard img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#ecefec}.photoCard figcaption{padding:7px 9px;font-size:11px;font-weight:800;color:#52615a}
+    .steps{margin:12px 0}.stepCard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff}.stepCard ol{margin:0;padding-left:21px}.stepCard li{margin:0 0 7px}.stepCard li:last-child{margin-bottom:0}
+    details.more{margin-top:10px;border:1px solid var(--line);border-radius:11px;background:#fbfcfa;overflow:hidden}details.more summary{cursor:pointer;padding:11px 12px;font-weight:900;color:var(--green);list-style:none}details.more summary:after{content:'+';float:right}details.more[open] summary:after{content:'−'}details.more .detailBody{padding:0 12px 12px;white-space:pre-line;color:#46554e}
+    .actions{display:flex;gap:8px;padding:0 12px 14px}.actions a{flex:1;text-align:center;text-decoration:none;border-radius:10px;padding:10px 12px;font-weight:900}.pdf{background:var(--lime);color:var(--green)}.back{background:var(--green);color:#fff}.error{padding:28px;text-align:center;color:#7c2d2d}
+    @media(max-width:620px){main{padding:7px}.sheet{border-radius:10px}.hero{padding:12px}h1{font-size:22px}.content{padding:10px}.photoGrid{grid-template-columns:1fr 1fr}.photoCard figcaption{font-size:10px}.actions{padding:0 10px 12px}}
   </style>
 </head>
 <body>
 <header><div><b>Limewood Engineering</b><small>Controlled SOP</small></div><button type="button" onclick="history.length>1?history.back():location.href='/'">Back</button></header>
-<main><article class="sheet" id="sheet"><div class="error">Loading approved procedure…</div></article></main>
+<main><article class="sheet" id="sheet"><div class="error">Loading procedure…</div></article></main>
 <script>
 (()=>{'use strict';
   const U='https://sswedojvkqvoqmwhfmkj.supabase.co',K='sb_publishable_BoOHg11kfg6FB3xhQHW-dw_yal1q1Yu',MARK='LW_SOP_BUILDER_V1:';
@@ -32,17 +33,40 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function detail(v){v=String(v||'');if(!v.startsWith(MARK))return{notes:v};try{return JSON.parse(v.slice(MARK.length))}catch{return{notes:v}}}
   function lines(v){return String(v||'').split(/\n+/).map(x=>x.replace(/^\s*(?:\d+[.)]|[-•])\s*/, '').trim()).filter(Boolean)}
-  function card(label,text,cls=''){return text?`<div class="quickCard ${cls}"><b>${esc(label)}</b><span>${esc(text)}</span></div>`:''}
-  function more(title,text,notice=false){return text?`<details class="more"><summary>${esc(title)}</summary><div class="detailBody${notice?' notice':''}">${esc(text)}</div></details>`:''}
-  function actionCards(d,sop){let items=Array.isArray(d.service_actions)?d.service_actions:Array.isArray(d.action_groups)?d.action_groups:[];if(!items.length&&d.steps)items=[{key:String(sop.category||'').toLowerCase().includes('pool')?'pool':'general',title:'Isolation steps',when:d.scope||'',steps:lines(d.steps),prove:d.prove||'',restore:d.reinstatement||''}];if(!items.length)return'';return`<h2 class="stepsTitle">Isolation steps</h2><div class="serviceGrid">${items.map(x=>`<section class="serviceCard ${esc(x.key||'general')}"><div class="serviceHead"><b>${esc(x.title||'Procedure')}</b>${x.when?`<small>${esc(x.when)}</small>`:''}</div><div class="serviceBody">${x.warning?`<div class="warning">⚠ ${esc(x.warning)}</div>`:''}<ol>${(x.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${x.prove?`<div class="proof">✓ ${esc(x.prove)}</div>`:''}${x.restore?`<div class="restore">↻ ${esc(x.restore)}</div>`:''}</div></section>`).join('')}</div>`}
-  function photoHtml(rows){if(!rows?.length)return'';const cards=rows.map(r=>{const p=r.photo_inbox||r.photo_inbox_id||{},path=p.storage_path||r.storage_path||'',name=p.original_filename||r.file_name||'';if(!path)return'';const url=db.storage.from('asset-files').getPublicUrl(path).data.publicUrl;return`<figure class="photoCard"><img src="${esc(url)}" alt="${esc(r.caption||name||'SOP reference photo')}" loading="lazy"><figcaption>${esc(r.caption||'Reference photo')}${name?`<small>${esc(name)}</small>`:''}</figcaption></figure>`}).join('');return cards?`<section class="photoSection"><h2>Photos</h2><div class="photoGrid">${cards}</div></section>`:''}
+  function more(title,text){return text?`<details class="more"><summary>${esc(title)}</summary><div class="detailBody">${esc(text)}</div></details>`:''}
+  function serviceTags(d){
+    const src=[d.scope,d.isolation].filter(Boolean).join(' ').toLowerCase(),tags=[];
+    const add=(re,label)=>{if(re.test(src)&&!tags.includes(label))tags.push(label)};
+    add(/cws|cold water/,'Cold water');add(/hws(?! return)|hot water/,'Hot water');add(/hws return|secondary circulation|secondary return/,'Hot-water return');add(/heating flow|htg f/,'Heating flow');add(/heating return|htg r/,'Heating return');add(/gas/,'Gas');add(/electrical|power/,'Electrical');
+    return tags.length?`<div class="services">${tags.map(x=>`<span class="serviceTag">${esc(x)}</span>`).join('')}</div>`:'';
+  }
+  async function photoHtml(rows){
+    if(!rows?.length)return'';
+    const cards=[];
+    for(const r of rows){
+      const p=r.photo_inbox||{},path=p.storage_path||'';if(!path)continue;
+      let url='';
+      try{const {data,error}=await db.storage.from('asset-files').createSignedUrl(path,3600);if(!error)url=data?.signedUrl||''}catch(_){ }
+      if(!url)continue;
+      cards.push(`<figure class="photoCard"><img src="${esc(url)}" alt="${esc(r.caption||'Reference photo')}" loading="lazy"><figcaption>${esc(r.caption||'Reference photo')}</figcaption></figure>`);
+    }
+    return cards.length?`<section class="photos"><h2>Photos</h2><div class="photoGrid">${cards.join('')}</div></section>`:'';
+  }
   async function run(){
     if(!number)throw Error('SOP number missing.');
     const{data:sop,error}=await db.from('sops').select('*').eq('sop_number',number).maybeSingle();if(error||!sop)throw error||Error('SOP not found.');
-    const{data:photos,error:photoErr}=await db.from('sop_photos').select('caption,sort_order,photo_inbox:photo_inbox_id(storage_path,original_filename)').eq('sop_id',sop.id).order('sort_order',{ascending:true});if(photoErr)console.warn('SOP photos unavailable',photoErr.message);
-    const d=detail(sop.description);document.title=(sop.title||number)+' - Limewood Engineering';
-    const isolationSummary=d.isolation||d.scope||'';
-    sheet.innerHTML=`<div class="hero"><div class="eyebrow">Controlled SOP</div><h1>${esc(sop.title||number)}</h1><div class="meta"><div><b>Document</b><span>${esc(sop.sop_number)}</span></div><div><b>Revision</b><span>${esc(sop.revision||'1')}</span></div><div><b>Status</b><span class="approved">${esc((sop.status||'draft').replaceAll('_',' '))}</span></div><div><b>Author</b><span>${esc(sop.author||'—')}</span></div><div><b>Approved by</b><span>${esc(sop.approved_by||'—')}</span></div><div><b>Issue date</b><span>${esc(sop.issue_date||'—')}</span></div></div></div><div class="content"><div class="quickGrid">${card('Where to find it',d.location,'where')}${card('What it isolates',isolationSummary)}${card('Before starting',d.ppe)}</div>${photoHtml(photos||[])}${actionCards(d,sop)}${more('Emergency / failed isolation',d.emergency,true)}${more('Technical reference',d.isolation)}${more('Reinstatement detail',d.reinstatement)}${more('Operating notes',d.notes)}</div><div class="actions"><a class="action pdf" href="/sop-pdf.html?number=${encodeURIComponent(sop.sop_number)}">Download PDF</a><a class="action back" href="/">Back to dashboard</a></div>`;
+    const{data:photos,error:photoErr}=await db.from('sop_photos').select('caption,sort_order,photo_inbox:photo_inbox_id(storage_path,original_filename)').eq('sop_id',sop.id).order('sort_order',{ascending:true});if(photoErr)console.warn(photoErr.message);
+    const d=detail(sop.description),steps=lines(d.steps),photoBlock=await photoHtml(photos||[]);document.title=(sop.title||number)+' - Limewood Engineering';
+    sheet.innerHTML=`
+      <div class="hero"><div class="eyebrow">Controlled SOP</div><h1>${esc(sop.title||number)}</h1><div class="docline"><span>${esc(sop.sop_number)}</span><span>Rev ${esc(sop.revision||'1')}</span><b>${esc((sop.status||'draft').replaceAll('_',' '))}</b></div></div>
+      <div class="content">
+        ${d.location?`<section class="fieldCard where"><h2>Where</h2><p>${esc(d.location)}</p></section>`:''}
+        ${serviceTags(d)?`<section class="fieldCard"><h2>What it isolates</h2>${serviceTags(d)}</section>`:''}
+        ${photoBlock}
+        ${steps.length?`<section class="steps"><h2>Isolation steps</h2><div class="stepCard"><ol>${steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div></section>`:''}
+        <details class="more"><summary>More detail</summary><div class="detailBody">${d.ppe?`BEFORE STARTING\n${esc(d.ppe)}\n\n`:''}${d.isolation?`VALVE / ISOLATION DETAIL\n${esc(d.isolation)}\n\n`:''}${d.reinstatement?`REINSTATEMENT\n${esc(d.reinstatement)}\n\n`:''}${d.emergency?`EMERGENCY / FAILED ISOLATION\n${esc(d.emergency)}\n\n`:''}${d.notes?`NOTES\n${esc(d.notes)}\n\n`:''}Document: ${esc(sop.sop_number)} · Revision ${esc(sop.revision||'1')} · Author ${esc(sop.author||'—')} · Approved by ${esc(sop.approved_by||'—')} · Issue ${esc(sop.issue_date||'—')}</div></details>
+      </div>
+      <div class="actions"><a class="pdf" href="/sop-pdf.html?number=${encodeURIComponent(sop.sop_number)}">PDF</a><a class="back" href="/">Dashboard</a></div>`;
   }
   run().catch(e=>sheet.innerHTML='<div class="error"><b>Could not open this SOP.</b><br>'+esc(e?.message||e)+'</div>');
 })();

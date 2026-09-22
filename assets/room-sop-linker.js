@@ -4,7 +4,7 @@
   const client=()=>db||(window.supabase&&cfg.supabaseUrl&&cfg.supabasePublishableKey?(db=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}})):null);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const exact=(text,label,n)=>new RegExp('\\b'+label+'\\s*0*'+n+'\\b','i').test(String(text||''));
-  const water=s=>/(plumb|water|heating|hws|cws|hot water|cold water|valve)/i.test([s.title,s.category,s.description].filter(Boolean).join(' '));
+  const water=s=>/(plumb|water|heating|radiator|hws|cws|hot water|cold water)/i.test(String(s.title||''));
   async function sops(){if(cache)return cache;const c=client();if(!c)return[];const r=await c.from('sops').select('sop_number,title,category,description,revision,status').eq('status','approved');if(r.error){console.warn('Room SOP linker skipped',r.error.message);return[];}return cache=r.data||[];}
   function sopButton(s){return `<button class="friendlySearchResult universalResult roomLinkedSop" data-us-sop="${esc(s.sop_number)}"><span class="fsIcon">📄</span><span><b>${esc(s.title||s.sop_number)}</b><small>${esc(['SOP',s.revision?'Rev '+s.revision:'',s.status].filter(Boolean).join(' · '))}</small>${s.description?`<small class="fsDetail">${esc(s.description)}</small>`:''}</span><strong>Open →</strong></button>`;}
   async function apply(){
@@ -13,12 +13,12 @@
     const root=head.closest('.roomIntelligence');if(!root||root.dataset.sopLinked===String(n))return;busy=true;
     try{
       const all=(await sops()).filter(water);
-      let matches=all.filter(s=>exact([s.title,s.description].join(' '),'room',n));
-      if(!matches.length)matches=all.filter(s=>exact([s.title,s.description].join(' '),'bathroom',n));
+      let matches=all.filter(s=>exact(s.title,'room',n));
+      if(!matches.length)matches=all.filter(s=>exact(s.title,'bathroom',n));
       if(!matches.length){root.dataset.sopLinked=String(n);return;}
       const existing=new Set([...root.querySelectorAll('[data-us-sop]')].map(x=>x.dataset.usSop));
       matches=matches.filter(s=>!existing.has(s.sop_number));if(!matches.length){root.dataset.sopLinked=String(n);return;}
-      let groups=[...root.querySelectorAll('.roomCompactGroup')],group=groups.find(g=>/water\s*&\s*heating isolation/i.test(g.querySelector('summary b')?.textContent||''));
+      let group=[...root.querySelectorAll('.roomCompactGroup')].find(g=>/water\s*&\s*heating isolation/i.test(g.querySelector('summary b')?.textContent||''));
       if(!group){
         group=document.createElement('details');group.className='roomCompactGroup';
         group.innerHTML=`<summary><span class="roomCompactIcon">🚰</span><span><b>Water & heating isolation</b><small>${matches.length} linked procedure${matches.length===1?'':'s'}</small></span><strong>${matches.length}</strong></summary><div class="roomCompactBody"></div>`;

@@ -1,0 +1,20 @@
+(()=>{'use strict';
+  const addLink=()=>{
+    const room=document.querySelector('.roomIntelligenceHead h2')?.textContent?.trim();
+    if(!room)return;
+    const groups=[...document.querySelectorAll('.roomCompactGroup')];
+    const electrical=groups.find(g=>/electrical supply/i.test(g.querySelector('summary b')?.textContent||''));
+    if(!electrical||electrical.querySelector('.roomElectricalMapLink'))return;
+    const body=electrical.querySelector('.roomCompactBody');
+    if(!body)return;
+    const a=document.createElement('a');
+    a.className='roomElectricalMapLink';
+    a.href='/electrical-schematic-map.html?building='+encodeURIComponent('Main House')+'&search='+encodeURIComponent(room);
+    a.textContent='🗺 View electrical map';
+    a.style.cssText='display:block;text-align:center;padding:11px 12px;border-radius:10px;background:#17372c;color:#fff;text-decoration:none;font-weight:800;margin-bottom:2px';
+    body.prepend(a);
+  };
+  const mo=new MutationObserver(addLink);
+  mo.observe(document.documentElement,{subtree:true,childList:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addLink);else addLink();
+})();

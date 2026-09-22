@@ -1,7 +1,11 @@
 (()=>{'use strict';
   const addLink=()=>{
-    const room=document.querySelector('.roomIntelligenceHead h2')?.textContent?.trim();
-    if(!room)return;
+    const room=document.querySelector('.roomIntelligenceHead h2')?.textContent?.trim()||'';
+    const m=room.match(/^Room\s+(\d{1,2})$/i);
+    if(!m)return;
+    const n=Number(m[1]);
+    if(n<1||n>20)return;
+    const canonical='Room '+n;
     const groups=[...document.querySelectorAll('.roomCompactGroup')];
     const electrical=groups.find(g=>/electrical supply/i.test(g.querySelector('summary b')?.textContent||''));
     if(!electrical||electrical.querySelector('.roomElectricalMapLink'))return;
@@ -9,7 +13,7 @@
     if(!body)return;
     const a=document.createElement('a');
     a.className='roomElectricalMapLink';
-    a.href='/electrical-schematic-map.html?building='+encodeURIComponent('Main House')+'&search='+encodeURIComponent(room);
+    a.href='/electrical-schematic-map.html?building='+encodeURIComponent('Main House')+'&search='+encodeURIComponent(canonical);
     a.textContent='🗺 View electrical map';
     a.style.cssText='display:block;text-align:center;padding:11px 12px;border-radius:10px;background:#17372c;color:#fff;text-decoration:none;font-weight:800;margin-bottom:2px';
     body.prepend(a);

@@ -229,7 +229,18 @@
 
   function roomOverview(bundle){
     if(!bundle?.room)return '';
-    const room=bundle.room,assets=bundle.assets||[],electrical=bundle.electrical||[],plants=bundle.related_plant||[],docs=bundle.documents||[],jobs=bundle.jobs||[];
+    const room=bundle.room,assets=bundle.assets||[],electricalRaw=bundle.electrical||[],plants=bundle.related_plant||[],docs=bundle.documents||[],jobs=bundle.jobs||[];
+    const roomQuery=norm(bundle.query||'');
+    const roomKey=norm(room.name||'');
+    const roomNo=roomNumber(room.name||bundle.query||'');
+    const roomPattern=roomNo?new RegExp('\\b(?:room|bedroom)\\s*0*'+roomNo+'\\b','g'):null;
+    const intentQuery=norm(roomQuery.replace(roomKey,'').replace(roomPattern||/$^/g,'')).trim();
+    const electrical=[...electricalRaw].sort((a,b)=>{
+      const av=[a.asset_name,a.asset_code,a.category,a.system_duty,a.circuit_reference,a.upstream_supply,a.notes];
+      const bv=[b.asset_name,b.asset_code,b.category,b.system_duty,b.circuit_reference,b.upstream_supply,b.notes];
+      const ar=intentQuery?rank(av,intentQuery):0,br=intentQuery?rank(bv,intentQuery):0;
+      return br-ar||String(a.asset_name||a.asset_code||'').localeCompare(String(b.asset_name||b.asset_code||''),undefined,{numeric:true});
+    });
     const plumbingIntent=/(^|\s)(leak|leaking|burst|drip|dripping|flood|flooding|tap|pipe|plumbing|water|hws|hwr|cws)(\s|$)/.test(norm(bundle.query||''));
     const electricalCodes=new Set(electrical.map(a=>norm(a.asset_code)).filter(Boolean));
     const roomAssets=assets.filter(a=>!electricalCodes.has(norm(a.asset_code)));

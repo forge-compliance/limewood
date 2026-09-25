@@ -362,6 +362,6 @@
   },true);
 
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.id==='globalSearch')run(e);},true);
-  window.addEventListener('load',()=>{makeFriendly();setTimeout(()=>load().catch(()=>{}),500);});
-  if(document.readyState!=='loading'){makeFriendly();setTimeout(()=>load().catch(()=>{}),180);}
+  window.addEventListener('load',()=>{makeFriendly();});
+  if(document.readyState!=='loading'){makeFriendly();}
 })();

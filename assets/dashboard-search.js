@@ -28,8 +28,11 @@
 
   function terms(raw){
     const q=norm(raw),out=new Set([q]);
+    q.split(' ').filter(Boolean).forEach(w=>out.add(w));
     Object.entries(aliases).forEach(([k,list])=>{
-      if(q===k||q.includes(k)||list.some(x=>q===norm(x))) list.forEach(x=>out.add(norm(x)));
+      const aliasTerms=[k,...list].map(norm);
+      const words=q.split(' ').filter(Boolean);
+      if(q===k||q.includes(k)||aliasTerms.some(x=>q===x)||words.some(w=>aliasTerms.includes(w))) list.forEach(x=>out.add(norm(x)));
     });
     return [...out].filter(Boolean);
   }
@@ -160,8 +163,9 @@
     return rx.test(code)||t.includes('room '+n)||t.includes('bedroom '+n)||t.includes('dimmer '+n)||t.includes('mh'+n);
   }
 
-  function electricalRows(raw,d,ts){
+  function electricalRows(raw,d,ts,locs=[]){
     const n=roomNumber(raw),map=new Map();
+    const locNames=locs.map(x=>norm(x.name)).filter(x=>x.length>2);
     const add=(a,reason,c)=>{
       if(!a)return;
       const row=map.get(a.id)||{asset:a,reasons:[],circuits:[],rank:0};
@@ -179,9 +183,14 @@
       const vals=[c.board_asset_code,c.circuit_number,c.circuit_description,c.destination,c.phase,c.protective_device,c.device_rating,c.status,c.notes];
       const rtext=norm([c.circuit_description,c.destination,c.notes].join(' '));
       const roomHit=n&&new RegExp('\\b(?:room|bedroom)\\s*0*'+n+'\\b','i').test(rtext);
-      if(!hit(vals,ts)&&!roomHit)return;
+      const locHit=locNames.some(name=>rtext.includes(name));
+      if(!hit(vals,ts)&&!roomHit&&!locHit)return;
       const key=norm(c.board_asset_code),a=d.eAssets.find(x=>norm(x.asset_code)===key||norm(x.asset_name)===key);
-      if(a)add(a,roomHit?'Supplies Room '+n:'Circuit match',c);
+      if(a)add(a,roomHit?'Supplies Room '+n:(locHit?'Location circuit match':'Circuit match'),c);
+    });
+    [...map.values()].forEach(row=>{
+      const keys=[row.asset.asset_code,row.asset.asset_name].filter(Boolean).map(norm);
+      d.eCircuits.forEach(c=>{if(keys.includes(norm(c.board_asset_code))&&!row.circuits.includes(c))row.circuits.push(c);});
     });
     if(n)d.eCircuits.forEach(c=>{const key=norm(c.board_asset_code),a=d.eAssets.find(x=>norm(x.asset_code)===key||norm(x.asset_name)===key);if(a&&isGroup(a,n))add(a,'Room '+n+' electrical group',c);});
     return [...map.values()].sort((a,b)=>{
@@ -272,7 +281,7 @@
   }
 
   function render(raw,d,roomBundle=null){
-    const ts=terms(raw),locs=locationRows(raw,d,ts),assets=assetRows(raw,d,ts,locs),valves=valveRows(raw,d,ts,locs),electrical=electricalRows(raw,d,ts),docs=documentRows(raw,d,ts,locs),ppm=ppmRows(raw,d,ts),maint=maintenanceRows(raw,d,ts),logs=logRows(raw,d,ts);
+    const ts=terms(raw),locs=locationRows(raw,d,ts),assets=assetRows(raw,d,ts,locs),valves=valveRows(raw,d,ts,locs),electrical=electricalRows(raw,d,ts,locs),docs=documentRows(raw,d,ts,locs),ppm=ppmRows(raw,d,ts),maint=maintenanceRows(raw,d,ts),logs=logRows(raw,d,ts);
     const total=locs.length+assets.length+valves.length+electrical.length+docs.length+ppm.length+maint.length+logs.length;
     const card=host();if(!card)return;
 

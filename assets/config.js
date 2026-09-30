@@ -93,6 +93,9 @@ window.LIMEWOOD_BMS = {
     const stanHeader=document.createElement('script'); stanHeader.src='/assets/photo-inbox-stan.js?v=20260917-1'; document.head.appendChild(stanHeader);
     const reviewTools=document.createElement('script'); reviewTools.src='/assets/photo-inbox-review-tools.js?v=20260917-1'; document.head.appendChild(reviewTools);
   }
+  if(/\/photo-inbox(?:\.html)?$/i.test(location.pathname)){
+    const photoActions=document.createElement('script'); photoActions.src='/assets/photo-review-actions.js?v=20260930-1'; document.head.appendChild(photoActions);
+  }
   if(/\/electrical-distribution\.html$/i.test(location.pathname)){
     const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-3'; document.head.appendChild(electricalLayout);
   }

@@ -12,7 +12,7 @@ window.LIMEWOOD_BMS = {
 // Location-aware navigation + friendly search + dashboard v8 skin.
 (() => {
   const isHome=/^\/(?:index\.html)?$/i.test(location.pathname);
-  const isPhotoInbox=/\/photo-inbox(?:\.html)?$/i.test(location.pathname);
+  const isPhotoInbox=/\/photo-inbox\.html$/i.test(location.pathname);
   const returnKey='lw-auth-return';
   const safeReturnPath=value=>{
     const v=String(value||'');
@@ -92,7 +92,6 @@ window.LIMEWOOD_BMS = {
     const stanChat=document.createElement('link'); stanChat.rel='stylesheet'; stanChat.href='/assets/stan-chat.css?v=20260901-3'; document.head.appendChild(stanChat);
     const stanHeader=document.createElement('script'); stanHeader.src='/assets/photo-inbox-stan.js?v=20260917-1'; document.head.appendChild(stanHeader);
     const reviewTools=document.createElement('script'); reviewTools.src='/assets/photo-inbox-review-tools.js?v=20260917-1'; document.head.appendChild(reviewTools);
-    const photoZoom=document.createElement('script'); photoZoom.src='/assets/photo-review-zoom.js?v=20260930-2'; document.head.appendChild(photoZoom);
   }
   if(/\/electrical-distribution\.html$/i.test(location.pathname)){
     const electricalLayout=document.createElement('link'); electricalLayout.rel='stylesheet'; electricalLayout.href='/assets/electrical-distribution-newlayout.css?v=20260830-3'; document.head.appendChild(electricalLayout);

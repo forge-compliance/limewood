@@ -4,8 +4,10 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const norm=v=>String(v??'').trim().toLowerCase();
+const CACHE_KEY='limewood-ppm-directory-cache-v2';
+const CACHE_TTL=10*60*1000;
 let client=null,buildings=[],groups=[],plantRooms=[],areas=[],subAreas=[],assets=[],schedules=[],sourceRooms=[];
-let selectedBuilding='',selectedGroup='',searchText='';
+let selectedBuilding='',selectedGroup='',searchText='',searchTimer=null;
 
 function roomNameFromAsset(a){
  const pr=plantRooms.find(p=>p.id===a.plant_room_id);if(pr?.name)return pr.name;
@@ -47,13 +49,25 @@ function scheduleSearchText(room){
 }
 function iconForGroup(slug){return ({'plant-rooms':'🏭','air-conditioning':'❄️','kitchen':'🍽️','guest-rooms':'🛏️','public-areas':'🏨','service-areas':'🧰'})[slug]||'📍';}
 
+function restoreCache(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+  if(!saved||Date.now()-saved.savedAt>CACHE_TTL)return false;
+  buildings=saved.buildings||[];groups=saved.groups||[];plantRooms=saved.plantRooms||[];areas=saved.areas||[];subAreas=saved.subAreas||[];assets=saved.assets||[];schedules=saved.schedules||[];
+  return buildings.length>0;
+ }catch(_){return false;}
+}
+function saveCache(){
+ try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),buildings,groups,plantRooms,areas,subAreas,assets,schedules}));}catch(_){}
+}
+
 function installShell(){
  const panel=$('ppmDirectoryPanel'),picker=panel?.querySelector('.ppmRoomPicker');if(!panel||!picker)return false;if($('ppmSmartSearch'))return true;
  const search=document.createElement('section');search.className='ppmSmartSearch';search.id='ppmSmartSearch';search.innerHTML=`<div class="ppmSearchBox"><label for="ppmDirectorySearch">Search PPMs</label><div class="ppmSearchRow"><span aria-hidden="true">⌕</span><input id="ppmDirectorySearch" autocomplete="off" placeholder="Asset, code, building, location, task or frequency"><button id="ppmClearSearch" type="button" hidden>×</button></div><small id="ppmSearchHint">Search the whole PPM register, or choose a building below.</small></div>`;panel.insertBefore(search,picker);
  const head=picker.querySelector('.sectionHead');if(head){head.querySelector('h3').textContent='Buildings';const span=head.querySelector('span');if(span)span.textContent='Choose a building to view its PPM sections';}
  const style=document.createElement('style');style.textContent=`.ppmSmartSearch{margin:12px 0}.ppmSearchBox{background:linear-gradient(135deg,#17372c,#245544);border-radius:15px;padding:12px;box-shadow:0 6px 18px #17372c1c;color:#fff}.ppmSearchBox label{display:block;font-weight:900;font-size:12px;margin-bottom:7px}.ppmSearchRow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;background:#fff;border:1px solid #d7e0da;border-radius:11px;padding:0 8px}.ppmSearchRow span{font-size:20px;color:#466157;transform:rotate(-20deg)}.ppmSearchRow input{width:100%;min-height:42px;border:0!important;outline:0;background:transparent!important;padding:8px 1px!important;color:#25312b;font-size:14px}.ppmSearchRow button{width:30px;height:30px;border:0;border-radius:50%;background:#e9efeb;color:#17372c;font-size:19px}.ppmSearchBox small{display:block;margin-top:7px;color:#dfe8e2;font-size:11px}.ppmBuildingGrid,.ppmGroupGrid,.ppmLocationGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ppmBuildingGrid button,.ppmGroupGrid button,.ppmLocationGrid button{min-height:48px;text-align:left;border:1px solid #dbe3de;border-radius:10px;background:#fff;padding:7px 8px;display:flex;gap:6px;align-items:center;box-shadow:0 2px 8px #17372c0a}.ppmBuildingGrid button span,.ppmGroupGrid button span,.ppmLocationGrid button span{font-size:16px;flex:0 0 auto}.ppmBuildingGrid button b,.ppmGroupGrid button b,.ppmLocationGrid button b{display:block;color:#17372c;font-size:12px;line-height:1.1}.ppmBuildingGrid button small,.ppmGroupGrid button small,.ppmLocationGrid button small{display:block;color:#6e7771;margin-top:2px;font-size:9px;line-height:1.1}.ppmBrowserBack{grid-column:1/-1;min-height:38px!important;background:#eef3f0!important}.ppmSearchResultInfo{grid-column:1/-1;color:#6e7771;font-size:11px;padding:1px 1px 3px}.ppmNoResults{grid-column:1/-1;padding:18px;border:1px dashed #cbd6cf;border-radius:12px;text-align:center;color:#6e7771;background:#fff;font-size:12px}@media(max-width:380px){.ppmBuildingGrid,.ppmGroupGrid,.ppmLocationGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(min-width:760px){.ppmBuildingGrid,.ppmGroupGrid,.ppmLocationGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}}`;document.head.appendChild(style);
- $('ppmDirectorySearch')?.addEventListener('input',e=>{searchText=e.target.value.trim();selectedBuilding='';selectedGroup='';$('ppmClearSearch').hidden=!searchText;renderSmartDirectory();});
- $('ppmClearSearch')?.addEventListener('click',()=>{searchText='';selectedBuilding='';selectedGroup='';const input=$('ppmDirectorySearch');if(input)input.value='';$('ppmClearSearch').hidden=true;renderSmartDirectory();});return true;
+ $('ppmDirectorySearch')?.addEventListener('input',e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{searchText=e.target.value.trim();selectedBuilding='';selectedGroup='';$('ppmClearSearch').hidden=!searchText;renderSmartDirectory();},90);});
+ $('ppmClearSearch')?.addEventListener('click',()=>{clearTimeout(searchTimer);searchText='';selectedBuilding='';selectedGroup='';const input=$('ppmDirectorySearch');if(input)input.value='';$('ppmClearSearch').hidden=true;renderSmartDirectory();});return true;
 }
 function isOurRender(host){return !!host.querySelector('[data-ppm-building],[data-ppm-group],[data-ppm-building-back],[data-ppm-group-back],.ppmSearchResultInfo,.ppmNoResults');}
 function captureOriginalRooms(){
@@ -89,14 +103,15 @@ async function loadReferenceData(){
   client.from('plant_rooms').select('id,name,building_id'),
   client.from('location_areas').select('id,name,building_id'),
   client.from('location_sub_areas').select('id,name,area_id'),
-  client.from('assets').select('id,asset_code,asset_name,building_id,plant_room_id,area_id,sub_area_id,location_group_id,exact_location,category,system_duty,manufacturer,model'),
+  client.from('assets').select('asset_code,asset_name,building_id,plant_room_id,area_id,sub_area_id,location_group_id,exact_location,category,system_duty,manufacturer,model'),
   client.from('ppm_schedules').select('asset_code,task,frequency,completion_status,notes')
  ]);
- buildings=b.data||[];groups=g.data||[];plantRooms=p.data||[];areas=a.data||[];subAreas=sa.data||[];assets=as.data||[];schedules=pp.data||[];
+ buildings=b.data||buildings;groups=g.data||groups;plantRooms=p.data||plantRooms;areas=a.data||areas;subAreas=sa.data||subAreas;assets=as.data||assets;schedules=pp.data||schedules;
+ saveCache();
  if(!sourceRooms.length)captureOriginalRooms();if(sourceRooms.length)renderSmartDirectory();
 }
 function init(){
- if(!installShell())return setTimeout(init,300);const host=$('ppmRoomButtons');if(!host)return;
+ if(!installShell())return setTimeout(init,200);const host=$('ppmRoomButtons');if(!host)return;
  const observer=new MutationObserver(()=>{if(isOurRender(host))return;if(captureOriginalRooms())renderSmartDirectory();});observer.observe(host,{childList:true,subtree:false});
  host.addEventListener('click',e=>{
   const building=e.target.closest('[data-ppm-building]');if(building){e.preventDefault();e.stopImmediatePropagation();selectedBuilding=building.dataset.ppmBuilding;selectedGroup='';renderSmartDirectory();return;}
@@ -104,7 +119,9 @@ function init(){
   if(e.target.closest('[data-ppm-group-back]')){e.preventDefault();e.stopImmediatePropagation();selectedGroup='';renderSmartDirectory();return;}
   if(e.target.closest('[data-ppm-building-back]')){e.preventDefault();e.stopImmediatePropagation();selectedBuilding='';selectedGroup='';renderSmartDirectory();}
  },true);
- if(captureOriginalRooms())renderSmartDirectory();loadReferenceData().catch(err=>console.warn('PPM smart directory reference data:',err));
+ if(captureOriginalRooms())renderSmartDirectory();
+ if(restoreCache()&&sourceRooms.length)renderSmartDirectory();
+ if('requestIdleCallback' in window)requestIdleCallback(()=>loadReferenceData().catch(err=>console.warn('PPM smart directory reference data:',err)),{timeout:1200});else setTimeout(()=>loadReferenceData().catch(err=>console.warn('PPM smart directory reference data:',err)),150);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
 })();

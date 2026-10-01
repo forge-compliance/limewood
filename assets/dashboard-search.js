@@ -4,7 +4,7 @@
   'use strict';
 
   const base=document.createElement('script');
-  base.src='/assets/dashboard-search-base.js?v=20261001';
+  base.src='/assets/dashboard-search-base.js?v=20261001b';
   base.async=false;
   base.onload=installRanking;
   document.head.appendChild(base);
@@ -77,13 +77,17 @@
     style.textContent='.fsBestSection{padding:14px;border:2px solid #b8cc19;border-radius:16px;background:#fbfcf7}.fsBestSection>h3:before{content:attr(data-best-match) " · ";font:800 10px Arial;letter-spacing:.08em;color:#7c8d13;margin-right:7px;text-transform:uppercase}.fsBestSection+.fsSection{margin-top:28px}';
     document.head.appendChild(style);
     let queued=false;
-    const observer=new MutationObserver(()=>{
+    const queueRank=()=>{
       if(queued)return;
       queued=true;
       requestAnimationFrame(()=>{queued=false;rerank();});
-    });
-    observer.observe(document.body,{childList:true,subtree:true});
-    document.addEventListener('click',e=>{if(e.target.closest('#globalSearchBtn'))setTimeout(rerank,0);},true);
-    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.id==='globalSearch')setTimeout(rerank,0);},true);
+    };
+    const searchHost=document.getElementById('placeholderView');
+    if(searchHost){
+      const observer=new MutationObserver(queueRank);
+      observer.observe(searchHost,{childList:true,subtree:true});
+    }
+    document.addEventListener('click',e=>{if(e.target.closest('#globalSearchBtn'))queueRank();},true);
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.id==='globalSearch')queueRank();},true);
   }
 })();

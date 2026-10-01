@@ -35,8 +35,7 @@
     if(words.length>1&&matched===words.length)score+=45;
     const first=resultTexts[0]||'';
     if(query&&first.includes(query))score+=35;
-    const firstMatched=words.filter(w=>first.includes(w)).length;
-    score+=firstMatched*5;
+    score+=words.filter(w=>first.includes(w)).length*5;
     return score;
   }
 
@@ -46,7 +45,9 @@
     sections.forEach((section,index)=>{section.dataset.originalOrder=section.dataset.originalOrder||String(index);});
     const ranked=sections.map(section=>({section,score:scoreSection(section,query),order:Number(section.dataset.originalOrder||0)}))
       .sort((a,b)=>b.score-a.score||a.order-b.order);
-    ranked.forEach(({section})=>container.appendChild(section));
+    const desired=ranked.map(x=>x.section);
+    const changed=desired.some((section,index)=>sections[index]!==section);
+    if(changed)desired.forEach(section=>container.appendChild(section));
     sections.forEach(section=>{
       section.classList.remove('fsBestSection');
       const h=section.querySelector('h3');

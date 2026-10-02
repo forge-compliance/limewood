@@ -6,7 +6,9 @@
   const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
   const numberWords={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',thirteen:'13',fourteen:'14',fifteen:'15',sixteen:'16',seventeen:'17',eighteen:'18',nineteen:'19',twenty:'20'};
   const norm=v=>String(v||'').toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g,w=>numberWords[w]).replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-  let db=null,data=null,busy=false;
+  const SEARCH_CACHE_KEY='limewood-universal-search-cache-v3';
+  const SEARCH_CACHE_TTL=5*60*1000;
+  let db=null,data=null,busy=false,searchSeq=0,refreshPromise=null;
 
   const aliases={
     plumbing:['plumbing','water','cws','hws','dhw','hot water','cold water','valve','pump','booster','tmv','drain','waste'],
@@ -84,8 +86,19 @@
     return r.data?.room?r.data:null;
   }
 
-  async function load(){
-    if(data)return data;
+  function readSearchCache(){
+    try{
+      const cached=JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY)||'null');
+      if(!cached||!cached.savedAt||Date.now()-cached.savedAt>SEARCH_CACHE_TTL||!cached.data)return null;
+      return cached.data;
+    }catch(_){return null;}
+  }
+
+  function writeSearchCache(value){
+    try{localStorage.setItem(SEARCH_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:value}));}catch(_){}
+  }
+
+  async function fetchSearchData(){
     const [buildings,plantRooms,areas,subAreas,assets,valves,eAssets,eCircuits,assetDocs,sops,ppm,maintenance,logs]=await Promise.all([
       select('buildings','id,name,description,survey_status'),
       select('plant_rooms','id,building_id,name,description,survey_status'),
@@ -102,7 +115,22 @@
       select('log_entries','id,log_type,location,plant_room,logged_at,logged_by_email,payload,status')
     ]);
     data={buildings,plantRooms,areas:areas.filter(x=>x.active!==false),subAreas:subAreas.filter(x=>x.active!==false),assets,valves,eAssets,eCircuits,assetDocs,sops,ppm,maintenance,logs};
+    writeSearchCache(data);
     return data;
+  }
+
+  async function load(){
+    if(data)return data;
+    const cached=readSearchCache();
+    if(cached){
+      data=cached;
+      if(!refreshPromise){
+        refreshPromise=fetchSearchData().catch(err=>{console.warn('Universal search background refresh failed',err);return data;}).finally(()=>{refreshPromise=null;});
+      }
+      return data;
+    }
+    if(!refreshPromise)refreshPromise=fetchSearchData().finally(()=>{refreshPromise=null;});
+    return refreshPromise;
   }
 
   const buildingName=(id,d)=>d.buildings.find(x=>String(x.id)===String(id))?.name||'';
@@ -349,10 +377,33 @@
   async function run(e){
     const input=document.getElementById('globalSearch'),raw=input?.value.trim()||'';if(!raw)return;
     if(e){e.preventDefault();e.stopImmediatePropagation();}
-    if(busy)return;busy=true;
-    try{const [d,room]=await Promise.all([load(),roomIntelligence(raw)]);render(raw,d,room);}
-    catch(err){console.warn('Universal search failed',err);const c=host();if(c)c.innerHTML='<span>SEARCH</span><h2>Search unavailable</h2><p>The database could not be read. Nothing has been changed.</p><button class="fsBack" data-us-back>← Dashboard</button>';}
-    finally{busy=false;}
+    const seq=++searchSeq;
+    busy=true;
+    const roomPromise=roomIntelligence(raw).catch(()=>null);
+    try{
+      const d=await load();
+      if(seq!==searchSeq)return;
+      // Never let a slow room-intelligence RPC hold the whole search hostage.
+      // Render useful estate results quickly, then enrich them if the room RPC
+      // arrives a moment later.
+      const room=await Promise.race([
+        roomPromise,
+        new Promise(resolve=>setTimeout(()=>resolve(null),650))
+      ]);
+      if(seq!==searchSeq)return;
+      render(raw,d,room);
+      if(!room){
+        roomPromise.then(lateRoom=>{
+          if(lateRoom&&seq===searchSeq)render(raw,d,lateRoom);
+        }).catch(()=>{});
+      }
+    }
+    catch(err){
+      if(seq!==searchSeq)return;
+      console.warn('Universal search failed',err);
+      const c=host();if(c)c.innerHTML='<span>SEARCH</span><h2>Search unavailable</h2><p>The database could not be read. Nothing has been changed.</p><button class="fsBack" data-us-back>← Dashboard</button>';
+    }
+    finally{if(seq===searchSeq)busy=false;}
   }
 
   document.addEventListener('click',e=>{
@@ -371,6 +422,11 @@
   },true);
 
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.id==='globalSearch')run(e);},true);
-  window.addEventListener('load',()=>{makeFriendly();});
+  window.addEventListener('load',()=>{
+    makeFriendly();
+    const warm=()=>load().catch(err=>console.warn('Universal search prewarm skipped',err));
+    if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:1800});
+    else setTimeout(warm,500);
+  });
   if(document.readyState!=='loading'){makeFriendly();}
 })();

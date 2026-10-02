@@ -4,7 +4,7 @@
   'use strict';
 
   const base=document.createElement('script');
-  base.src='/assets/dashboard-search-base.js?v=20261001b';
+  base.src='/assets/dashboard-search-base.js?v=20261002c';
   base.async=false;
   base.onload=installRanking;
   document.head.appendChild(base);

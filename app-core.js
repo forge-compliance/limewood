@@ -2414,7 +2414,13 @@ async function loadCloud() {
     documents: docUrls.filter(d => d.asset_id === row.id)
   }));
   setSync(`Cloud synced · ${assets.length} assets`);
-  populateFilters(); updateStats(); render();
+  populateFilters();
+  updateStats();
+  // Building the entire asset-card grid while the dashboard is visible wastes
+  // a sizeable chunk of the main thread and can make the search box stutter.
+  // showRegister() renders it when the user actually opens the register.
+  const registerView=document.getElementById('registerView');
+  if(registerView && !registerView.hidden) render();
 }
 
 async function loadDocumentCentre() {
@@ -3944,11 +3950,26 @@ async function startApp(newSession) {
     // This prevents duplicate building and room inserts on a fresh deployment.
     await seedExistingAssets();
     await loadCloud();
-    refreshV6Metrics();
-    await loadDocumentCentre();
-    await loadOperations();
-    await loadLogs();
     showView('dashboard');
+    refreshV6Metrics();
+
+    // Get the interactive dashboard on screen first. Documents, PPM/valves and
+    // logs are useful, but they should not compete with someone typing into the
+    // main search box during startup.
+    const loadSecondary=async()=>{
+      const results=await Promise.allSettled([
+        loadDocumentCentre(),
+        loadOperations(),
+        loadLogs()
+      ]);
+      results.forEach(r=>{if(r.status==='rejected')console.warn('Deferred dashboard data load:',r.reason);});
+      refreshV6Metrics();
+    };
+    if('requestIdleCallback' in window){
+      requestIdleCallback(()=>loadSecondary(),{timeout:1200});
+    }else{
+      setTimeout(()=>loadSecondary(),120);
+    }
 
     const returnPlantRoom =
       sessionStorage.getItem('limewoodReturnPlantRoom');

@@ -282,7 +282,13 @@
     const electricalCodes=new Set(electrical.map(a=>norm(a.asset_code)).filter(Boolean));
     const roomAssets=assets.filter(a=>!electricalCodes.has(norm(a.asset_code)));
 
-    const isolationDocs=docs.filter(x=>/(plumb|water|isolat|heating|hws|cws|valve)/i.test([x.title,x.document_type,x.description].filter(Boolean).join(' ')));
+    // Only place genuinely water/heating-related documents in the water section.
+    // A generic word such as "isolation" is not enough, otherwise electrical
+    // isolation procedures are incorrectly presented as plumbing information.
+    const isolationDocs=docs.filter(x=>{
+      const text=[x.title,x.document_type,x.description].filter(Boolean).join(' ');
+      return /(plumb|water|heating|hws|hwr|cws|dhw|valve|pipe|tap|tmv|boiler|radiator|calorifier)/i.test(text);
+    });
     const otherDocs=docs.filter(x=>!isolationDocs.includes(x));
     const isolationHtml=isolationDocs.map(x=>button('📄',x.title||x.document_number,[x.document_type,x.revision?'Rev '+x.revision:'',x.status].filter(Boolean).join(' · '),x.description||'',x.document_type==='SOP'?`data-us-sop="${esc(x.document_number||'')}"`:`data-us-document="${esc(x.title||'')}"`)).join('');
     const plantHtml=plants.map(p=>button('🏭',p.plant_room_name||'Related plant room',`${p.valve_count||0} valves · ${p.confirmed_valve_count||0} with recorded positions`,p.relationship_notes||p.description||'',`data-us-room-plant="${esc(p.plant_room_name)}"`,p.verification_status==='confirmed'?'Confirmed':'Open →')).join('');

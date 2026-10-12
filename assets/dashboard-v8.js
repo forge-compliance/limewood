@@ -28,41 +28,26 @@
     if(quick)quick.textContent='Quick access';if(quickSub)quickSub.textContent='Common engineering tasks';
   }
 
-  function addPhotoInboxAccess(){
-    const grid=document.querySelector('#dashboardView .quickGrid');
-    if(grid && !document.getElementById('quickPhotoInbox')){
-      const b=document.createElement('button');
-      b.id='quickPhotoInbox';b.type='button';b.onclick=()=>location.href='/photo-inbox.html';
-      b.innerHTML='<span>📥</span><b>Photo Inbox</b><small>Bulk upload now, sort later</small>';
-      grid.prepend(b);
-    }
-    const nav=document.getElementById('drawerNav');
-    if(nav && !document.getElementById('photoInboxNav')){
-      const b=document.createElement('button');b.id='photoInboxNav';b.type='button';b.onclick=()=>location.href='/photo-inbox.html';b.textContent='📥 Photo Inbox';
-      const more=document.getElementById('modernMoreTools');nav.insertBefore(b,more||null);
-    }
-  }
-
   function modernSidebar(){
     const nav=document.getElementById('drawerNav');
     if(!nav||document.getElementById('modernMoreTools'))return;
     const label=document.createElement('span');label.className='modernNavLabel';label.textContent='Estate controls';nav.prepend(label);
     const more=document.createElement('details');more.id='modernMoreTools';more.innerHTML='<summary>••• More engineering tools</summary><div class="modernMoreBody"></div>';nav.appendChild(more);
     const body=more.querySelector('.modernMoreBody');
-    const keepIds=new Set(['assetRegistersMenu','plantRoomsMenu','photoInboxNav']);
+    const keepIds=new Set(['assetRegistersMenu','plantRoomsMenu']);
     const keepViews=new Set(['dashboard','compliance','ppm']);
-    const directKeepText=['Document Centre','Photo Inbox'];
+    const directKeepText=['Document Centre'];
     [...nav.children].forEach(el=>{if(el===label||el===more)return;if(el.id&&keepIds.has(el.id))return;if(el.dataset?.view&&keepViews.has(el.dataset.view))return;if(directKeepText.some(t=>(el.textContent||'').includes(t)))return;body.appendChild(el);});
     const docBtn=[...body.querySelectorAll('button')].find(b=>(b.textContent||'').includes('Document Centre'));if(docBtn)nav.insertBefore(docBtn,more);
   }
 
   function trimQuickActions(){
     const grid=document.querySelector('#dashboardView .quickGrid');if(!grid)return;
-    const preferred=['quickPhotoInbox','quickEstateRegister','quickPpm','quickAddAsset','quickLogs','quickCompliance'];
+    const preferred=['quickEstateRegister','quickPpm','quickAddAsset','quickLogs','quickCompliance'];
     const byId=new Map([...grid.children].map(x=>[x.id,x]));preferred.forEach(id=>{const el=byId.get(id);if(el)grid.appendChild(el);});
   }
 
-  function run(){makeHero();calmDashboard();addPhotoInboxAccess();modernSidebar();addPhotoInboxAccess();trimQuickActions();}
+  function run(){makeHero();calmDashboard();modernSidebar();trimQuickActions();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,0));else setTimeout(run,0);
   window.addEventListener('load',()=>setTimeout(run,500));
 })();

@@ -58,7 +58,7 @@
 
   function trimQuickActions(){
     const grid=document.querySelector('#dashboardView .quickGrid');if(!grid)return;
-    const preferred=['quickPhotoInbox','quickEstateRegister','quickPpm','quickAddAsset','quickLogs','quickCompliance','quickBms'];
+    const preferred=['quickPhotoInbox','quickEstateRegister','quickPpm','quickAddAsset','quickLogs','quickCompliance'];
     const byId=new Map([...grid.children].map(x=>[x.id,x]));preferred.forEach(id=>{const el=byId.get(id);if(el)grid.appendChild(el);});
   }
 

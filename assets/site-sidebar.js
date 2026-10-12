@@ -22,7 +22,6 @@
       ['🏠','Staff House Electrical','/staff-house-electrical.html'],
       ['📸','Photo Inbox','/photo-inbox.html'],
       ['🗺','Drawings & Schematics','/drawings-schematics.html'],
-      ['🟢','Systems','/systems.html']
     ];
 
     const style=document.createElement('style');

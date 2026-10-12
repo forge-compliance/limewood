@@ -1,9 +1,0 @@
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/limewood_green" />
-    <item android:width="140dp" android:height="140dp" android:gravity="center">
-        <shape android:shape="rectangle">
-            <corners android:radius="30dp" />
-            <solid android:color="@color/limewood_cream" />
-        </shape>
-    </item>
-</layer-list>

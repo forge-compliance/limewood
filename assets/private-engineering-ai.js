@@ -1,6 +1,8 @@
 /* Private Engineering AI panel with photo/file attachments and session conversation memory. */
 (() => {
   'use strict';
+  // Retired from the simplified Limewood interface; source retained for rollback.
+  return;
   const AUTHORIZED_USER_ID='28a012be-bfe4-42a0-9d20-8746d12c8aa8';
   const MEMORY_KEY='limewood_engineering_ai_history_v1';
   const cfg=window.LIMEWOOD_CONFIG||{};

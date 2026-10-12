@@ -51,14 +51,14 @@
     const body=more.querySelector('.modernMoreBody');
     const keepIds=new Set(['assetRegistersMenu','plantRoomsMenu','photoInboxNav']);
     const keepViews=new Set(['dashboard','compliance','ppm']);
-    const directKeepText=['Maintenance Centre','Document Centre','Photo Inbox'];
+    const directKeepText=['Document Centre','Photo Inbox'];
     [...nav.children].forEach(el=>{if(el===label||el===more)return;if(el.id&&keepIds.has(el.id))return;if(el.dataset?.view&&keepViews.has(el.dataset.view))return;if(directKeepText.some(t=>(el.textContent||'').includes(t)))return;body.appendChild(el);});
     const docBtn=[...body.querySelectorAll('button')].find(b=>(b.textContent||'').includes('Document Centre'));if(docBtn)nav.insertBefore(docBtn,more);
   }
 
   function trimQuickActions(){
     const grid=document.querySelector('#dashboardView .quickGrid');if(!grid)return;
-    const preferred=['quickPhotoInbox','quickEstateRegister','quickMaintenanceIssues','quickPpm','quickAddAsset','quickLogs','quickCompliance','quickBms'];
+    const preferred=['quickPhotoInbox','quickEstateRegister','quickPpm','quickAddAsset','quickLogs','quickCompliance','quickBms'];
     const byId=new Map([...grid.children].map(x=>[x.id,x]));preferred.forEach(id=>{const el=byId.get(id);if(el)grid.appendChild(el);});
   }
 

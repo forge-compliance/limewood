@@ -15,7 +15,7 @@
     if (document.getElementById('lwSiteNav') || !document.body) return;
 
     const links = [
-      ['🏠','Dashboard','/'],
+      ['🏠','Dashboard · Assets & PPM','/'],
       ['⚡','Electrical Distribution','/electrical-distribution.html'],
       ['🗺','Electrical Maps','/electrical-schematic-map.html'],
       ['🏭','Main House Electrical','/main-house-electrical.html'],

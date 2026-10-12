@@ -39,7 +39,7 @@
 <button data-view="dashboard">🏠 Dashboard</button><button data-view="compliance">🛡 Compliance Centre</button><button data-view="bms">🟢 Live BMS Centre</button>
 <details id="assetRegistersMenu"><summary>📋 Asset Registers</summary></details>
 <details id="plantRoomsMenu"><summary>🏭 Plant Rooms</summary><div id="plantRoomNav"></div></details>
-<button data-view="search">🔍 Search</button><button type="button" onclick="location.href='/maintenance-dashboard.html'">🧰 Maintenance Centre</button><button type="button" onclick="location.href='/contractor-dashboard.html'">🤝 Contractors & Quotes</button><button data-view="logs">📝 Logs & Checks</button><button data-view="ppm">🛠 PPM Planner</button><button data-view="documents" data-doc-type="sop">📖 SOP Library</button><button data-view="documents" data-doc-type="rams">⚠ RAMS Library</button><button data-view="documents" data-doc-type="manual">📚 Manufacturer Manuals</button><button data-placeholder="Photo Library">📸 Photo Library</button><button data-view="documents" data-doc-type="schematic">🗺 Hydraulic Schematics</button><button id="metricValves"><button data-placeholder="Water Systems">🌡 Water Systems</button><button data-placeholder="Heating Systems">🔥 Heating Systems</button><button data-placeholder="Chilled Water Systems">❄ Chilled Water Systems</button><button type="button" onclick="location.href='/electrical-distribution.html'">⚡ Electrical Distribution</button><button type="button" onclick="location.href='/drawings-schematics.html'">🗺 Drawings &amp; Schematics</button><button data-placeholder="Lighting">💡 Lighting</button><button data-placeholder="Fire & Life Safety">🚨 Fire & Life Safety</button><button data-placeholder="Pool & Spa Water Treatment">🧪 Pool & Spa Water Treatment</button><button data-view="documents" data-doc-type="report">📈 Reports</button><button data-view="documents" data-doc-type="">📁 Document Centre</button><button data-placeholder="Settings">⚙ Settings</button><button data-view="about">ℹ About</button>
+<button data-view="search">🔍 Search</button><button data-view="logs">📝 Logs & Checks</button><button data-view="ppm">🛠 PPM Planner</button><button data-view="documents" data-doc-type="sop">📖 SOP Library</button><button data-view="documents" data-doc-type="rams">⚠ RAMS Library</button><button data-view="documents" data-doc-type="manual">📚 Manufacturer Manuals</button><button data-placeholder="Photo Library">📸 Photo Library</button><button data-view="documents" data-doc-type="schematic">🗺 Hydraulic Schematics</button><button id="metricValves"><button data-placeholder="Water Systems">🌡 Water Systems</button><button data-placeholder="Heating Systems">🔥 Heating Systems</button><button data-placeholder="Chilled Water Systems">❄ Chilled Water Systems</button><button type="button" onclick="location.href='/electrical-distribution.html'">⚡ Electrical Distribution</button><button type="button" onclick="location.href='/drawings-schematics.html'">🗺 Drawings &amp; Schematics</button><button data-placeholder="Lighting">💡 Lighting</button><button data-placeholder="Fire & Life Safety">🚨 Fire & Life Safety</button><button data-placeholder="Pool & Spa Water Treatment">🧪 Pool & Spa Water Treatment</button><button data-view="documents" data-doc-type="report">📈 Reports</button><button data-view="documents" data-doc-type="">📁 Document Centre</button><button data-placeholder="Settings">⚙ Settings</button><button data-view="about">ℹ About</button>
 </nav></aside>
 <main><div class="buildBanner v6Build">Limewood Engineering Control Centre <span>· Powered by <a href="https://forgecompliance.co.uk" target="_blank" rel="noopener noreferrer" class="forge-link">Forge Compliance</a></span></div>
 <section id="dashboardView">
@@ -65,13 +65,9 @@
  <button id="quickElectrical" type="button" onclick="location.href='/electrical-distribution.html'"><span>⚡</span><b>Electrical Distribution</b><small>Boards, supplies and electrical assets</small></button>
   <button id="quickDrawings" type="button" onclick="location.href='/drawings-schematics.html'"><span>🗺</span><b>Drawings &amp; Schematics</b><small>Electrical, hydraulic and estate drawings</small></button>
   
-<button id="quickMaintenanceIssues" type="button" onclick="location.href='/maintenance-dashboard.html'">
-  <span>🧰</span><b>Maintenance Centre</b><small>Asset history, works and follow-ups</small>
-</button>
 
-<button id="quickContractors" type="button" onclick="location.href='/contractor-dashboard.html'">
-  <span>🤝</span><b>Contractors & Quotes</b><small>Quotes, approvals and bookings</small>
-</button>
+
+
 <button id="quickPpm"><span>🛠</span><b>PPM Centre</b><small>Planned maintenance schedules</small></button>
   <button id="quickLogs"><span>📝</span><b>Logs & Checks</b><small>Record water tests, readings and checks</small></button>
   <button id="quickAddAsset"><span>＋</span><b>Add Asset</b><small>Create a new equipment record</small></button>
@@ -115,7 +111,7 @@
     <button data-building-action="electrical"><span>⚡</span><b>Electrical</b><small>Distribution and circuits</small></button>
     <button data-building-action="schematic"><span>🗺</span><b>Schematics</b><small>Drawings and system maps</small></button>
     <button data-building-action="documents"><span>📚</span><b>Documents</b><small>SOPs, RAMS and manuals</small></button>
-    <button data-building-action="maintenance"><span>🧰</span><b>Maintenance</b><small>Jobs and engineering work</small></button>
+    
     <button data-building-action="compliance"><span>🛡</span><b>Compliance</b><small>Evidence and review status</small></button>
     <button data-building-action="bms"><span>🟢</span><b>Live BMS</b><small>Open Niagara controls</small></button>
   </section>

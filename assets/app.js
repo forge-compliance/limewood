@@ -3379,9 +3379,6 @@ function adjacent(n){
 els.previous.onclick=()=>adjacent(-1);
 els.next.onclick=()=>adjacent(1);
 
-function showMaintenanceIssues(){
-  window.location.href='/maintenance-dashboard.html';
-}
 
 const runGlobalSearch=()=>{
   const q=els.globalSearch?.value.trim()||'';
@@ -4222,4 +4219,4 @@ if('serviceWorker' in navigator){
   });
 }
 
-/* v7.3 Maintenance Centre is a dedicated page at /maintenance-dashboard.html. */
+

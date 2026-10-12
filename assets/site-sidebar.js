@@ -20,8 +20,6 @@
       ['🗺','Electrical Maps','/electrical-schematic-map.html'],
       ['🏭','Main House Electrical','/main-house-electrical.html'],
       ['🏠','Staff House Electrical','/staff-house-electrical.html'],
-      ['🧰','Maintenance Centre','/maintenance-dashboard.html'],
-      ['🤝','Contractors & Quotes','/contractor-dashboard.html'],
       ['📸','Photo Inbox','/photo-inbox.html'],
       ['🗺','Drawings & Schematics','/drawings-schematics.html'],
       ['🟢','Systems','/systems.html']

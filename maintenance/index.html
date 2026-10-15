@@ -19,7 +19,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),cfg=window.LIMEWOOD_CONFIG||{},client=window.supabase?.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let jobs=[],session=null,canManage=false,selected=null;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const st=j=>j.status||'new',isDone=j=>st(j)==='completed',isUrg=j=>(j.urgency||j.priority||'').toLowerCase()==='urgent';
 function render(){const q=$('search').value.trim().toLowerCase(),f=$('filter').value;
 $('total').textContent=jobs.length;$('done').textContent=jobs.filter(isDone).length;$('open').textContent=jobs.filter(j=>!isDone(j)).length;$('urgent').textContent=jobs.filter(j=>!isDone(j)&&isUrg(j)).length;
